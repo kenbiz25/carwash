@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# Disallow private app routes from being indexed
+Disallow: /Dashboard
+Disallow: /Washes
+Disallow: /Payments
+Disallow: /Staff
+Disallow: /Services
+Disallow: /Inventory
+Disallow: /Schedule
+Disallow: /Reports
+Disallow: /Settings
+Disallow: /BusinessManager
+Disallow: /CCTV
+Disallow: /Memberships
+Disallow: /LoyaltyProgram
+Disallow: /JobOrders
+
+# Sitemap
+Sitemap: https://carwash-managerke.web.app/sitemap.xml

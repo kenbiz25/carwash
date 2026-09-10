@@ -1,0 +1,17 @@
+{
+  "name": "BGO Shine Hub",
+  "short_name": "BGO Shine Hub",
+  "description": "Car wash, interior cleaning, greasing & air freshening in Njiru, Nairobi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B2241",
+  "theme_color": "#0B2241",
+  "icons": [
+    {
+      "src": "/img/meta.png",
+      "sizes": "643x269",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

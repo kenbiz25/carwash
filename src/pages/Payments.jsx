@@ -1,0 +1,240 @@
+﻿import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/api/firebaseClient";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Search,
+  Download,
+  Banknote,
+  Smartphone,
+  CreditCard,
+  RefreshCw,
+  TrendingUp
+} from "lucide-react";
+import StatusBadge from "@/components/common/StatusBadge";
+import StatCard from "@/components/common/StatCard";
+import moment from "moment";
+import { useBusiness } from "@/lib/BusinessContext";
+
+export default function Payments() {
+  const [methodFilter, setMethodFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateRange, setDateRange] = useState("today");
+
+  const { currentBusiness: business } = useBusiness();
+
+  const { data: payments = [], refetch } = useQuery({
+    queryKey: ["payments", business?.id],
+    queryFn: () => api.entities.Payment.filter({ business_id: business?.id }, "-created_date", 500),
+    enabled: !!business?.id,
+  });
+
+  const { data: washes = [] } = useQuery({
+    queryKey: ["washes", business?.id],
+    queryFn: () => api.entities.Wash.filter({ business_id: business?.id }, "-created_date", 500),
+    enabled: !!business?.id,
+  });
+
+  // Get wash info for each payment
+  const paymentsWithWash = payments.map(payment => {
+    const wash = washes.find(w => w.id === payment.wash_id);
+    return { ...payment, wash };
+  });
+
+  // Filter by date range
+  const getDateFilteredPayments = () => {
+    const now = moment();
+    return paymentsWithWash.filter(p => {
+      const paymentDate = moment(p.created_date);
+      switch (dateRange) {
+        case "today":
+          return paymentDate.isSame(now, "day");
+        case "week":
+          return paymentDate.isSame(now, "week");
+        case "month":
+          return paymentDate.isSame(now, "month");
+        default:
+          return true;
+      }
+    });
+  };
+
+  const dateFilteredPayments = getDateFilteredPayments();
+
+  // Filter by method and search
+  const filteredPayments = dateFilteredPayments.filter(payment => {
+    const matchesMethod = methodFilter === "all" || payment.method === methodFilter;
+    const matchesSearch = !searchQuery || 
+      payment.wash?.plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.transaction_ref?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.mpesa_receipt?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesMethod && matchesSearch;
+  });
+
+  // Calculate stats
+  const confirmedPayments = dateFilteredPayments.filter(p => p.status === "confirmed");
+  const totalRevenue = confirmedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const mpesaTotal = confirmedPayments.filter(p => p.method === "mpesa").reduce((sum, p) => sum + (p.amount || 0), 0);
+  const cashTotal = confirmedPayments.filter(p => p.method === "cash").reduce((sum, p) => sum + (p.amount || 0), 0);
+  const cardTotal = confirmedPayments.filter(p => p.method === "card").reduce((sum, p) => sum + (p.amount || 0), 0);
+
+  const dateRangeLabels = {
+    today: "Today",
+    week: "This Week",
+    month: "This Month",
+    all: "All Time"
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Payments</h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            Track all transactions and reconcile payments
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Tabs value={dateRange} onValueChange={setDateRange}>
+            <TabsList>
+              <TabsTrigger value="today">Today</TabsTrigger>
+              <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title={`Total (${dateRangeLabels[dateRange]})`}
+          value={`KES ${totalRevenue.toLocaleString()}`}
+          icon={TrendingUp}
+          iconColor="text-emerald-600"
+          iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+          subtitle={`${confirmedPayments.length} transactions`}
+        />
+        <StatCard
+          title="M-Pesa"
+          value={`KES ${mpesaTotal.toLocaleString()}`}
+          icon={Smartphone}
+          iconColor="text-green-600"
+          iconBg="bg-green-100 dark:bg-green-900/30"
+          subtitle={`${Math.round((mpesaTotal / totalRevenue) * 100) || 0}% of total`}
+        />
+        <StatCard
+          title="Cash"
+          value={`KES ${cashTotal.toLocaleString()}`}
+          icon={Banknote}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-100 dark:bg-blue-900/30"
+          subtitle={`${Math.round((cashTotal / totalRevenue) * 100) || 0}% of total`}
+        />
+        <StatCard
+          title="Card"
+          value={`KES ${cardTotal.toLocaleString()}`}
+          icon={CreditCard}
+          iconColor="text-purple-600"
+          iconBg="bg-purple-100 dark:bg-purple-900/30"
+          subtitle={`${Math.round((cardTotal / totalRevenue) * 100) || 0}% of total`}
+        />
+      </div>
+
+      {/* Filters */}
+      <Card className="p-4 bg-white dark:bg-slate-800 border-0 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search by plate, receipt, or reference..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
+          <Tabs value={methodFilter} onValueChange={setMethodFilter}>
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="mpesa" className="text-green-600">M-Pesa</TabsTrigger>
+              <TabsTrigger value="cash" className="text-blue-600">Cash</TabsTrigger>
+              <TabsTrigger value="card" className="text-purple-600">Card</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
+      </Card>
+
+      {/* Payments Table */}
+      <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50 dark:bg-slate-900/50">
+              <TableHead>Date & Time</TableHead>
+              <TableHead>Vehicle</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead>Reference</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredPayments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12">
+                  <Banknote className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p className="text-slate-500">No payments found</p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredPayments.map((payment) => (
+                <TableRow key={payment.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{moment(payment.created_date).format("MMM D, YYYY")}</p>
+                      <p className="text-xs text-slate-500">{moment(payment.created_date).format("h:mm A")}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <p className="font-mono font-medium">{payment.wash?.plate_number || "-"}</p>
+                  </TableCell>
+                  <TableCell>
+                    <p className="font-semibold text-emerald-600">
+                      KES {(payment.amount || 0).toLocaleString()}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={payment.method} />
+                  </TableCell>
+                  <TableCell>
+                    <p className="font-mono text-xs text-slate-500">
+                      {payment.mpesa_receipt || payment.transaction_ref || "-"}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={payment.status} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
+}

@@ -1,0 +1,300 @@
+﻿import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/api/firebaseClient";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Edit2, Trash2, Search, BookOpen, Package, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
+import { useBusiness } from "@/lib/BusinessContext";
+
+const CATEGORIES = {
+  exterior_wash: "Exterior Wash",
+  interior_clean: "Interior Clean",
+  detailing: "Detailing",
+  mechanical: "Mechanical",
+  add_on: "Add-On",
+  package: "Package",
+};
+
+const CAT_COLORS = {
+  exterior_wash: "bg-blue-100 text-blue-700",
+  interior_clean: "bg-purple-100 text-purple-700",
+  detailing: "bg-amber-100 text-amber-700",
+  mechanical: "bg-slate-100 text-slate-700",
+  add_on: "bg-green-100 text-green-700",
+  package: "bg-pink-100 text-pink-700",
+};
+
+const EMPTY = {
+  name: "", category: "exterior_wash", description: "", price_kes: "",
+  price_suv: "", price_van: "", duration_minutes: "", is_active: true, is_package: false,
+};
+
+export default function ProductCatalogue() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [form, setForm] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
+
+  const { user, currentBusiness: business } = useBusiness();
+  const businessId = business?.id;
+
+  // Owner, manager, or super admin can edit prices/services.
+  const email = user?.email?.toLowerCase();
+  const memberRole = business?.members?.find((m) => m.email?.toLowerCase() === email)?.role;
+  const canEdit =
+    business?.owner_email?.toLowerCase() === email ||
+    ["owner", "manager"].includes(memberRole) ||
+    business?.admin_emails?.some((e) => e?.toLowerCase() === email) ||
+    user?.role === "admin";
+
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ["services", businessId],
+    queryFn: () => api.entities.Service.filter({ business_id: businessId }, "sort_order", 200),
+    enabled: !!businessId,
+  });
+
+  const filtered = services.filter(s => {
+    const matchSearch = s.name?.toLowerCase().includes(search.toLowerCase()) || s.description?.toLowerCase().includes(search.toLowerCase());
+    const matchCat = catFilter === "all" || s.category === catFilter;
+    return matchSearch && matchCat;
+  });
+
+  const [tieredPricing, setTieredPricing] = useState(false);
+
+  const openCreate = () => { setForm(EMPTY); setEditItem(null); setTieredPricing(false); setFormOpen(true); };
+  const openEdit = (svc) => {
+    setForm({ ...EMPTY, ...svc });
+    setEditItem(svc);
+    setTieredPricing(!!(svc.price_suv || svc.price_van));
+    setFormOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    const payload = {
+      ...form,
+      price_kes: Number(form.price_kes) || 0,
+      price_suv: tieredPricing ? (Number(form.price_suv) || 0) : 0,
+      price_van: tieredPricing ? (Number(form.price_van) || 0) : 0,
+      duration_minutes: Number(form.duration_minutes) || 0,
+      business_id: businessId,
+    };
+    if (editItem) {
+      await api.entities.Service.update(editItem.id, payload);
+      toast.success("Service updated");
+    } else {
+      await api.entities.Service.create(payload);
+      toast.success("Service added to catalogue");
+    }
+    queryClient.invalidateQueries({ queryKey: ["services", businessId] });
+    setFormOpen(false);
+    setSaving(false);
+  };
+
+  const handleDelete = async (id) => {
+    await api.entities.Service.delete(id);
+    queryClient.invalidateQueries({ queryKey: ["services", businessId] });
+    toast.success("Service removed");
+  };
+
+  const toggleActive = async (svc) => {
+    await api.entities.Service.update(svc.id, { is_active: !svc.is_active });
+    queryClient.invalidateQueries({ queryKey: ["services", businessId] });
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-emerald-600" />
+            Product Catalogue
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Services & pricing for {business?.name || "your car wash"}</p>
+        </div>
+        {canEdit && (
+          <Button onClick={openCreate} className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600">
+            <Plus className="h-4 w-4 mr-2" /> Add Service
+          </Button>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input placeholder="Search services..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={catFilter} onValueChange={setCatFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {Object.entries(CATEGORIES).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="text-center py-12 text-slate-400">Loading...</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-slate-400">
+          <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>No services found</p>
+          {canEdit && <Button variant="outline" className="mt-4" onClick={openCreate}>Add First Service</Button>}
+        </div>
+      ) : (
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 dark:bg-slate-900/50">
+                  <TableHead>Service</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Saloon</TableHead>
+                  <TableHead>SUV</TableHead>
+                  <TableHead>Van</TableHead>
+                  <TableHead>Duration</TableHead>
+                  {canEdit && <TableHead>Active</TableHead>}
+                  {canEdit && <TableHead className="text-right">Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(svc => (
+                  <TableRow key={svc.id} className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 ${!svc.is_active ? "opacity-50" : ""}`}>
+                    <TableCell>
+                      <p className="font-medium text-sm text-slate-900 dark:text-white">{svc.name}</p>
+                      {svc.description && <p className="text-xs text-slate-500 line-clamp-1">{svc.description}</p>}
+                      {svc.is_package && <Badge className="bg-pink-100 text-pink-700 border-0 text-[10px] px-1.5 py-0 mt-0.5">Package</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${CAT_COLORS[svc.category] || ""} border-0 text-[10px] px-1.5 py-0 whitespace-nowrap`}>
+                        {CATEGORIES[svc.category] || svc.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold text-sm">KES {(svc.price_kes || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-sm text-slate-500">{svc.price_suv ? `KES ${svc.price_suv.toLocaleString()}` : "—"}</TableCell>
+                    <TableCell className="text-sm text-slate-500">{svc.price_van ? `KES ${svc.price_van.toLocaleString()}` : "—"}</TableCell>
+                    <TableCell className="text-sm text-slate-500">{svc.duration_minutes ? `${svc.duration_minutes} min` : "—"}</TableCell>
+                    {canEdit && (
+                      <TableCell>
+                        <Switch checked={svc.is_active !== false} onCheckedChange={() => toggleActive(svc)} />
+                      </TableCell>
+                    )}
+                    {canEdit && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-0.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(svc)}>
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(svc.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editItem ? "Edit Service" : "Add to Catalogue"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1">
+              <Label>Service Name *</Label>
+              <Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Carpet Wash" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Category</Label>
+                <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Duration (min)</Label>
+                <Input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} placeholder="30" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Description</Label>
+              <Textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's included in this service..." />
+            </div>
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+              <div>
+                <Label>Price varies by vehicle type</Label>
+                <p className="text-xs text-slate-500">Off for products or flat-rate services (e.g. carpet washing, air fresheners)</p>
+              </div>
+              <Switch checked={tieredPricing} onCheckedChange={setTieredPricing} />
+            </div>
+            {tieredPricing ? (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Price – Saloon (KES) *</Label>
+                  <Input required type="number" value={form.price_kes} onChange={e => setForm(f => ({ ...f, price_kes: e.target.value }))} placeholder="500" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Price – SUV (KES)</Label>
+                  <Input type="number" value={form.price_suv} onChange={e => setForm(f => ({ ...f, price_suv: e.target.value }))} placeholder="700" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Price – Van (KES)</Label>
+                  <Input type="number" value={form.price_van} onChange={e => setForm(f => ({ ...f, price_van: e.target.value }))} placeholder="900" />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label>Price (KES) *</Label>
+                <Input required type="number" value={form.price_kes} onChange={e => setForm(f => ({ ...f, price_kes: e.target.value }))} placeholder="500" />
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <Label>Is Package?</Label>
+              <Switch checked={form.is_package} onCheckedChange={v => setForm(f => ({ ...f, is_package: v }))} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Active</Label>
+              <Switch checked={form.is_active} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-500 to-cyan-500">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                {editItem ? "Save Changes" : "Add Service"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
