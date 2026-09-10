@@ -32,6 +32,12 @@ npm run dev
 The dev server runs at the URL Vite prints (default `http://localhost:5173`,
 often reassigned to another port if that one's busy).
 
+To take M-Pesa payments (see "M-Pesa" below), also run the separate backend:
+
+```bash
+cd mpesa-server && npm install && npm run dev
+```
+
 ### Environment
 
 Copy `.env` and fill in the Google Maps API key used for location
@@ -162,9 +168,33 @@ a WhatsApp booking link and directions — separate from the main marketing
 homepage. New branches get a slug and default photo set automatically when
 created; see `src/pages/BranchPage.jsx`.
 
+## M-Pesa
+
+Real M-Pesa payments (STK Push / Lipa Na M-Pesa Online) need a server that
+holds Safaricom's consumer secret and passkey and that Safaricom can call
+back — a browser-only app can't do either safely. That backend lives in its
+own folder, `mpesa-server/`, with its own `package.json` and its own single
+`.env` for every M-Pesa secret (see `mpesa-server/README.md` for full setup,
+including how to get real sandbox/production credentials and how to expose
+the callback URL with a tunnel).
+
+It currently runs in **mock mode** — no real Safaricom credentials are set
+yet, so `MPESA_ENV=mock` in `mpesa-server/.env` simulates the whole flow
+(STK push accepted → auto-"completes" a few seconds later with a fake
+receipt) without needing any. Flipping to real payments later is a matter of
+filling in `mpesa-server/.env` with real credentials and setting
+`MPESA_ENV=sandbox` (then `production`) — no frontend code changes needed.
+
+From `Payments → Process Payment → M-Pesa`, the flow is: the dialog asks
+`mpesa-server` to start an STK push, polls it for the result, and — once
+confirmed — writes the payment and marks the wash paid in the app's own data
+store. That last step is what makes a completed payment show up on the
+Dashboard/Payments page immediately, with no manual refresh.
+
 ## Hosting
 
 Currently local-only (see Tech stack). Planned: a MySQL/MariaDB database via
 cPanel hosting — not yet implemented, `src/api/firebaseClient.js` is the
 single place that would need to change to point at a real backend API
 instead of `localDb`.
+# carwash
