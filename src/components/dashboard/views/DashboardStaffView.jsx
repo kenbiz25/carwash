@@ -10,6 +10,7 @@ const statusColor = (status) =>
   ({
     waiting: "bg-amber-100 text-amber-700",
     washing: "bg-blue-100 text-blue-700",
+    paused: "bg-orange-100 text-orange-700",
   })[status] || "bg-slate-100 text-slate-600";
 
 const elapsed = (date) => {
@@ -79,7 +80,7 @@ function CashierFinancePanel({ payments = [] }) {
 
 function StaffPerformancePanel({ myWashes = [] }) {
   const completedToday = myWashes.filter((w) => isToday(w.created_date) && ["done", "paid"].includes(w.status));
-  const assignedActive = myWashes.filter((w) => ["waiting", "washing"].includes(w.status));
+  const assignedActive = myWashes.filter((w) => ["waiting", "washing", "paused"].includes(w.status));
   const totalCompleted = myWashes.filter((w) => ["done", "paid"].includes(w.status));
 
   return (
@@ -122,7 +123,7 @@ export default function DashboardStaffView({ user, userRole, currentBusiness, wa
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [showActive, setShowActive] = useState(false);
 
-  const activeWashes = (washes || []).filter(w => ["waiting", "washing"].includes(w.status));
+  const activeWashes = (washes || []).filter(w => ["waiting", "washing", "paused"].includes(w.status));
 
   const myStaffRecord = useMemo(
     () => (staff || []).find((s) => s.user_email?.toLowerCase() === user?.email?.toLowerCase()),

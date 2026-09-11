@@ -29,17 +29,24 @@ function loadMapsScript(cb) {
 /**
  * Location input backed by Google Maps Places Autocomplete.
  * Degrades to a plain Input when VITE_GOOGLE_MAPS_API_KEY is not set.
+ *
+ * `onChange(address)` fires on every keystroke, same as before. The optional
+ * `onPlaceSelect({ address, lat, lng })` fires only when the user actually
+ * picks a suggestion — typing alone can't give you coordinates, only a
+ * confirmed place from Google can.
  */
-export default function PlaceAutocomplete({ value, onChange, placeholder, className }) {
+export default function PlaceAutocomplete({ value, onChange, onPlaceSelect, placeholder, className }) {
   const inputRef  = useRef(null);
   const acRef     = useRef(null);
   // Always keep a fresh reference to onChange so the one-time listener
   // never calls a stale closure (which caused the "resets other fields" bug).
   const onChangeRef = useRef(onChange);
+  const onPlaceSelectRef = useRef(onPlaceSelect);
   const [ready, setReady] = useState(mapsReady);
 
-  // Sync the ref every render — no stale closures
+  // Sync the refs every render — no stale closures
   useEffect(() => { onChangeRef.current = onChange; });
+  useEffect(() => { onPlaceSelectRef.current = onPlaceSelect; });
 
   useEffect(() => {
     if (!MAPS_KEY) return;
@@ -55,13 +62,17 @@ export default function PlaceAutocomplete({ value, onChange, placeholder, classN
     const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
       types: ["establishment", "geocode"],
       componentRestrictions: { country: "ke" },
-      fields: ["formatted_address", "name"],
+      fields: ["formatted_address", "name", "geometry"],
     });
 
     ac.addListener("place_changed", () => {
       const place = ac.getPlace();
       const addr  = place.formatted_address || place.name || "";
       onChangeRef.current(addr); // ← always the latest onChange
+      const loc = place.geometry?.location;
+      if (loc && onPlaceSelectRef.current) {
+        onPlaceSelectRef.current({ address: addr, lat: loc.lat(), lng: loc.lng() });
+      }
     });
 
     acRef.current = ac;

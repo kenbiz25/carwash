@@ -101,6 +101,7 @@ function ensureSeeded() {
       await migrateBranchSlugsAndPhotos();
       await migratePricelistUpdate();
       await migrateAddPricingKind();
+      await migrateGalleryStyles();
     })();
   }
   return seedPromise;
@@ -221,6 +222,21 @@ async function migrateAddPricingKind() {
   const os = tx(db, "services", "readwrite");
   for (const svc of stale) {
     os.put({ ...svc, pricing_kind: inferPricingKind(svc.name) });
+  }
+}
+
+// Each branch's public page picks its own photo-gallery presentation —
+// backfills the three seeded branches for browsers that seeded before this
+// field existed. New/unlisted branches fall back to "fan" in BranchPage.jsx.
+const GALLERY_STYLE_BY_ID = { "qa-test-wash": "fan", "bgo-kayole": "spotlight", "bgo-utawala": "spotlight-wide" };
+async function migrateGalleryStyles() {
+  const businesses = await rawGetAll("businesses");
+  const stale = businesses.filter((b) => GALLERY_STYLE_BY_ID[b.id] && b.gallery_style !== GALLERY_STYLE_BY_ID[b.id]);
+  if (!stale.length) return;
+  const db = await openDb();
+  const os = tx(db, "businesses", "readwrite");
+  for (const biz of stale) {
+    os.put({ ...biz, gallery_style: GALLERY_STYLE_BY_ID[biz.id] });
   }
 }
 

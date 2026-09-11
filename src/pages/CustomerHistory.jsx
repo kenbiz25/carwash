@@ -412,7 +412,7 @@ export default function CustomerHistory() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-sm text-slate-900 dark:text-white">
-                              {wash.plate_number || wash.carpet_type || "—"}
+                              {wash.plate_number || wash.carpet_type || "-"}
                             </span>
                             <span
                               className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColor(
@@ -423,7 +423,7 @@ export default function CustomerHistory() {
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            {(wash.services || []).map((s) => s.name || s).join(", ") || "—"}
+                            {(wash.services || []).map((s) => s.name || s).join(", ") || "-"}
                           </p>
                           {wash.delivery_type === "delivery" && wash.delivery_date && (
                             <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">

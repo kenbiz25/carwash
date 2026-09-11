@@ -179,21 +179,21 @@ export default function SuperAdminBusinessView() {
                 <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-slate-500 text-xs">Location</p>
-                  <p className="font-medium">{business.city || business.location || "—"}</p>
+                  <p className="font-medium">{business.city || business.location || "-"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <Phone className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-slate-500 text-xs">Phone</p>
-                  <p className="font-medium">{business.phone || "—"}</p>
+                  <p className="font-medium">{business.phone || "-"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <Users className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-slate-500 text-xs">Owner</p>
-                  <p className="font-medium text-xs break-all">{business.owner_email || "—"}</p>
+                  <p className="font-medium text-xs break-all">{business.owner_email || "-"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
@@ -203,7 +203,7 @@ export default function SuperAdminBusinessView() {
                   <p className="font-medium">
                     {business.created_date
                       ? moment(business.created_date).format("MMM D, YYYY")
-                      : "—"}
+                      : "-"}
                   </p>
                 </div>
               </div>
@@ -234,18 +234,18 @@ export default function SuperAdminBusinessView() {
 
       {/* Key Metrics – row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Today's Washes"       value={loading ? "—" : stats.todayWashes}                              icon={Car}       color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/20" />
-        <StatCard label="Today's Revenue (KES)" value={loading ? "—" : stats.todayRevenue.toLocaleString()}           icon={Banknote}  color="text-green-600"   bg="bg-green-50 dark:bg-green-900/20"   />
-        <StatCard label="Month Washes"          value={loading ? "—" : stats.monthWashes}                             icon={TrendingUp} color="text-blue-600"   bg="bg-blue-50 dark:bg-blue-900/20"     />
-        <StatCard label="Month Revenue (KES)"   value={loading ? "—" : `${(stats.monthRevenue / 1000).toFixed(1)}K`} icon={TrendingUp} color="text-purple-600" bg="bg-purple-50 dark:bg-purple-900/20" />
+        <StatCard label="Today's Washes"       value={loading ? "-" : stats.todayWashes}                              icon={Car}       color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/20" />
+        <StatCard label="Today's Revenue (KES)" value={loading ? "-" : stats.todayRevenue.toLocaleString()}           icon={Banknote}  color="text-green-600"   bg="bg-green-50 dark:bg-green-900/20"   />
+        <StatCard label="Month Washes"          value={loading ? "-" : stats.monthWashes}                             icon={TrendingUp} color="text-blue-600"   bg="bg-blue-50 dark:bg-blue-900/20"     />
+        <StatCard label="Month Revenue (KES)"   value={loading ? "-" : `${(stats.monthRevenue / 1000).toFixed(1)}K`} icon={TrendingUp} color="text-purple-600" bg="bg-purple-50 dark:bg-purple-900/20" />
       </div>
 
       {/* Key Metrics – row 2 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Washes"          value={loading ? "—" : stats.totalWashes}                              icon={Car}       color="text-cyan-600"    bg="bg-cyan-50 dark:bg-cyan-900/20"     />
-        <StatCard label="Total Revenue (KES)"   value={loading ? "—" : `${(stats.totalRevenue / 1000).toFixed(1)}K`}  icon={Banknote}  color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/20" />
-        <StatCard label="Active Staff"          value={loading ? "—" : stats.activeStaff}                              icon={Users}     color="text-amber-600"   bg="bg-amber-50 dark:bg-amber-900/20"   />
-        <StatCard label="In Queue Now"          value={loading ? "—" : stats.pendingWashes}                            icon={Clock}     color="text-red-600"     bg="bg-red-50 dark:bg-red-900/20"       />
+        <StatCard label="Total Washes"          value={loading ? "-" : stats.totalWashes}                              icon={Car}       color="text-cyan-600"    bg="bg-cyan-50 dark:bg-cyan-900/20"     />
+        <StatCard label="Total Revenue (KES)"   value={loading ? "-" : `${(stats.totalRevenue / 1000).toFixed(1)}K`}  icon={Banknote}  color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/20" />
+        <StatCard label="Active Staff"          value={loading ? "-" : stats.activeStaff}                              icon={Users}     color="text-amber-600"   bg="bg-amber-50 dark:bg-amber-900/20"   />
+        <StatCard label="In Queue Now"          value={loading ? "-" : stats.pendingWashes}                            icon={Clock}     color="text-red-600"     bg="bg-red-50 dark:bg-red-900/20"       />
       </div>
 
       {/* Recent Washes */}
@@ -272,24 +272,24 @@ export default function SuperAdminBusinessView() {
                 {recentWashes.map((w) => (
                   <tr key={w.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
-                      {w.plate_number || "—"}
+                      {w.plate_number || "-"}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-[180px] truncate">
-                      {w.services?.map((s) => s.name).join(", ") || "—"}
+                      {w.services?.map((s) => s.name).join(", ") || "-"}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(w.status)}`}>
-                        {w.status || "—"}
+                        {w.status || "-"}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">
                       {(w.amount_due || 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-slate-500 text-xs">
-                      {w.assigned_staff_name || "—"}
+                      {w.assigned_staff_name || "-"}
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">
-                      {w.created_date ? moment(w.created_date).fromNow() : "—"}
+                      {w.created_date ? moment(w.created_date).fromNow() : "-"}
                     </td>
                   </tr>
                 ))}

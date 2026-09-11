@@ -179,7 +179,7 @@ export default function Inventory() {
           </p>
         </div>
         <Button 
-          className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+          variant="gradient"
           onClick={() => handleOpenDialog()}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -243,7 +243,7 @@ export default function Inventory() {
           {!searchQuery && categoryFilter === "all" && (
             <Button 
               onClick={() => handleOpenDialog()}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add First Item
@@ -483,7 +483,7 @@ export default function Inventory() {
             
             <Button 
               onClick={handleSave} 
-              className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient" className="w-full"
               disabled={saving}
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

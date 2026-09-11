@@ -393,7 +393,7 @@ export default function Settings() {
       return;
     }
     if (!user?.email) {
-      toast.error("Could not read your account email — please sign out and back in.");
+      toast.error("Could not read your account email - please sign out and back in.");
       return;
     }
 
@@ -648,7 +648,7 @@ export default function Settings() {
 
               <Button
                 onClick={handleSaveBusiness}
-                className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light"
+                variant="brand"
                 disabled={saving}
               >
                 {saving ? (
@@ -805,7 +805,7 @@ export default function Settings() {
 
               <Button
                 onClick={handleSaveBusiness}
-                className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light"
+                variant="brand"
                 disabled={saving}
               >
                 {saving ? (
@@ -882,7 +882,7 @@ export default function Settings() {
               <div className="space-y-2">
                 <h4 className="font-medium text-sm">API Credentials (For Production)</h4>
                 <p className="text-sm text-slate-500">
-                  These are stored securely — contact support to configure:
+                  These are stored securely - contact support to configure:
                 </p>
                 <ul className="text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1">
                   <li>Consumer Key</li>
@@ -894,7 +894,7 @@ export default function Settings() {
 
               <Button
                 onClick={handleSaveBusiness}
-                className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light"
+                variant="brand"
                 disabled={saving}
               >
                 {saving ? (
@@ -989,7 +989,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-700 dark:text-red-300">
-                Secret key is sensitive. In production, store it only in Cloud Functions environment variables — never expose it to the browser.
+                Secret key is sensitive. In production, store it only in Cloud Functions environment variables - never expose it to the browser.
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
@@ -1076,7 +1076,7 @@ export default function Settings() {
           <Button
             onClick={handleSavePaymentConfig}
             disabled={savingPayment}
-            className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light"
+            variant="brand"
           >
             {savingPayment ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Save Payment Configuration
@@ -1154,7 +1154,7 @@ export default function Settings() {
 
               <Button
                 onClick={handleSaveBusiness}
-                className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light"
+                variant="brand"
                 disabled={saving}
               >
                 {saving ? (

@@ -193,7 +193,7 @@ export default function DashboardOwnerManagerView({
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-4">
-          {/* All Locations Summary — only when owner has 2+ businesses */}
+          {/* All Locations Summary - only when owner has 2+ businesses */}
           {businesses.length > 1 && (
             <div className="rounded-2xl bg-gradient-to-r from-brand-blue-mid to-brand-blue-light p-4 text-white shadow-lg shadow-brand-blue-mid/20">
               <div className="flex items-center justify-between mb-3">

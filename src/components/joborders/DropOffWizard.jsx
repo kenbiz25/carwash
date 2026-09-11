@@ -377,7 +377,7 @@ export default function DropOffWizard({ order, services, staff, onSave, onClose 
               <CheckCircle2 className="h-8 w-8 text-emerald-500 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-emerald-700">Ready for Pickup</p>
-                <p className="text-sm text-slate-500">{form.customer_name} — {form.items_description || `${form.items_count} item(s)`}</p>
+                <p className="text-sm text-slate-500">{form.customer_name} - {form.items_description || `${form.items_count} item(s)`}</p>
               </div>
             </div>
 
@@ -454,7 +454,7 @@ export default function DropOffWizard({ order, services, staff, onSave, onClose 
                 type="button"
                 onClick={handleCollect}
                 disabled={saving}
-                className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-8"
+                variant="gradient" className="px-8"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                 Mark Collected

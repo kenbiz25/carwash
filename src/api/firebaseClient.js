@@ -90,6 +90,17 @@ const authModule = {
     const currentUser = auth.currentUser;
     if (!currentUser) throw new Error('Not authenticated');
 
+    // Accounts created by a manager/owner/super admin (or assigned branch +
+    // role by a super admin after a first Google sign-in) carry that as a
+    // Firebase custom claim — set server-side by user-admin-server, and
+    // readable on any device the moment this account gets a fresh token.
+    // That makes it the source of truth over the local `users` profile
+    // below, which is per-browser and only ever reflects this one device.
+    let claims = {};
+    try {
+      claims = (await currentUser.getIdTokenResult()).claims || {};
+    } catch { /* best effort - fall back to local profile only */ }
+
     const existing = await localDb.get('users', currentUser.uid);
     if (!existing) {
       const profile = {
@@ -98,7 +109,9 @@ const authModule = {
         email: currentUser.email,
         full_name: currentUser.displayName || currentUser.email?.split('@')[0] || '',
         avatar_url: currentUser.photoURL || '',
-        role: 'user',
+        role: claims.role || 'user',
+        ...(claims.business_id ? { business_id: claims.business_id } : {}),
+        ...(claims.username ? { username: claims.username } : {}),
         created_date: new Date().toISOString(),
       };
       await localDb.put('users', profile);
@@ -111,6 +124,9 @@ const authModule = {
       full_name: currentUser.displayName || '',
       avatar_url: currentUser.photoURL || '',
       ...existing,
+      ...(claims.role ? { role: claims.role } : {}),
+      ...(claims.business_id ? { business_id: claims.business_id } : {}),
+      ...(claims.username ? { username: claims.username } : {}),
     };
   },
 

@@ -129,7 +129,7 @@ export default function Loyalty() {
           </p>
         </div>
         <Button 
-          className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+          variant="gradient"
           onClick={() => handleOpenDialog()}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -194,7 +194,7 @@ export default function Loyalty() {
           {!searchQuery && (
             <Button 
               onClick={() => handleOpenDialog()}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add First Customer
@@ -340,7 +340,7 @@ export default function Loyalty() {
             </div>
             <Button 
               onClick={handleSave} 
-              className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient" className="w-full"
               disabled={saving}
             >
               {editingCustomer ? "Update Customer" : "Add to Loyalty Program"}

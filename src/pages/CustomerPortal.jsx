@@ -182,7 +182,7 @@ export default function CustomerPortal() {
 
               <Button 
                 onClick={() => handleVerify()}
-                className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-lg py-6"
+                variant="gradient" className="w-full text-lg py-6"
                 disabled={loading || !phone}
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Phone className="h-5 w-5 mr-2" />}
@@ -253,7 +253,7 @@ export default function CustomerPortal() {
           </CardContent>
         </Card>
 
-        {/* Request Service — home wash & additional service requests */}
+        {/* Request Service - home wash & additional service requests */}
         <Card className="mb-6 border-0 shadow-lg">
           <CardContent className="p-4">
             <p className="text-sm font-semibold text-slate-700 mb-3">Need something extra?</p>
@@ -486,7 +486,7 @@ export default function CustomerPortal() {
                 <Button
                   onClick={submitRequest}
                   disabled={sendingRequest}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  variant="gradient" className="w-full"
                 >
                   {sendingRequest && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Send Request

@@ -108,7 +108,7 @@ export default function JobOrders() {
         <div className="flex gap-2">
           <Button
             onClick={() => setWizard({ type: "drive_in", order: null })}
-            className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
+            variant="gradient"
           >
             <Car className="h-4 w-4 mr-1.5" /> Drive-in Wash
           </Button>
@@ -159,7 +159,7 @@ export default function JobOrders() {
           <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No jobs found</p>
           <div className="flex gap-3 justify-center mt-4">
-            <Button onClick={() => setWizard({ type: "drive_in", order: null })} className="bg-gradient-to-r from-emerald-500 to-cyan-500">
+            <Button onClick={() => setWizard({ type: "drive_in", order: null })} variant="gradient">
               <Car className="h-4 w-4 mr-1.5" /> New Drive-in
             </Button>
           </div>

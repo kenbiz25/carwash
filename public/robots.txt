@@ -1,21 +1,35 @@
 User-agent: *
 Allow: /
+Allow: /Landing
+Allow: /PrivacyPolicy
+Allow: /TermsOfService
 
-# Disallow private app routes from being indexed
+# Utility / account pages — publicly reachable but no indexable content
+Disallow: /Login
+Disallow: /JoinBusiness
+Disallow: /CustomerPortal
+
+# Private, authenticated app pages
 Disallow: /Dashboard
 Disallow: /Washes
+Disallow: /WashDetails
 Disallow: /Payments
 Disallow: /Staff
 Disallow: /Services
 Disallow: /Inventory
-Disallow: /Schedule
 Disallow: /Reports
 Disallow: /Settings
 Disallow: /BusinessManager
 Disallow: /CCTV
 Disallow: /Memberships
-Disallow: /LoyaltyProgram
+Disallow: /Loyalty
 Disallow: /JobOrders
+Disallow: /ProductCatalogue
+Disallow: /Profile
+Disallow: /Help
+Disallow: /CustomerHistory
+Disallow: /SuperAdminDashboard
+Disallow: /SuperAdminBusinessView
 
 # Sitemap
-Sitemap: https://carwash-managerke.web.app/sitemap.xml
+Sitemap: https://bgoshinehub.co.ke/sitemap.xml

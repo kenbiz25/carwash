@@ -9,6 +9,13 @@
 # real payment-provider secrets once configured; see its own README locally)
 mpesa-server/
 
+# Standalone WhatsApp backend — same reasoning as mpesa-server/ above
+whatsapp-server/
+
+# Standalone user-admin backend — holds a Firebase service account key once
+# configured (see its own README locally); same reasoning as mpesa-server/
+user-admin-server/
+
 # Logs
 logs
 *.log

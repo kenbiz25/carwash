@@ -162,7 +162,7 @@ export default function Memberships() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Membership Plans</h1>
           <p className="text-slate-500">Create recurring subscription plans for loyal customers</p>
         </div>
-        <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500" onClick={() => handleOpenDialog()}>
+        <Button variant="gradient" onClick={() => handleOpenDialog()}>
           <Plus className="h-4 w-4 mr-2" />
           Create Plan
         </Button>
@@ -434,7 +434,7 @@ export default function Memberships() {
                 ))}
               </div>
             </div>
-            <Button onClick={handleSave} className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500" disabled={saving}>
+            <Button onClick={handleSave} variant="gradient" className="w-full" disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {editingPlan ? "Update Plan" : "Create Plan"}
             </Button>

@@ -178,7 +178,7 @@ export default function Profile() {
       // Ensure the user profile reflects membership
       await api.auth.updateMe({ business_id, user_role: role });
 
-      toast.success("Invitation accepted — your account has been linked to the business.");
+      toast.success("Invitation accepted - your account has been linked to the business.");
       await refetch();
       await refetchInvites();
     } catch (err) {
@@ -244,7 +244,7 @@ export default function Profile() {
             <Button
               onClick={() => acceptInvite(pendingInvite)}
               disabled={acceptingInvite}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient"
             >
               {acceptingInvite ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -343,7 +343,7 @@ export default function Profile() {
 
             <Button
               onClick={handleSave}
-              className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient" className="w-full"
               disabled={saving}
             >
               {saving ? (

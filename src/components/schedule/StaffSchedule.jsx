@@ -261,7 +261,7 @@ export default function StaffSchedule({ businessId, staff = [], schedules = [], 
               />
             </div>
 
-            <Button onClick={handleAddSchedule} className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500">
+            <Button onClick={handleAddSchedule} variant="gradient" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               Add Schedule
             </Button>

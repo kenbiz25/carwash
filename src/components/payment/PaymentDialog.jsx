@@ -313,7 +313,7 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
                     Payment not completed
                   </p>
                   <p className="text-sm text-red-600 dark:text-red-300">
-                    The customer may have cancelled or the request timed out — you can try again.
+                    The customer may have cancelled or the request timed out - you can try again.
                   </p>
                 </div>
               )}

@@ -8,14 +8,16 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
-import { 
-  MoreVertical, 
-  Play, 
-  CheckCircle, 
-  Banknote, 
-  User, 
+import {
+  MoreVertical,
+  Play,
+  CheckCircle,
+  Banknote,
+  User,
   Clock,
-  X
+  X,
+  Pause,
+  Trash2
 } from "lucide-react";
 import StatusBadge from "../common/StatusBadge";
 import VehicleIcon from "../common/VehicleIcon";
@@ -23,7 +25,7 @@ import moment from "moment";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function WashCard({ wash, onStatusChange, onPayment }) {
+export default function WashCard({ wash, onStatusChange, onPayment, canManageWashes, onPause, onResume, onDelete }) {
   const statusActions = {
     waiting: { label: "Start Washing", icon: Play, nextStatus: "washing" },
     washing: { label: "Mark Done", icon: CheckCircle, nextStatus: "done" },
@@ -82,7 +84,11 @@ export default function WashCard({ wash, onStatusChange, onPayment }) {
           )}
           
           <div className="flex items-center gap-2 mt-2">
-            {currentAction && (
+            {wash.status === 'paused' && canManageWashes ? (
+              <Button size="sm" onClick={() => onResume?.(wash.id)} className="bg-blue-600 hover:bg-blue-700">
+                <Play className="h-3 w-3 mr-1" />Resume
+              </Button>
+            ) : currentAction && (
               <Button
                 size="sm"
                 onClick={() => {
@@ -92,8 +98,8 @@ export default function WashCard({ wash, onStatusChange, onPayment }) {
                     onStatusChange?.(wash.id, currentAction.nextStatus);
                   }
                 }}
-                className={wash.status === 'done' 
-                  ? "bg-green-600 hover:bg-green-700" 
+                className={wash.status === 'done'
+                  ? "bg-green-600 hover:bg-green-700"
                   : "bg-emerald-600 hover:bg-emerald-700"
                 }
               >
@@ -101,7 +107,7 @@ export default function WashCard({ wash, onStatusChange, onPayment }) {
                 {currentAction.label}
               </Button>
             )}
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -114,7 +120,10 @@ export default function WashCard({ wash, onStatusChange, onPayment }) {
                     View Details
                   </Link>
                 </DropdownMenuItem>
-                {wash.status !== 'paid' && wash.status !== 'cancelled' && (
+                {/* Manual status overrides - hidden while paused unless you can
+                    manage washes, so pausing actually holds a job in place
+                    instead of being one click from being silently bypassed. */}
+                {wash.status !== 'paid' && wash.status !== 'cancelled' && (wash.status !== 'paused' || canManageWashes) && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onStatusChange?.(wash.id, 'waiting')}>
@@ -126,15 +135,28 @@ export default function WashCard({ wash, onStatusChange, onPayment }) {
                     <DropdownMenuItem onClick={() => onStatusChange?.(wash.id, 'done')}>
                       Mark as Done
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      className="text-red-600"
-                      onClick={() => onStatusChange?.(wash.id, 'cancelled')}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancel Wash
-                    </DropdownMenuItem>
                   </>
+                )}
+                {wash.status === 'washing' && canManageWashes && (
+                  <DropdownMenuItem className="text-orange-600" onClick={() => onPause?.(wash)}>
+                    <Pause className="h-4 w-4 mr-2" />
+                    Pause Wash
+                  </DropdownMenuItem>
+                )}
+                {wash.status === 'waiting' && (
+                  <DropdownMenuItem
+                    className="text-red-600"
+                    onClick={() => onStatusChange?.(wash.id, 'cancelled')}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel Wash
+                  </DropdownMenuItem>
+                )}
+                {['washing', 'paused', 'done'].includes(wash.status) && canManageWashes && (
+                  <DropdownMenuItem className="text-red-600" onClick={() => onDelete?.(wash)}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Wash
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>

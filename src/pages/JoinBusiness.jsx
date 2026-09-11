@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { auth } from '@/lib/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { localDb } from '@/lib/localDb';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Waves, Loader2, Mail, Lock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Mail, Lock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import Logo from '@/components/common/Logo';
 import { toast } from 'sonner';
 
 export default function JoinBusiness() {
@@ -122,9 +125,10 @@ export default function JoinBusiness() {
       await acceptInvitation(cred.user, invitation);
     } catch (err) {
       const MAP = {
-        'auth/user-not-found': 'No account with this email',
-        'auth/wrong-password': 'Incorrect password',
-        'auth/invalid-credential': 'Invalid email or password',
+        'auth/user-not-found': 'No account with this email - try Create Account instead.',
+        'auth/wrong-password': 'Incorrect password - try again, or reset it from the main sign-in page.',
+        'auth/invalid-credential': 'That email or password is wrong - double-check both, or try Create Account if you\'re new.',
+        'auth/network-request-failed': 'No internet connection - check your network and try again.',
       };
       toast.error(MAP[err.code] || err.message);
     } finally {
@@ -141,10 +145,30 @@ export default function JoinBusiness() {
       await acceptInvitation(cred.user, invitation);
     } catch (err) {
       const MAP = {
-        'auth/email-already-in-use': 'Email already registered — use Sign In',
-        'auth/weak-password': 'Password must be at least 6 characters',
+        'auth/email-already-in-use': 'Email already registered - use Sign In instead.',
+        'auth/weak-password': 'Password must be at least 6 characters - add a few more and try again.',
+        'auth/network-request-failed': 'No internet connection - check your network and try again.',
       };
       toast.error(MAP[err.code] || err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAuthLoading(true);
+    try {
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      await acceptInvitation(cred.user, invitation);
+    } catch (err) {
+      const MAP = {
+        'auth/account-exists-with-different-credential': 'An account already exists with this email using a password instead - use Sign In above with that password.',
+        'auth/network-request-failed': 'No internet connection - check your network and try again.',
+        'auth/popup-blocked': 'Your browser blocked the Google sign-in popup - allow popups for this site and try again.',
+      };
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error(MAP[err.code] || err.message || 'Google sign-in failed');
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -159,9 +183,9 @@ export default function JoinBusiness() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-blue-mid to-brand-blue-light flex items-center justify-center mb-4 shadow-2xl shadow-brand-blue-mid/40">
-            <Waves className="h-8 w-8 text-white" />
-          </div>
+          <Link to="/Landing" className="mx-auto mb-4 block w-fit shadow-2xl shadow-brand-blue-mid/40 rounded-2xl">
+            <Logo size="xl" />
+          </Link>
           <h1 className="text-2xl font-bold text-white">BGO Shine Hub</h1>
         </div>
 
@@ -205,7 +229,7 @@ export default function JoinBusiness() {
             </div>
           )}
 
-          {/* Valid invitation — show auth form */}
+          {/* Valid invitation - show auth form */}
           {status === 'found' && invitation && (
             <>
               <div className="mb-6 p-4 rounded-xl bg-brand-blue-mid/10 border border-brand-blue-mid/20">
@@ -217,6 +241,27 @@ export default function JoinBusiness() {
                   as a{' '}
                   <span className="font-semibold capitalize">{invitation.role}</span>.
                 </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={authLoading}
+                onClick={handleGoogleSignIn}
+                className="w-full h-11 mb-4"
+              >
+                <svg className="h-4 w-4 mr-2" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+                  <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l6.19 5.238C39.909 36.485 44 31 44 24c0-1.341-.138-2.65-.389-3.917z" />
+                </svg>
+                {authLoading ? "Joining…" : "Continue with Google"}
+              </Button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                <span className="text-xs text-slate-400">or</span>
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
               </div>
 
               <Tabs defaultValue="signin">
@@ -241,9 +286,9 @@ export default function JoinBusiness() {
                         <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" placeholder="••••••••" />
                       </div>
                     </div>
-                    <Button type="submit" disabled={authLoading} className="w-full h-11 bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light">
+                    <Button type="submit" disabled={authLoading} variant="brand" className="w-full h-11">
                       {authLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Sign In & Join
+                      {authLoading ? "Joining…" : "Sign In & Join"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -264,9 +309,9 @@ export default function JoinBusiness() {
                         <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" placeholder="At least 6 characters" />
                       </div>
                     </div>
-                    <Button type="submit" disabled={authLoading} className="w-full h-11 bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light">
+                    <Button type="submit" disabled={authLoading} variant="brand" className="w-full h-11">
                       {authLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Create Account & Join
+                      {authLoading ? "Joining…" : "Create Account & Join"}
                     </Button>
                   </form>
                 </TabsContent>

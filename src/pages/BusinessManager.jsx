@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PlaceAutocomplete from "@/components/common/PlaceAutocomplete";
+import BranchPhotoEditor from "@/components/common/BranchPhotoEditor";
+import { createTeamUser, listBusinessUsers, resetTeamUserPassword } from "@/lib/userAdminClient";
 import {
   Building2,
   Phone,
@@ -60,7 +62,7 @@ function StatCard({ icon: Icon, label, value }) {
       </div>
       <div>
         <p className="text-xs text-slate-500">{label}</p>
-        <p className="font-semibold text-slate-800 dark:text-slate-100">{value || "—"}</p>
+        <p className="font-semibold text-slate-800 dark:text-slate-100">{value || "-"}</p>
       </div>
     </div>
   );
@@ -75,7 +77,8 @@ export default function BusinessManager() {
   // Primary business form state
   const [form, setForm] = useState({
     name: "", location: "", city: "", phone: "",
-    bays_count: "", description: "",
+    bays_count: "", description: "", hours: "",
+    latitude: null, longitude: null, photos: [],
     mpesa_till: "", mpesa_shortcode: "",
     members: [],
   });
@@ -83,13 +86,26 @@ export default function BusinessManager() {
 
   // My Locations state
   const [addLocationOpen, setAddLocationOpen] = useState(false);
-  const [newLocForm, setNewLocForm] = useState({ name: "", city: "", bays_count: "1" });
+  const [newLocForm, setNewLocForm] = useState({
+    name: "", location: "", city: "", phone: "", description: "", hours: "",
+    latitude: null, longitude: null, photos: [], bays_count: "1",
+    slug: "", slugEdited: false, copyServicesFrom: "none",
+  });
   const [addingLocation, setAddingLocation] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [editLocForm, setEditLocForm] = useState({});
   const [savingLocation, setSavingLocation] = useState(false);
   const [changeManagerBiz, setChangeManagerBiz] = useState(null);
   const [newManagerEmail, setNewManagerEmail] = useState("");
+
+  // Direct staff logins (username + password, created here rather than via
+  // an email invite link) — backed by user-admin-server / Firebase custom
+  // claims, so they work the moment that person signs in on any device.
+  const [newLogin, setNewLogin] = useState({ full_name: "", loginMethod: "username", identifier: "", password: "", role: "staff" });
+  const [creatingLogin, setCreatingLogin] = useState(false);
+  const [resetPasswordFor, setResetPasswordFor] = useState(null); // { uid, label } | null
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   // The business being edited/managed here is whichever one the Sidebar's
   // branch switcher currently shows — not an independently-resolved "primary"
@@ -114,6 +130,15 @@ export default function BusinessManager() {
     || business?.owner_email === user?.email
     || (business?.members || []).some(m => m.email === user?.email && m.role === "owner");
   const canCreateBranch = isSuperAdmin || isOwner;
+  const isManager = (business?.members || []).some(m => m.email === user?.email && m.role === "manager");
+  const canCreateLogins = isSuperAdmin || isOwner || isManager;
+
+  const { data: businessLogins = [], refetch: refetchLogins, isError: loginsErrored, error: loginsError } = useQuery({
+    queryKey: ["business-logins", business?.id],
+    queryFn: () => listBusinessUsers(business.id),
+    enabled: !!business?.id && canCreateLogins,
+    retry: false,
+  });
 
   useEffect(() => {
     if (business) {
@@ -124,6 +149,10 @@ export default function BusinessManager() {
         phone:           business.phone || "",
         bays_count:      business.bays_count || "",
         description:     business.description || "",
+        hours:           business.hours || "",
+        latitude:        business.latitude ?? null,
+        longitude:       business.longitude ?? null,
+        photos:          business.photos || [],
         mpesa_till:      business.mpesa_till || "",
         mpesa_shortcode: business.mpesa_shortcode || "",
         members:         normalizeMembersFromBusiness(business),
@@ -166,8 +195,10 @@ export default function BusinessManager() {
   };
 
   // ── Send Invitation Email ─────────────────────────────────────────
+  const [sendingInviteFor, setSendingInviteFor] = useState(null);
   const handleSendInvite = async (memberEmail, memberRole) => {
     if (!business?.id) { toast.error("Save the business first"); return; }
+    setSendingInviteFor(memberEmail);
     try {
       const token = crypto.randomUUID?.() || (Math.random().toString(36).slice(2) + Date.now().toString(36));
       const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -190,6 +221,55 @@ export default function BusinessManager() {
       });
     } catch (err) {
       toast.error("Failed to create invite: " + (err?.message || err));
+    } finally {
+      setSendingInviteFor(null);
+    }
+  };
+
+  // ── Create a direct staff login (username or phone + password) ─────
+  const handleCreateLogin = async () => {
+    if (!business?.id) { toast.error("Save the business first"); return; }
+    const identifier = newLogin.identifier.trim();
+    const isPhone = newLogin.loginMethod === "phone";
+    if (!identifier) {
+      toast.error(isPhone ? "Enter a phone number" : "Enter a username"); return;
+    }
+    if (!newLogin.password || newLogin.password.length < 6) {
+      toast.error("Password must be at least 6 characters"); return;
+    }
+    setCreatingLogin(true);
+    try {
+      await createTeamUser({
+        ...(isPhone ? { phone: identifier } : { username: identifier.toLowerCase() }),
+        password: newLogin.password,
+        full_name: newLogin.full_name.trim() || identifier,
+        role: newLogin.role,
+        business_id: business.id,
+      });
+      toast.success(`Login created for "${identifier}" - share the ${isPhone ? "phone number" : "username"} and password with them directly.`);
+      setNewLogin({ full_name: "", loginMethod: newLogin.loginMethod, identifier: "", password: "", role: "staff" });
+      refetchLogins();
+    } catch (err) {
+      toast.error(err?.message || "Failed to create login");
+    } finally {
+      setCreatingLogin(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordFor || !resetPasswordValue || resetPasswordValue.length < 6) {
+      toast.error("Password must be at least 6 characters"); return;
+    }
+    setResettingPassword(true);
+    try {
+      await resetTeamUserPassword(resetPasswordFor.uid, resetPasswordValue);
+      toast.success(`Password reset for ${resetPasswordFor.label}`);
+      setResetPasswordFor(null);
+      setResetPasswordValue("");
+    } catch (err) {
+      toast.error(err?.message || "Failed to reset password");
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -210,6 +290,10 @@ export default function BusinessManager() {
         phone:           form.phone,
         bays_count:      form.bays_count ? parseInt(form.bays_count) : business.bays_count,
         description:     form.description,
+        hours:           form.hours,
+        latitude:        form.latitude,
+        longitude:       form.longitude,
+        photos:          form.photos,
         mpesa_till:      form.mpesa_till,
         mpesa_shortcode: form.mpesa_shortcode,
         members:         form.members,
@@ -227,25 +311,63 @@ export default function BusinessManager() {
   };
 
   // ── My Locations handlers ─────────────────────────────────────────
+  const RESET_NEW_LOC_FORM = {
+    name: "", location: "", city: "", phone: "", description: "", hours: "",
+    latitude: null, longitude: null, photos: [], bays_count: "1",
+    slug: "", slugEdited: false, copyServicesFrom: "none",
+  };
+
+  // Auto-suggests a slug from the location/name as they're typed, unless the
+  // owner has already typed their own into the slug field directly — city
+  // alone isn't safe to slugify since every seeded branch shares "Nairobi",
+  // which would collide every new branch onto the same /nairobi URL.
+  const suggestSlug = (loc) => {
+    if (loc.slugEdited) return loc;
+    const source = loc.location.split(",")[0] || loc.name;
+    return { ...loc, slug: localDb.slugify(source) };
+  };
+
   const handleAddLocation = async () => {
     if (!canCreateBranch) { toast.error("Only owners and super admins can create new branches"); return; }
     if (!newLocForm.name.trim()) { toast.error("Enter a business name"); return; }
+    const slug = newLocForm.slug.trim() || localDb.slugify(newLocForm.name);
     setAddingLocation(true);
     try {
-      await api.entities.Business.create({
+      const created = await api.entities.Business.create({
         name:          newLocForm.name.trim(),
+        location:      newLocForm.location.trim(),
         city:          newLocForm.city.trim(),
-        slug:          localDb.slugify(newLocForm.city.trim() || newLocForm.name.trim()),
-        photos:        localDb.DEFAULT_BRANCH_PHOTOS,
+        phone:         newLocForm.phone.trim(),
+        description:   newLocForm.description.trim(),
+        hours:         newLocForm.hours.trim() || "Open 24 hours, 7 days a week",
+        latitude:      newLocForm.latitude,
+        longitude:     newLocForm.longitude,
+        slug,
+        photos:        newLocForm.photos.length ? newLocForm.photos : localDb.DEFAULT_BRANCH_PHOTOS,
         bays_count:    parseInt(newLocForm.bays_count) || 1,
         owner_email:   user.email,
         members:       [{ email: user.email, role: "owner" }],
         member_emails: [user.email.toLowerCase()],
         is_active:     true,
       });
-      toast.success("Location created!");
+
+      if (newLocForm.copyServicesFrom !== "none") {
+        const sourceServices = await api.entities.Service.filter({ business_id: newLocForm.copyServicesFrom });
+        await Promise.all(
+          sourceServices.map((svc) => {
+            const { id: _id, business_id: _businessId, created_date: _created, updated_date: _updated, ...rest } = svc;
+            return api.entities.Service.create({ ...rest, business_id: created.id });
+          })
+        );
+      }
+
+      toast.success(
+        newLocForm.copyServicesFrom !== "none"
+          ? "Location created with catalogue copied over!"
+          : "Location created!"
+      );
       setAddLocationOpen(false);
-      setNewLocForm({ name: "", city: "", bays_count: "1" });
+      setNewLocForm(RESET_NEW_LOC_FORM);
       refetchLocations();
       queryClient.invalidateQueries({ queryKey: ["my-locations"] });
     } catch (err) {
@@ -258,8 +380,14 @@ export default function BusinessManager() {
     setEditingLocation(loc);
     setEditLocForm({
       name: loc.name || "",
+      location: loc.location || "",
       city: loc.city || "",
       phone: loc.phone || "",
+      description: loc.description || "",
+      hours: loc.hours || "",
+      latitude: loc.latitude ?? null,
+      longitude: loc.longitude ?? null,
+      photos: loc.photos || [],
       bays_count: String(loc.bays_count || ""),
     });
   };
@@ -269,10 +397,16 @@ export default function BusinessManager() {
     setSavingLocation(true);
     try {
       await api.entities.Business.update(editingLocation.id, {
-        name:       editLocForm.name,
-        city:       editLocForm.city,
-        phone:      editLocForm.phone,
-        bays_count: editLocForm.bays_count ? parseInt(editLocForm.bays_count) : editingLocation.bays_count,
+        name:        editLocForm.name,
+        location:    editLocForm.location,
+        city:        editLocForm.city,
+        phone:       editLocForm.phone,
+        description: editLocForm.description,
+        hours:       editLocForm.hours,
+        latitude:    editLocForm.latitude,
+        longitude:   editLocForm.longitude,
+        photos:      editLocForm.photos,
+        bays_count:  editLocForm.bays_count ? parseInt(editLocForm.bays_count) : editingLocation.bays_count,
       });
       toast.success("Location updated!");
       setEditingLocation(null);
@@ -344,7 +478,7 @@ export default function BusinessManager() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient"
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Save Changes
@@ -419,8 +553,21 @@ export default function BusinessManager() {
                 <PlaceAutocomplete
                   value={form.location}
                   onChange={(val) => setForm({ ...form, location: val })}
+                  onPlaceSelect={({ lat, lng }) => setForm((f) => ({ ...f, latitude: lat, longitude: lng }))}
                   placeholder="Search for address…"
                 />
+                <p className="text-xs text-slate-400">
+                  {form.latitude && form.longitude ? (
+                    <>📍 Pinned ({form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}) - shows on the branch's public
+                      page map.{" "}
+                      <button type="button" className="underline hover:text-slate-600" onClick={() => setForm((f) => ({ ...f, latitude: null, longitude: null }))}>
+                        Clear pin
+                      </button>
+                    </>
+                  ) : (
+                    "Pick a suggestion from the dropdown to drop a map pin - typing alone won't set one."
+                  )}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>City</Label>
@@ -432,15 +579,24 @@ export default function BusinessManager() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Number of Wash Bays</Label>
-              <Input
-                type="number"
-                value={form.bays_count}
-                onChange={(e) => setForm({ ...form, bays_count: e.target.value })}
-                placeholder="3"
-                className="max-w-xs"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Number of Wash Bays</Label>
+                <Input
+                  type="number"
+                  value={form.bays_count}
+                  onChange={(e) => setForm({ ...form, bays_count: e.target.value })}
+                  placeholder="3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Operating Hours</Label>
+                <Input
+                  value={form.hours}
+                  onChange={(e) => setForm({ ...form, hours: e.target.value })}
+                  placeholder="Open 24 hours, 7 days a week"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -448,9 +604,14 @@ export default function BusinessManager() {
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Tell customers about your car wash — services, specialties, hours…"
+                placeholder="Tell customers about your car wash - services, specialties, hours…"
                 rows={4}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Photos</Label>
+              <BranchPhotoEditor photos={form.photos} onChange={(photos) => setForm((f) => ({ ...f, photos }))} />
             </div>
           </CardContent>
         </Card>
@@ -550,10 +711,13 @@ export default function BusinessManager() {
                         {!isCurrentUser && (
                           <button
                             onClick={() => handleSendInvite(member.email, member.role)}
-                            className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-blue-mid hover:bg-brand-blue-mid/10 transition-colors"
-                            title={`Send invite email to ${member.email}`}
+                            disabled={sendingInviteFor === member.email}
+                            className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-brand-blue-mid hover:bg-brand-blue-mid/10 transition-colors disabled:opacity-50"
+                            title={`Send invite link for ${member.email}`}
                           >
-                            <Mail className="h-4 w-4" />
+                            {sendingInviteFor === member.email
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <Mail className="h-4 w-4" />}
                           </button>
                         )}
                         <button
@@ -568,6 +732,128 @@ export default function BusinessManager() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Direct staff logins (username + password) ──────── */}
+      {activeSection === "team" && canCreateLogins && (
+        <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle>Staff Logins</CardTitle>
+            <CardDescription>
+              Create a username or phone number, plus a password, for staff directly - no
+              email or invite link needed. They can sign in with it from any device.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {loginsErrored && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{loginsError?.message || "Couldn't load staff logins."}</span>
+              </div>
+            )}
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input
+                  value={newLogin.full_name}
+                  onChange={(e) => setNewLogin(p => ({ ...p, full_name: e.target.value }))}
+                  placeholder="Jane Wanjiru"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Login Method</Label>
+                <Select
+                  value={newLogin.loginMethod}
+                  onValueChange={(val) => setNewLogin(p => ({ ...p, loginMethod: val, identifier: "" }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="username">Username</SelectItem>
+                    <SelectItem value="phone">Phone Number</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{newLogin.loginMethod === "phone" ? "Phone Number" : "Username"}</Label>
+                <Input
+                  value={newLogin.identifier}
+                  onChange={(e) => setNewLogin(p => ({ ...p, identifier: e.target.value }))}
+                  placeholder={newLogin.loginMethod === "phone" ? "0757 234 111" : "jane.w"}
+                  type={newLogin.loginMethod === "phone" ? "tel" : "text"}
+                  autoCapitalize="none"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Password</Label>
+                <Input
+                  type="text"
+                  value={newLogin.password}
+                  onChange={(e) => setNewLogin(p => ({ ...p, password: e.target.value }))}
+                  placeholder="At least 6 characters"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select
+                  value={newLogin.role}
+                  onValueChange={(val) => setNewLogin(p => ({ ...p, role: val }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ROLE_CONFIG).filter(([key]) => key !== "owner" || isSuperAdmin || isOwner).map(([key, cfg]) => (
+                      <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button onClick={handleCreateLogin} disabled={creatingLogin}>
+              {creatingLogin ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              {creatingLogin ? "Creating…" : "Create Login"}
+            </Button>
+
+            {businessLogins.length > 0 && (
+              <div className="space-y-2">
+                <Label>Logins for this branch ({businessLogins.length})</Label>
+                <div className="divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  {businessLogins.map((u) => {
+                    const cfg = ROLE_CONFIG[u.role] || ROLE_CONFIG.staff;
+                    const label = u.username || u.phone || u.email;
+                    const methodTag = u.phone ? "Phone" : u.username ? "Username" : "Email";
+                    return (
+                      <div key={u.uid} className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800">
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-brand-blue-mid to-brand-blue-light flex items-center justify-center flex-shrink-0 text-xs font-bold text-white">
+                          {label[0]?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
+                            {u.full_name || label}
+                          </p>
+                          <p className="text-xs text-slate-400 truncate">{methodTag}: {label}</p>
+                        </div>
+                        <Badge className={`text-xs border ${cfg.color}`}>{cfg.label}</Badge>
+                        <button
+                          onClick={() => { setResetPasswordFor({ uid: u.uid, label }); setResetPasswordValue(""); }}
+                          className="h-7 px-2 flex items-center justify-center rounded-lg text-xs text-slate-500 hover:text-brand-blue-mid hover:bg-brand-blue-mid/10 transition-colors"
+                        >
+                          Reset password
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {!import.meta.env.VITE_USER_ADMIN_API_URL && (
+              <p className="text-xs text-slate-400">
+                Uses the user-admin-server backend (see its README) - run it locally with
+                <code className="mx-1 px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700">npm run dev</code>
+                inside <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700">user-admin-server/</code>.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -624,7 +910,7 @@ export default function BusinessManager() {
               <Button
                 onClick={() => setAddLocationOpen(true)}
                 size="sm"
-                className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+                variant="gradient"
               >
                 <Plus className="h-4 w-4 mr-2" /> Add Location
               </Button>
@@ -679,7 +965,7 @@ export default function BusinessManager() {
                         <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2 text-center">
                           <p className="text-slate-500">Manager</p>
                           <p className="font-semibold text-slate-700 dark:text-slate-200 truncate">
-                            {manager ? manager.email.split("@")[0] : "—"}
+                            {manager ? manager.email.split("@")[0] : "-"}
                           </p>
                         </div>
                       </div>
@@ -710,8 +996,8 @@ export default function BusinessManager() {
           )}
 
           {/* ── Add Location Dialog ── */}
-          <Dialog open={addLocationOpen} onOpenChange={setAddLocationOpen}>
-            <DialogContent>
+          <Dialog open={addLocationOpen} onOpenChange={(open) => { setAddLocationOpen(open); if (!open) setNewLocForm(RESET_NEW_LOC_FORM); }}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-emerald-600" />
@@ -724,9 +1010,25 @@ export default function BusinessManager() {
                   <Input
                     placeholder="e.g., BGO Shine Hub - Westlands"
                     value={newLocForm.name}
-                    onChange={e => setNewLocForm(p => ({ ...p, name: e.target.value }))}
+                    onChange={e => setNewLocForm(p => suggestSlug({ ...p, name: e.target.value }))}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Location / Address</Label>
+                  <PlaceAutocomplete
+                    value={newLocForm.location}
+                    onChange={(val) => setNewLocForm(p => suggestSlug({ ...p, location: val }))}
+                    onPlaceSelect={({ lat, lng }) => setNewLocForm(p => ({ ...p, latitude: lat, longitude: lng }))}
+                    placeholder="Search for address…"
+                  />
+                  <p className="text-xs text-slate-400">
+                    {newLocForm.latitude && newLocForm.longitude
+                      ? "📍 Pinned - will show on the branch's public page map."
+                      : "Pick a suggestion from the dropdown to drop a map pin - typing alone won't set one."}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>City</Label>
@@ -737,6 +1039,17 @@ export default function BusinessManager() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <Input
+                      placeholder="07XX XXX XXX"
+                      value={newLocForm.phone}
+                      onChange={e => setNewLocForm(p => ({ ...p, phone: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
                     <Label>Wash Bays</Label>
                     <Input
                       type="number"
@@ -745,14 +1058,66 @@ export default function BusinessManager() {
                       onChange={e => setNewLocForm(p => ({ ...p, bays_count: e.target.value }))}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Operating Hours</Label>
+                    <Input
+                      placeholder="Open 24 hours, 7 days a week"
+                      value={newLocForm.hours}
+                      onChange={e => setNewLocForm(p => ({ ...p, hours: e.target.value }))}
+                    />
+                  </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    rows={3}
+                    placeholder="Tell customers about this branch…"
+                    value={newLocForm.description}
+                    onChange={e => setNewLocForm(p => ({ ...p, description: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Photos</Label>
+                  <BranchPhotoEditor photos={newLocForm.photos} onChange={(photos) => setNewLocForm(p => ({ ...p, photos }))} />
+                  <p className="text-xs text-slate-400">Leave empty to start with the default BGO Shine Hub photo set.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Page URL</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-400 whitespace-nowrap">yoursite.com/</span>
+                    <Input
+                      value={newLocForm.slug}
+                      onChange={e => setNewLocForm(p => ({ ...p, slug: localDb.slugify(e.target.value), slugEdited: true }))}
+                      placeholder="auto-generated from location"
+                    />
+                  </div>
+                </div>
+
+                {allLocations.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Copy Services From</Label>
+                    <Select value={newLocForm.copyServicesFrom} onValueChange={(v) => setNewLocForm(p => ({ ...p, copyServicesFrom: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Start empty</SelectItem>
+                        {allLocations.map((loc) => (
+                          <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-500">Duplicates that branch's product catalogue into this new one - prices can be tweaked afterward.</p>
+                  </div>
+                )}
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <Button variant="outline" onClick={() => setAddLocationOpen(false)}>Cancel</Button>
                 <Button
                   onClick={handleAddLocation}
                   disabled={addingLocation}
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  variant="gradient"
                 >
                   {addingLocation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                   Create Location
@@ -763,7 +1128,7 @@ export default function BusinessManager() {
 
           {/* ── Edit Location Dialog ── */}
           <Dialog open={!!editingLocation} onOpenChange={() => setEditingLocation(null)}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-slate-600" />
@@ -778,6 +1143,28 @@ export default function BusinessManager() {
                     onChange={e => setEditLocForm(p => ({ ...p, name: e.target.value }))}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Location / Address</Label>
+                  <PlaceAutocomplete
+                    value={editLocForm.location || ""}
+                    onChange={(val) => setEditLocForm(p => ({ ...p, location: val }))}
+                    onPlaceSelect={({ lat, lng }) => setEditLocForm(p => ({ ...p, latitude: lat, longitude: lng }))}
+                    placeholder="Search for address…"
+                  />
+                  <p className="text-xs text-slate-400">
+                    {editLocForm.latitude && editLocForm.longitude ? (
+                      <>📍 Pinned ({editLocForm.latitude.toFixed(5)}, {editLocForm.longitude.toFixed(5)}).{" "}
+                        <button type="button" className="underline hover:text-slate-600" onClick={() => setEditLocForm(p => ({ ...p, latitude: null, longitude: null }))}>
+                          Clear pin
+                        </button>
+                      </>
+                    ) : (
+                      "Pick a suggestion from the dropdown to drop a map pin - typing alone won't set one."
+                    )}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>City</Label>
@@ -795,14 +1182,38 @@ export default function BusinessManager() {
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Wash Bays</Label>
+                    <Input
+                      type="number"
+                      value={editLocForm.bays_count || ""}
+                      onChange={e => setEditLocForm(p => ({ ...p, bays_count: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Operating Hours</Label>
+                    <Input
+                      placeholder="Open 24 hours, 7 days a week"
+                      value={editLocForm.hours || ""}
+                      onChange={e => setEditLocForm(p => ({ ...p, hours: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label>Wash Bays</Label>
-                  <Input
-                    type="number"
-                    className="max-w-xs"
-                    value={editLocForm.bays_count || ""}
-                    onChange={e => setEditLocForm(p => ({ ...p, bays_count: e.target.value }))}
+                  <Label>Description</Label>
+                  <Textarea
+                    rows={3}
+                    value={editLocForm.description || ""}
+                    onChange={e => setEditLocForm(p => ({ ...p, description: e.target.value }))}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Photos</Label>
+                  <BranchPhotoEditor photos={editLocForm.photos || []} onChange={(photos) => setEditLocForm(p => ({ ...p, photos }))} />
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
@@ -810,7 +1221,7 @@ export default function BusinessManager() {
                 <Button
                   onClick={handleSaveLocation}
                   disabled={savingLocation}
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  variant="gradient"
                 >
                   {savingLocation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Save
@@ -825,7 +1236,7 @@ export default function BusinessManager() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-blue-600" />
-                  Change Manager — {changeManagerBiz?.name}
+                  Change Manager - {changeManagerBiz?.name}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2">
@@ -853,7 +1264,7 @@ export default function BusinessManager() {
                 <Button variant="outline" onClick={() => setChangeManagerBiz(null)}>Cancel</Button>
                 <Button
                   onClick={handleChangeManager}
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  variant="gradient"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Update Manager
@@ -864,13 +1275,43 @@ export default function BusinessManager() {
         </div>
       )}
 
-      {/* Floating save bar — only for non-locations sections */}
+      {/* Reset-password dialog - lives outside the per-section blocks above
+          since its trigger (in the Team section's Staff Logins card) is in a
+          different conditional block than this modal needs to be mounted in. */}
+      <Dialog open={!!resetPasswordFor} onOpenChange={(open) => { if (!open) { setResetPasswordFor(null); setResetPasswordValue(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password - {resetPasswordFor?.label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            <Label>New Password</Label>
+            <Input
+              type="text"
+              value={resetPasswordValue}
+              onChange={(e) => setResetPasswordValue(e.target.value)}
+              placeholder="At least 6 characters"
+              onKeyDown={(e) => e.key === "Enter" && handleResetPassword()}
+              autoFocus
+            />
+            <p className="text-xs text-slate-500">Share this new password with them directly.</p>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setResetPasswordFor(null)} disabled={resettingPassword}>Cancel</Button>
+            <Button onClick={handleResetPassword} disabled={resettingPassword} variant="gradient">
+              {resettingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {resettingPassword ? "Resetting…" : "Reset Password"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating save bar - only for non-locations sections */}
       {activeSection !== "locations" && (
         <div className="flex justify-end">
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+            variant="gradient"
           >
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Save Changes

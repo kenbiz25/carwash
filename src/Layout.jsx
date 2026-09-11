@@ -8,7 +8,7 @@ import { LayoutDashboard, Car, Banknote, Menu } from "lucide-react";
 import { createPageUrl } from "@/utils";
 
 // Pages that don't need the dashboard layout
-const publicPages = ["Landing", "Help", "Login", "JoinBusiness", "CustomerPortal", "PrivacyPolicy", "TermsOfService"];
+const publicPages = ["Landing", "Login", "JoinBusiness", "CustomerPortal", "PrivacyPolicy", "TermsOfService"];
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -96,6 +96,10 @@ export default function Layout({ children, currentPageName }) {
           user={user}
           role={effectiveRole}
           business={currentBusiness}
+          hasBusiness={hasBusiness}
+          businesses={businesses}
+          selectedBusinessId={selectedBusinessId}
+          setSelectedBusinessId={setSelectedBusinessId}
           onMenuClick={() => setSidebarCollapsed(false)}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
@@ -107,7 +111,7 @@ export default function Layout({ children, currentPageName }) {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation — hidden on lg+ */}
+      {/* Mobile Bottom Navigation - hidden on lg+ */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-brand-navy border-t border-white/10 safe-area-bottom">
         <div className="flex items-center justify-around h-16 px-2">
           {[

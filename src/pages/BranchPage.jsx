@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "@/api/firebaseClient";
-import Logo from "@/components/common/Logo";
+import SiteNav from "@/components/common/SiteNav";
+import PhotoGalleryFan from "@/components/common/PhotoGalleryFan";
+import PhotoGallerySpotlight from "@/components/common/PhotoGallerySpotlight";
 import { Button } from "@/components/ui/button";
-import { MapPin, Phone, MessageCircle, ArrowLeft, Navigation, Clock } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Navigation, Clock } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -56,21 +58,10 @@ export default function BranchPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Top bar */}
-      <div className="border-b border-slate-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/Landing" className="flex items-center gap-2">
-            <Logo size="default" />
-            <span className="font-bold text-slate-900">BGO Shine Hub</span>
-          </Link>
-          <Link to="/Landing" className="text-sm text-slate-500 hover:text-brand-blue-mid flex items-center gap-1">
-            <ArrowLeft className="h-3.5 w-3.5" /> All Locations
-          </Link>
-        </div>
-      </div>
+      <SiteNav basePath="/Landing" />
 
       {/* Header */}
-      <div className="bg-brand-navy-dark text-white py-12 px-4">
+      <div className="bg-brand-navy-dark text-white pt-28 md:pt-36 pb-12 px-4">
         <div className="max-w-5xl mx-auto">
           <p className="text-brand-orange font-semibold text-sm mb-2 flex items-center gap-1.5">
             <MapPin className="h-4 w-4" /> {business.city || "Nairobi"}
@@ -78,21 +69,21 @@ export default function BranchPage() {
           <h1 className="text-3xl md:text-4xl font-bold mb-2">{business.name}</h1>
           <p className="text-brand-blue-pale max-w-xl mb-3">{business.description || "Professional car wash and detailing."}</p>
           <p className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold text-sm">
-            <Clock className="h-4 w-4" /> Open 24/7
+            <Clock className="h-4 w-4" /> {business.hours || "Open 24 hours, 7 days a week"}
           </p>
         </div>
       </div>
 
-      {/* Photo gallery */}
+      {/* Photo gallery - each branch can pick its own presentation style */}
       {photos.length > 0 && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {photos.map((src, i) => (
-              <div key={i} className={`overflow-hidden rounded-xl bg-slate-100 ${i === 0 ? "col-span-2 row-span-2" : ""}`} style={{ aspectRatio: i === 0 ? "4/3" : "1/1" }}>
-                <img src={src} alt={`${business.name} photo ${i + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          {business.gallery_style === "spotlight-wide" ? (
+            <PhotoGallerySpotlight photos={photos} altPrefix={business.name} sideCount={3} />
+          ) : business.gallery_style === "spotlight" ? (
+            <PhotoGallerySpotlight photos={photos} altPrefix={business.name} sideCount={1} />
+          ) : (
+            <PhotoGalleryFan photos={photos} altPrefix={business.name} />
+          )}
         </div>
       )}
 
@@ -108,7 +99,7 @@ export default function BranchPage() {
               <MapPin className="h-4 w-4 text-brand-orange" /> {business.location || business.city}
             </p>
             <p className="flex items-center gap-3 text-slate-700">
-              <Clock className="h-4 w-4 text-brand-orange" /> Open 24 hours, 7 days a week
+              <Clock className="h-4 w-4 text-brand-orange" /> {business.hours || "Open 24 hours, 7 days a week"}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

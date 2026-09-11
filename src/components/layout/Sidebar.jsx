@@ -79,7 +79,12 @@ export default function Sidebar({
 
   const menuItems = hasBusiness ? ALL_MENU_ITEMS : SETUP_MENU_ITEMS;
   const visibleItems = menuItems.filter(item => item.roles.includes(userRole));
-  const roleInfo = ROLE_LABELS[userRole] || ROLE_LABELS.staff;
+  // Before a business exists, "role" defaults to a literal "staff" purely so
+  // nav-visibility checks above have something to filter on — it doesn't
+  // reflect an actual assigned role, so don't present it as one.
+  const roleInfo = !hasBusiness
+    ? { label: "Getting Started", color: "bg-slate-100 text-slate-500" }
+    : (ROLE_LABELS[userRole] || ROLE_LABELS.staff);
 
   const currentBusiness = businesses.find(b => b.id === selectedBusinessId) || businesses[0];
   // Only owners run multiple locations — managers/staff/cashiers are scoped to one carwash.
@@ -101,8 +106,10 @@ export default function Sidebar({
       )}>
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/10 flex-shrink-0">
-          {!collapsed && <Logo size="default" />}
-          {collapsed && <Logo size="sm" showText={false} />}
+          <Link to="/Landing" title="Back to homepage">
+            {!collapsed && <Logo size="default" />}
+            {collapsed && <Logo size="sm" showText={false} />}
+          </Link>
           <Button
             variant="ghost"
             size="icon"
@@ -130,7 +137,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Business Switcher — shown when owner has 2+ businesses */}
+        {/* Business Switcher - shown when owner has 2+ businesses */}
         {showBizSwitcher && (
           <div className="px-3 py-2 border-b border-white/10 relative">
             <button

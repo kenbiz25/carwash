@@ -142,7 +142,7 @@ export default function ProductCatalogue() {
           <p className="text-slate-500 dark:text-slate-400 text-sm">Services & pricing for {business?.name || "your car wash"}</p>
         </div>
         {canEdit && (
-          <Button onClick={openCreate} className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600">
+          <Button onClick={openCreate} variant="gradient">
             <Plus className="h-4 w-4 mr-2" /> Add Service
           </Button>
         )}
@@ -217,7 +217,7 @@ export default function ProductCatalogue() {
                           {kind.tiers[1] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[1]}</p>}
                           <p>KES {svc.price_suv.toLocaleString()}</p>
                         </>
-                      ) : "—"}
+                      ) : "-"}
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
                       {svc.price_van ? (
@@ -225,9 +225,9 @@ export default function ProductCatalogue() {
                           {kind.tiers[2] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[2]}</p>}
                           <p>KES {svc.price_van.toLocaleString()}</p>
                         </>
-                      ) : "—"}
+                      ) : "-"}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500">{svc.duration_minutes ? `${svc.duration_minutes} min` : "—"}</TableCell>
+                    <TableCell className="text-sm text-slate-500">{svc.duration_minutes ? `${svc.duration_minutes} min` : "-"}</TableCell>
                     {canEdit && (
                       <TableCell>
                         <Switch checked={svc.is_active !== false} onCheckedChange={() => toggleActive(svc)} />
@@ -278,7 +278,7 @@ export default function ProductCatalogue() {
               <div className="space-y-1">
                 <Label>Est. Duration (min)</Label>
                 <Input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} placeholder="30" />
-                <p className="text-[11px] text-slate-400">A rough estimate for wait times — this is hand-washing, not a timed machine cycle, so actual time will vary.</p>
+                <p className="text-[11px] text-slate-400">A rough estimate for wait times - this is hand-washing, not a timed machine cycle, so actual time will vary.</p>
               </div>
             </div>
             <div className="space-y-1">
@@ -294,7 +294,7 @@ export default function ProductCatalogue() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-slate-500">
-                What the price columns mean for this service — most of the pricelist isn't
+                What the price columns mean for this service - most of the pricelist isn't
                 actually about vehicle size (matatus, lorries, carpet-per-m², air freshener
                 scents all use the same price fields for something else).
               </p>
@@ -331,7 +331,7 @@ export default function ProductCatalogue() {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-500 to-cyan-500">
+              <Button type="submit" disabled={saving} variant="gradient">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 {editItem ? "Save Changes" : "Add Service"}
               </Button>

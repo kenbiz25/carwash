@@ -5,8 +5,10 @@ import { Car, Banknote, Clock, Users, TrendingUp, AlertTriangle } from "lucide-r
 export default function QuickStats({ washes = [], payments = [], staff = [], inventory = [] }) {
   const today = new Date().toDateString();
   
-  const todayWashes = washes.filter(w => 
-    new Date(w.created_date).toDateString() === today
+  // Cancelled jobs never happened as far as the business is concerned - they
+  // shouldn't inflate how many vehicles were "serviced" today.
+  const todayWashes = washes.filter(w =>
+    new Date(w.created_date).toDateString() === today && w.status !== 'cancelled'
   );
   
   const todayRevenue = payments
@@ -25,7 +27,7 @@ export default function QuickStats({ washes = [], payments = [], staff = [], inv
     ? Math.round((mpesaPayments.length / todayConfirmedPayments.length) * 100)
     : 0;
   
-  const pendingWashes = washes.filter(w => ['waiting', 'washing'].includes(w.status));
+  const pendingWashes = washes.filter(w => ['waiting', 'washing', 'paused'].includes(w.status));
   
   const lowStockItems = inventory.filter(i => i.quantity <= (i.low_stock_threshold || 5));
   

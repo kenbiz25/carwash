@@ -1,4 +1,5 @@
 ﻿import { api } from "@/api/firebaseClient";
+import { sendWhatsappText } from "@/lib/whatsappClient";
 
 // Notification Templates
 const templates = {
@@ -65,11 +66,18 @@ const smsProviders = {
     }
   },
   whatsapp: {
-    name: "WhatsApp (Twilio)",
-    send: async (phone, message, config) => {
-      // Placeholder: Replace with actual WhatsApp Business API call
-      console.log("[WhatsApp] To:", phone, "Message:", message);
-      return { success: true, provider: "whatsapp", mock: true };
+    name: "WhatsApp",
+    send: async (phone, message) => {
+      // Real send via whatsapp-server (see whatsapp-server/README.md) — that
+      // server calls Meta's WhatsApp Cloud API; while it's running in mock
+      // mode (no credentials yet) this still exercises the full path and
+      // marks the notification "sent" without an actual Meta call.
+      try {
+        const result = await sendWhatsappText({ to: phone, message });
+        return { success: true, provider: "whatsapp", messageId: result.id };
+      } catch (err) {
+        return { success: false, provider: "whatsapp", error: err.message };
+      }
     }
   }
 };
@@ -152,7 +160,7 @@ export async function sendWashReadyNotification(wash, business) {
   return sendNotification({
     businessId: wash.business_id,
     type: "wash_ready",
-    channel: "sms",
+    channel: "whatsapp",
     recipientPhone: wash.customer_phone,
     recipientName: wash.customer_name,
     data: {
@@ -172,7 +180,7 @@ export async function sendPaymentConfirmation(wash, payment, business) {
   return sendNotification({
     businessId: wash.business_id,
     type: "payment_received",
-    channel: "sms",
+    channel: "whatsapp",
     recipientPhone: wash.customer_phone,
     recipientName: wash.customer_name,
     data: {
@@ -190,7 +198,7 @@ export async function sendLowStockAlert(item, business, recipientPhone) {
   return sendNotification({
     businessId: item.business_id,
     type: "low_stock",
-    channel: "sms",
+    channel: "whatsapp",
     recipientPhone,
     data: {
       businessName: business?.name,
@@ -211,7 +219,7 @@ export async function sendShiftReminder(schedule, staff, business) {
   return sendNotification({
     businessId: schedule.business_id,
     type: "shift_reminder",
-    channel: "sms",
+    channel: "whatsapp",
     recipientPhone: staff.phone,
     recipientName: staff.name,
     data: {
@@ -239,7 +247,7 @@ export async function updateLoyaltyAndNotify(customer, pointsEarned, business) {
     return sendNotification({
       businessId: customer.business_id,
       type: "loyalty_update",
-      channel: "sms",
+      channel: "whatsapp",
       recipientPhone: customer.phone,
       recipientName: customer.name,
       data: {

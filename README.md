@@ -32,10 +32,12 @@ npm run dev
 The dev server runs at the URL Vite prints (default `http://localhost:5173`,
 often reassigned to another port if that one's busy).
 
-To take M-Pesa payments (see "M-Pesa" below), also run the separate backend:
+To take M-Pesa payments (see "M-Pesa" below) or send WhatsApp notifications
+(see "WhatsApp" below), also run those separate backends:
 
 ```bash
 cd mpesa-server && npm install && npm run dev
+cd whatsapp-server && npm install && npm run dev
 ```
 
 ### Environment
@@ -196,10 +198,93 @@ confirmed — writes the payment and marks the wash paid in the app's own data
 store. That last step is what makes a completed payment show up on the
 Dashboard/Payments page immediately, with no manual refresh.
 
+## WhatsApp
+
+Customer notifications (payment confirmed, car ready for pickup) go out over
+WhatsApp rather than SMS. Same reasoning as M-Pesa: sending needs a real
+access token that can't sit in the browser, and Meta needs a public webhook
+to call back with delivery status — so this is its own gitignored folder,
+`whatsapp-server/`, with its own `.env` (see `whatsapp-server/README.md` for
+full setup, including getting real credentials from Meta and exposing the
+webhook with a tunnel).
+
+It currently runs in **mock mode** — no real Meta credentials are set yet,
+so a "send" is logged and marked sent instantly, no external call made.
+Flipping to real sends later is a matter of filling in
+`whatsapp-server/.env` with real credentials and setting `WHATSAPP_ENV=live`
+— no frontend code changes needed. Note that WhatsApp only allows free-form
+text within 24 hours of the customer's last message; these are all
+business-initiated notifications, so going live means sending pre-approved
+message **templates**, not plain text (see `whatsapp-server/README.md`).
+
+Two places trigger a WhatsApp send today: marking a wash "Done" in Active
+Washes (`src/pages/Washes.jsx`) messages the customer their car is ready,
+and confirming a payment (`PaymentDialog.jsx`) sends a receipt. Both go
+through `src/components/notifications/NotificationService.jsx`, which also
+has templates defined for loyalty updates, low-stock alerts and shift
+reminders — those exist but aren't wired to a trigger yet.
+
+## Staff Logins & Roles
+
+Owners, managers and super admins can create a staff login directly — a
+username + password, no email or invite link needed — from **My Business →
+Team → Staff Logins**, and reset anyone's password the same way. The role
+and branch travel as a Firebase custom claim on the account itself, so they
+apply the moment that person signs in **on any device**, not just the one
+they were created on (everything else in this app is per-browser local
+storage — see "Multi-branch & data isolation" above — this is the one
+exception, by design).
+
+Signing in also now accepts Google, in addition to email/password:
+
+- **Owners** self-serve as before — sign up (email or Google) and set up
+  their own business from Settings.
+- **Staff** either sign in with the username their manager gave them (the
+  "Email or Username" field on Login accepts both), or sign in with Google
+  directly — a first-time Google sign-in with no invite pending lands in a
+  "pending" empty state until a **super admin** assigns their branch and
+  role from the Super Admin dashboard's "Pending Sign-ups" panel.
+
+This is powered by `user-admin-server/`, another standalone gitignored
+backend (same shape as `mpesa-server`/`whatsapp-server`) — it holds the
+Firebase service account key needed for these privileged actions, which must
+never reach the browser. See `user-admin-server/README.md` for setup;
+**unlike** the other two backends, there's no mock mode for it, since the
+accounts it creates must be real Firebase Auth accounts for that person to
+actually log in.
+
 ## Hosting
 
-Currently local-only (see Tech stack). Planned: a MySQL/MariaDB database via
-cPanel hosting — not yet implemented, `src/api/firebaseClient.js` is the
-single place that would need to change to point at a real backend API
+Production domain: **bgoshinehub.co.ke**. The frontend build (`dist/`) and
+the three standalone backends (`mpesa-server/`, `whatsapp-server/`,
+`user-admin-server/`) are all meant to run under cPanel — each backend
+already reads its port from `process.env`, matching cPanel's Node.js App
+Manager (Phusion Passenger), which assigns the port itself and expects an
+`index.js` entry point.
+
+Suggested layout — one subdomain per backend, each set up as its own
+cPanel Node.js App pointed at that folder's `index.js`:
+
+| App               | Suggested (sub)domain              |
+| ------------------ | ---------------------------------- |
+| Frontend (`dist/`) | `bgoshinehub.co.ke`                |
+| `mpesa-server`      | `mpesa.bgoshinehub.co.ke`          |
+| `whatsapp-server`   | `whatsapp.bgoshinehub.co.ke`       |
+| `user-admin-server` | `users.bgoshinehub.co.ke`          |
+
+`.env.production` at the repo root already points the frontend's
+`VITE_*_API_URL` vars at these — update it if you use different
+subdomains/paths. Each backend's own `.env` (not `env.example`) needs
+`CORS_ORIGIN=https://bgoshinehub.co.ke` in production.
+
+One more manual step for Google sign-in to work on the live domain: Firebase
+Console → Authentication → Settings → **Authorized domains** → add
+`bgoshinehub.co.ke` (it only trusts `localhost` and Firebase's own domains
+by default).
+
+App data itself (businesses, washes, payments, staff, inventory, etc.) is
+still local-only (see Tech stack). Planned: a MySQL/MariaDB database via
+cPanel hosting for that too — not yet implemented, `src/api/firebaseClient.js`
+is the single place that would need to change to point at a real backend API
 instead of `localDb`.
 # carwash

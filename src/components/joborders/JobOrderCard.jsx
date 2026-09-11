@@ -88,11 +88,11 @@ export default function JobOrderCard({ order, isOverdue, onOpen, onDelete, onSta
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1 text-slate-500">
             <Calendar className="h-3 w-3 flex-shrink-0" />
-            <span>In: {order.date_brought ? format(new Date(order.date_brought), "d MMM HH:mm") : "—"}</span>
+            <span>In: {order.date_brought ? format(new Date(order.date_brought), "d MMM HH:mm") : "-"}</span>
           </div>
           <div className={`flex items-center gap-1 ${isOverdue ? "text-red-600 font-medium" : "text-slate-500"}`}>
             <Clock className="h-3 w-3 flex-shrink-0" />
-            <span>{order.date_to_collect ? format(new Date(order.date_to_collect), "d MMM HH:mm") : "—"}</span>
+            <span>{order.date_to_collect ? format(new Date(order.date_to_collect), "d MMM HH:mm") : "-"}</span>
           </div>
         </div>
 

@@ -312,7 +312,7 @@ export default function EnhancedCheckIn({
         businessId,
         recipientEmails: [staffMember.user_email],
         title: "New job assigned to you",
-        message: `${ref} — ${formData.services.map((s) => s.name).join(", ")}`,
+        message: `${ref} - ${formData.services.map((s) => s.name).join(", ")}`,
         referenceType: "wash",
         referenceId: newWash.id,
       }).catch(() => {});
@@ -376,7 +376,7 @@ export default function EnhancedCheckIn({
       {!isControlled && (
         <Button
           onClick={() => setOpen(true)}
-          className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-light hover:from-brand-blue-bright hover:to-brand-blue-light text-white shadow-lg shadow-brand-blue-mid/25"
+          variant="brand" className="shadow-lg shadow-brand-blue-mid/25"
         >
           <Plus className="h-4 w-4 mr-2" />
           {defaultType === "carpet" ? "Carpet Check-In" : "Check-In Vehicle"}
@@ -393,7 +393,7 @@ export default function EnhancedCheckIn({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Type toggle — carpets are paused for now (carwash is the primary product);
+        {/* Type toggle - carpets are paused for now (carwash is the primary product);
             re-enable by rendering this when a second type is offered again. */}
         {defaultType === "carpet" && (
           <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
@@ -544,7 +544,7 @@ export default function EnhancedCheckIn({
                         placeholder="Auto-generated"
                         autoFocus
                       />
-                      <p className="text-xs text-slate-400">Auto-generated — editable</p>
+                      <p className="text-xs text-slate-400">Auto-generated - editable</p>
                     </div>
                     <div className="space-y-2">
                       <Label>Item Count</Label>
@@ -557,7 +557,7 @@ export default function EnhancedCheckIn({
                     </div>
                   </div>
 
-                  {/* Carpet Size — visual card selector */}
+                  {/* Carpet Size - visual card selector */}
                   <div className="space-y-2">
                     <Label>Carpet / Mat Size *</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

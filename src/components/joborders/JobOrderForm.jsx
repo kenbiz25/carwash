@@ -98,7 +98,7 @@ export default function JobOrderForm({ order, services, staff, onSave, onClose }
                     <SelectContent>
                       {services.filter(s => s.is_active !== false).map(s => (
                         <SelectItem key={s.id} value={s.id}>
-                          {s.name} — KES {s.price_kes?.toLocaleString()}
+                          {s.name} - KES {s.price_kes?.toLocaleString()}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -225,7 +225,7 @@ export default function JobOrderForm({ order, services, staff, onSave, onClose }
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving} className="bg-gradient-to-r from-emerald-500 to-cyan-500">
+            <Button type="submit" disabled={saving} variant="gradient">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               {order ? "Save Changes" : "Create Order"}
             </Button>

@@ -3,13 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/firebaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Search, RefreshCw, Car } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, RefreshCw, Car, Loader2 } from "lucide-react";
 import WashCard from "@/components/wash/WashCard";
 import QuickCheckIn from "@/components/wash/QuickCheckIn";
 import PaymentDialog from "@/components/payment/PaymentDialog";
-import { notifyInApp } from "@/components/notifications/NotificationService";
+import { notifyInApp, sendWashReadyNotification } from "@/components/notifications/NotificationService";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
 
@@ -19,8 +22,21 @@ export default function Washes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWash, setSelectedWash] = useState(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [reasonDialog, setReasonDialog] = useState(null); // { wash, action: 'pause' | 'delete' } | null
+  const [reasonText, setReasonText] = useState("");
+  const [submittingReason, setSubmittingReason] = useState(false);
 
   const { user, currentBusiness: business } = useBusiness();
+
+  // Once a job has left "waiting", pausing or deleting it (with a reason) is
+  // a manager-level call - see WashDetails.jsx for the full rationale.
+  const email = user?.email?.toLowerCase();
+  const memberRole = business?.members?.find((m) => m.email?.toLowerCase() === email)?.role;
+  const canManageWashes =
+    business?.owner_email?.toLowerCase() === email ||
+    ["owner", "manager"].includes(memberRole) ||
+    business?.admin_emails?.some((e) => e?.toLowerCase() === email) ||
+    user?.role === "admin";
 
   const { data: washes = [], refetch } = useQuery({
     queryKey: ["washes", business?.id],
@@ -60,14 +76,58 @@ export default function Washes() {
         businessId: business.id,
         recipientEmails: payCollectors,
         title: "Wash ready for payment",
-        message: `${wash?.plate_number || "Vehicle"} is done — collect payment (KES ${wash?.amount_due ?? "?"})`,
+        message: `${wash?.plate_number || "Vehicle"} is done - collect payment (KES ${wash?.amount_due ?? "?"})`,
         referenceType: "wash",
         referenceId: washId,
       }).catch(() => {});
+
+      // Let the customer know their car is ready too, not just staff.
+      sendWashReadyNotification(wash, business).catch(() => {});
     }
 
     toast.success(`Wash marked as ${newStatus}`);
     refetch();
+  };
+
+  const handleResume = async (washId) => {
+    // Deliberately not routed through handleStatusChange - that stamps a
+    // fresh start_time on every "-> washing" transition, which would
+    // overwrite the job's original start time on resume.
+    await api.entities.Wash.update(washId, { status: "washing", resumed_at: new Date().toISOString() });
+    toast.success("Wash resumed");
+    refetch();
+  };
+
+  const handleReasonSubmit = async () => {
+    if (!reasonText.trim()) { toast.error("Enter a reason"); return; }
+    const { wash, action } = reasonDialog;
+    setSubmittingReason(true);
+    try {
+      if (action === "pause") {
+        await api.entities.Wash.update(wash.id, {
+          status: "paused",
+          pause_reason: reasonText.trim(),
+          paused_at: new Date().toISOString(),
+          paused_by: user?.email || "",
+        });
+        toast.success("Wash paused");
+      } else {
+        await api.entities.Wash.update(wash.id, {
+          status: "cancelled",
+          cancel_reason: reasonText.trim(),
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: user?.email || "",
+        });
+        toast.success("Wash deleted - it won't count toward today's totals");
+      }
+      setReasonDialog(null);
+      setReasonText("");
+      refetch();
+    } catch (err) {
+      toast.error(err?.message || "Failed to update wash");
+    } finally {
+      setSubmittingReason(false);
+    }
   };
 
   const handlePayment = (wash) => {
@@ -87,6 +147,7 @@ export default function Washes() {
     all: washes.length,
     waiting: washes.filter(w => w.status === "waiting").length,
     washing: washes.filter(w => w.status === "washing").length,
+    paused: washes.filter(w => w.status === "paused").length,
     done: washes.filter(w => w.status === "done").length,
     paid: washes.filter(w => w.status === "paid").length,
   };
@@ -129,7 +190,7 @@ export default function Washes() {
           </div>
           
           <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
-            <TabsList className="w-full md:w-auto grid grid-cols-5">
+            <TabsList className="w-full md:w-auto grid grid-cols-3 sm:grid-cols-6">
               <TabsTrigger value="all" className="text-xs">
                 All ({statusCounts.all})
               </TabsTrigger>
@@ -138,6 +199,9 @@ export default function Washes() {
               </TabsTrigger>
               <TabsTrigger value="washing" className="text-xs">
                 Washing ({statusCounts.washing})
+              </TabsTrigger>
+              <TabsTrigger value="paused" className="text-xs">
+                Paused ({statusCounts.paused})
               </TabsTrigger>
               <TabsTrigger value="done" className="text-xs">
                 Done ({statusCounts.done})
@@ -179,6 +243,10 @@ export default function Washes() {
               wash={wash}
               onStatusChange={handleStatusChange}
               onPayment={handlePayment}
+              canManageWashes={canManageWashes}
+              onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
+              onResume={handleResume}
+              onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
             />
           ))
         )}
@@ -195,6 +263,46 @@ export default function Washes() {
           queryClient.invalidateQueries({ queryKey: ["payments"] });
         }}
       />
+
+      {/* Pause / Delete reason dialog - manager-only, once a job has started */}
+      <Dialog open={!!reasonDialog} onOpenChange={(open) => { if (!open) { setReasonDialog(null); setReasonText(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {reasonDialog?.action === "pause" ? "Pause this wash" : "Delete this wash"}
+              {reasonDialog?.wash?.plate_number ? ` - ${reasonDialog.wash.plate_number}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              {reasonDialog?.action === "pause"
+                ? "This job has already started. Explain why work is pausing - it'll show on this job until resumed."
+                : "This job has already started. Deleting it removes it from today's wash and revenue counts - explain why."}
+            </p>
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Textarea
+                value={reasonText}
+                onChange={(e) => setReasonText(e.target.value)}
+                placeholder="e.g. Customer left, equipment issue, duplicate entry..."
+                rows={3}
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setReasonDialog(null)} disabled={submittingReason}>Cancel</Button>
+            <Button
+              onClick={handleReasonSubmit}
+              disabled={submittingReason || !reasonText.trim()}
+              className={reasonDialog?.action === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"}
+            >
+              {submittingReason && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {submittingReason ? "Saving…" : reasonDialog?.action === "pause" ? "Pause Job" : "Delete Job"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

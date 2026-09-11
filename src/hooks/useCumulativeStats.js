@@ -42,7 +42,11 @@ export function useCumulativeStats(businesses = []) {
 
     const confirmed = allPayments.filter(p => p.status === "confirmed");
 
-    const totalWashesToday = allWashes.filter(
+    // Cancelled jobs never happened as far as the business is concerned -
+    // they shouldn't inflate wash-count totals.
+    const countedWashes = allWashes.filter(w => w.status !== "cancelled");
+
+    const totalWashesToday = countedWashes.filter(
       w => new Date(w.created_date).toDateString() === today
     ).length;
 
@@ -50,7 +54,7 @@ export function useCumulativeStats(businesses = []) {
       .filter(p => new Date(p.created_date).toDateString() === today)
       .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-    const totalWashesMonth = allWashes.filter(
+    const totalWashesMonth = countedWashes.filter(
       w => (w.created_date || "").slice(0, 7) === thisMonth
     ).length;
 

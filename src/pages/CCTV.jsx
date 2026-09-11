@@ -167,7 +167,7 @@ export default function CCTV() {
           
           <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500">
+              <Button variant="gradient">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Camera
               </Button>
@@ -233,7 +233,7 @@ export default function CCTV() {
                 </div>
                 <Button 
                   onClick={handleAddFeed} 
-                  className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  variant="gradient" className="w-full"
                   disabled={saving}
                 >
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
@@ -257,7 +257,7 @@ export default function CCTV() {
           </p>
           <Button 
             onClick={() => setAddDialogOpen(true)}
-            className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+            variant="gradient"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Your First Camera

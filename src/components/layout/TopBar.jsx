@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Search, Bell, Moon, Sun, Settings, LogOut, User, CheckCheck } from "lucide-react";
+import { Menu, Search, Bell, Moon, Sun, Settings, LogOut, User, CheckCheck, Building2, Check, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { api } from "@/api/firebaseClient";
@@ -108,7 +108,21 @@ function NotificationBell({ user, business }) {
   );
 }
 
-export default function TopBar({ user, role, business, onMenuClick, darkMode, setDarkMode }) {
+export default function TopBar({
+  user,
+  role,
+  business,
+  hasBusiness = true,
+  businesses = [],
+  selectedBusinessId,
+  setSelectedBusinessId,
+  onMenuClick,
+  darkMode,
+  setDarkMode,
+}) {
+  const firstName = (user?.full_name || user?.email || "User").trim().split(/\s+/)[0];
+  // Only owners run multiple locations — managers/staff/cashiers are scoped to one carwash.
+  const showBizSwitcher = role === "owner" && businesses.length > 1;
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6">
       {/* Left */}
@@ -133,13 +147,47 @@ export default function TopBar({ user, role, business, onMenuClick, darkMode, se
         </div>
       </div>
 
-      {/* Center - Business Name */}
+      {/* Center - Business Name / Switcher */}
       <div className="hidden lg:block">
-        {business && (
-          <div className="text-center">
-            <p className="font-semibold text-slate-900 dark:text-white">{business.name}</p>
-            <p className="text-xs text-slate-500">{business.location || business.city}</p>
-          </div>
+        {showBizSwitcher ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="gap-2 px-2 h-auto py-1">
+                <Building2 className="h-4 w-4 text-slate-400" />
+                <div className="text-left">
+                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1">
+                    {business?.name || "Select Business"}
+                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  </p>
+                  <p className="text-xs text-slate-500 -mt-0.5">{business?.location || business?.city}</p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-64">
+              <DropdownMenuLabel>Switch Business</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {businesses.map((biz) => (
+                <DropdownMenuItem
+                  key={biz.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedBusinessId?.(biz.id)}
+                >
+                  <Check className={`mr-2 h-3.5 w-3.5 ${biz.id === selectedBusinessId ? "opacity-100" : "opacity-0"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate">{biz.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{biz.location || biz.city}</p>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          business && (
+            <div className="text-center">
+              <p className="font-semibold text-slate-900 dark:text-white">{business.name}</p>
+              <p className="text-xs text-slate-500">{business.location || business.city}</p>
+            </div>
+          )
         )}
       </div>
 
@@ -170,9 +218,11 @@ export default function TopBar({ user, role, business, onMenuClick, darkMode, se
               </Avatar>
               <div className="hidden md:block text-left">
                 <p className="text-sm font-medium text-slate-900 dark:text-white">
-                  {user?.full_name || "User"}
+                  {firstName}
                 </p>
-                <p className="text-xs text-slate-500 capitalize">{role || "staff"}</p>
+                <p className="text-xs text-slate-500 capitalize">
+                  {hasBusiness ? (role || "staff") : "Getting started"}
+                </p>
               </div>
             </Button>
           </DropdownMenuTrigger>

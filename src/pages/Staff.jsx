@@ -156,7 +156,7 @@ export default function Staff() {
           </p>
         </div>
         <Button 
-          className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+          variant="gradient"
           onClick={() => handleOpenDialog()}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -203,7 +203,7 @@ export default function Staff() {
               {!searchQuery && (
                 <Button 
                   onClick={() => handleOpenDialog()}
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500"
+                  variant="gradient"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Staff Member
@@ -378,7 +378,7 @@ export default function Staff() {
             </div>
             <Button 
               onClick={handleSave} 
-              className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500"
+              variant="gradient" className="w-full"
               disabled={saving}
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

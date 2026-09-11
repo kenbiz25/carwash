@@ -51,7 +51,8 @@
         "/img/detailing-2.jpg",
         "/img/main-wash.jpg",
         "/img/wash.jpg"
-      ]
+      ],
+      "gallery_style": "fan"
     },
     {
       "id": "bgo-kayole",
@@ -86,7 +87,8 @@
         "/img/detailing-2.jpg",
         "/img/main-wash.jpg",
         "/img/wash.jpg"
-      ]
+      ],
+      "gallery_style": "spotlight"
     },
     {
       "id": "bgo-utawala",
@@ -121,7 +123,8 @@
         "/img/detailing-2.jpg",
         "/img/main-wash.jpg",
         "/img/wash.jpg"
-      ]
+      ],
+      "gallery_style": "spotlight-wide"
     }
   ],
   "washes": [

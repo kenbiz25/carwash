@@ -5,22 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/common/Logo";
+import SiteNav from "@/components/common/SiteNav";
 import PlanCheckoutDialog from "@/components/subscription/PlanCheckoutDialog";
 import {
   ChevronRight,
   Check,
   Star,
   ArrowRight,
-  Menu,
-  X,
   MapPin,
   Phone,
   Mail,
   MessageCircle,
-  BadgeCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { api } from "@/api/firebaseClient";
+import { WHATSAPP_BOOKING_URL } from "@/lib/constants";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -44,8 +43,6 @@ const orangeIcon = new L.Icon({
 });
 
 // ── Data ─────────────────────────────────────────────────────────────────────
-
-const WHATSAPP_BOOKING_URL = "https://wa.me/254757234111?text=" + encodeURIComponent("Hi BGO Shine Hub, I'd like to book a wash.");
 
 const services = [
   {
@@ -95,7 +92,6 @@ const testimonials = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -124,96 +120,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* ── Top social / trust bar ─────────────────────────────────── */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-brand-navy-dark border-b border-white/5 hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between">
-          <div className="flex items-center gap-5 text-xs text-slate-400">
-            <a href="tel:+254757234111" className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <Phone className="h-3 w-3 text-brand-orange" /> +254 757 234 111
-            </a>
-            <a href="mailto:bgoshinehubltd@gmail.com" className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <Mail className="h-3 w-3 text-brand-orange" /> bgoshinehubltd@gmail.com
-            </a>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-emerald-400 font-semibold">Open 24/7</span>
-            <div className="w-px h-4 bg-white/10" />
-            <BadgeCheck className="h-3.5 w-3.5 text-brand-orange" />
-            <span className="text-xs text-slate-400">Rated 4.8★ by our customers</span>
-            <div className="w-px h-4 bg-white/10 mx-2" />
-            {/* Social icons */}
-            <a href="https://wa.me/254757234111" aria-label="WhatsApp" className="h-6 w-6 rounded flex items-center justify-center bg-[#25D366] hover:opacity-80 transition-opacity">
-              <MessageCircle className="h-3.5 w-3.5 text-white" />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Navigation ─────────────────────────────────────────────── */}
-      <nav className="fixed top-0 md:top-9 left-0 right-0 z-50 bg-brand-navy/95 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Logo size="default" />
-            <div className="hidden md:flex items-center gap-8">
-              {["#services", "#map", "#testimonials"].map((href, i) => (
-                <a key={i} href={href} className="text-brand-blue-pale hover:text-white transition-colors text-sm font-medium">
-                  {["Services", "Locations", "Reviews"][i]}
-                </a>
-              ))}
-              <Link to={createPageUrl("Help")} className="text-brand-blue-pale hover:text-white transition-colors text-sm font-medium">
-                Help
-              </Link>
-            </div>
-            <div className="hidden md:flex items-center gap-3">
-              {isAuthenticated ? (
-                <Link to={createPageUrl("Dashboard")}>
-                  <Button className="bg-brand-orange hover:bg-brand-orange-hot text-white">
-                    Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Button variant="outline" className="border-brand-blue-light/40 text-brand-blue-light hover:bg-brand-blue-light/10 hover:text-white" onClick={() => api.auth.redirectToLogin()}>
-                    Staff Login
-                  </Button>
-                  <Button className="bg-brand-orange hover:bg-brand-orange-hot text-white" asChild>
-                    <a href={WHATSAPP_BOOKING_URL} target="_blank" rel="noopener noreferrer">Book a Wash</a>
-                  </Button>
-                </>
-              )}
-            </div>
-            <Button variant="ghost" size="icon" className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X /> : <Menu />}
-            </Button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="md:hidden bg-brand-navy border-t border-white/10 p-4">
-            <div className="flex flex-col gap-3">
-              {["#services", "#map", "#testimonials"].map((href, i) => (
-                <a key={i} href={href} className="py-2 text-brand-blue-pale" onClick={() => setMobileMenuOpen(false)}>
-                  {["Services", "Locations", "Reviews"][i]}
-                </a>
-              ))}
-              <Link to={createPageUrl("Help")} className="py-2 text-brand-blue-pale" onClick={() => setMobileMenuOpen(false)}>Help</Link>
-              <hr className="border-white/10 my-2" />
-              {isAuthenticated ? (
-                <Link to={createPageUrl("Dashboard")}>
-                  <Button className="w-full bg-brand-orange hover:bg-brand-orange-hot">Dashboard</Button>
-                </Link>
-              ) : (
-                <>
-                  <Button variant="outline" className="w-full border-brand-blue-light/40 text-brand-blue-light hover:bg-brand-blue-light/10" onClick={() => api.auth.redirectToLogin()}>Staff Login</Button>
-                  <Button className="w-full bg-brand-orange hover:bg-brand-orange-hot" asChild>
-                    <a href={WHATSAPP_BOOKING_URL} target="_blank" rel="noopener noreferrer">Book a Wash</a>
-                  </Button>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </nav>
+      <SiteNav />
 
       {/* ── Hero ───────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -229,7 +136,7 @@ export default function Landing() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-36 pb-32 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left — headline */}
+            {/* Left - headline */}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
               <div className="flex flex-wrap gap-2 mb-6">
                 <Badge className="bg-brand-orange/20 text-brand-orange border-brand-orange/30">
@@ -259,16 +166,23 @@ export default function Landing() {
                   <a href="tel:+254757234111">Call Us</a>
                 </Button>
               </div>
-              <div className="flex flex-wrap items-center gap-6 text-sm text-slate-300">
+              <button
+                type="button"
+                onClick={() => document.getElementById("map")?.scrollIntoView({ behavior: "smooth" })}
+                className="flex items-center gap-1.5 text-sm font-medium text-brand-blue-light hover:text-white transition-colors mb-8"
+              >
+                <MapPin className="h-4 w-4" /> Find a branch near you
+              </button>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-slate-300 max-w-md">
                 {["Open 24/7", "Same-day service", "Experienced staff", "Affordable pricing"].map(t => (
                   <div key={t} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-brand-orange" />{t}
+                    <Check className="h-4 w-4 text-brand-orange flex-shrink-0" />{t}
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            {/* Right — phone mockup */}
+            {/* Right - phone mockup */}
             <motion.div
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -276,13 +190,13 @@ export default function Landing() {
               className="flex justify-center mt-10 lg:mt-0"
             >
               <div className="relative">
-                {/* Android frame — real mockup image (opaque screen, so content paints on top) */}
+                {/* Android frame - real mockup image (opaque screen, so content paints on top) */}
                 <div className="relative w-64 overflow-hidden" style={{ aspectRatio: "111 / 232", borderRadius: "38px" }}>
-                  {/* Screen — painted on top of the image's white screen area, starting right at the frame's curve so none of its bare screen shows through beside the camera cutout */}
+                  {/* Screen - painted on top of the image's white screen area, starting right at the frame's curve so none of its bare screen shows through beside the camera cutout */}
                   <div className="absolute z-10 overflow-hidden bg-slate-100" style={{ top: "2.5%", bottom: "2.3%", left: "5%", right: "5%", borderRadius: "26px" }}>
-                    {/* Camera cutout — drawn here rather than relying on the frame image's, so it never gets hidden behind the screen fill */}
+                    {/* Camera cutout - drawn here rather than relying on the frame image's, so it never gets hidden behind the screen fill */}
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 w-14 h-3 rounded-full bg-slate-900 z-20" />
-                    {/* Status bar — overlaid directly on the screen, not a separate bezel bar */}
+                    {/* Status bar - overlaid directly on the screen, not a separate bezel bar */}
                     <div className="flex items-center justify-between px-5 pt-6 pb-0.5 text-slate-700">
                       <span className="text-[9px] font-semibold">9:41</span>
                       <div className="flex items-center gap-1">
@@ -293,7 +207,7 @@ export default function Landing() {
                       </div>
                     </div>
 
-                  {/* Screen content — customer view. Fixed height + scroll so visitors can explore it. */}
+                  {/* Screen content - customer view. Fixed height + scroll so visitors can explore it. */}
                   <div className="p-3 pt-1.5 space-y-2.5 h-[25rem] overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
                     {/* App header */}
                     <div className="flex items-center justify-between bg-brand-navy rounded-2xl px-3 py-2">
@@ -357,11 +271,11 @@ export default function Landing() {
                     </div>
                   </div>
 
-                    {/* Home indicator — floats over the bottom of the screen, like a real device */}
+                    {/* Home indicator - floats over the bottom of the screen, like a real device */}
                     <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full bg-slate-800/25" />
                   </div>
 
-                  {/* Frame — real mockup PNG, cropped tight to the device and sat behind the content */}
+                  {/* Frame - real mockup PNG, cropped tight to the device and sat behind the content */}
                   <img
                     src="/img/phone.png"
                     alt=""
@@ -481,6 +395,22 @@ export default function Landing() {
             </p>
           </div>
 
+          {mapBusinesses.some((b) => b.slug) && (
+            <div className="flex flex-wrap justify-center gap-3 mb-8">
+              {mapBusinesses.filter((b) => b.slug).map((biz) => (
+                <Link
+                  key={biz.id}
+                  to={`/${biz.slug}`}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-brand-orange hover:bg-brand-orange/5 transition-colors group"
+                >
+                  <MapPin className="h-4 w-4 text-brand-orange" />
+                  <span className="font-medium text-slate-700 group-hover:text-brand-orange">{biz.name}</span>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-brand-orange" />
+                </Link>
+              ))}
+            </div>
+          )}
+
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200" style={{ height: 480 }}>
             <MapContainer
               center={[-1.2668, 36.9257]}
@@ -546,7 +476,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Parallax image — stays fixed as content scrolls over it */}
+        {/* Parallax image - stays fixed as content scrolls over it */}
         <div
           className="mt-20 h-72 md:h-96 w-full"
           style={{
@@ -602,7 +532,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-            {/* Column 1 — Brand + contact + social */}
+            {/* Column 1 - Brand + contact + social */}
             <div>
               <div className="border-b-2 border-brand-orange pb-2 mb-4 inline-block">
                 <Logo size="default" />
@@ -628,7 +558,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Column 2 — Quick Links */}
+            {/* Column 2 - Quick Links */}
             <div>
               <h4 className="font-bold text-base mb-1 pb-2 border-b-2 border-brand-blue-light inline-block">
                 Quick Links
@@ -638,7 +568,6 @@ export default function Landing() {
                   { label: "Services", href: "#services" },
                   { label: "Reviews",  href: "#testimonials" },
                   { label: "My Wash History", href: createPageUrl("CustomerPortal") },
-                  { label: "Help Center", href: createPageUrl("Help") },
                 ].map(item => (
                   <li key={item.label} className="border-b border-white/10 border-dashed last:border-0">
                     <a href={item.href} className="flex items-center gap-2 py-2 text-slate-400 hover:text-brand-blue-light text-sm transition-colors">
@@ -649,7 +578,7 @@ export default function Landing() {
               </ul>
             </div>
 
-            {/* Column 3 — Get Started */}
+            {/* Column 3 - Get Started */}
             <div>
               <h4 className="font-bold text-base mb-1 pb-2 border-b-2 border-brand-orange inline-block">
                 Get Started
@@ -657,7 +586,7 @@ export default function Landing() {
               <ul className="mt-3 space-y-0 mb-4">
                 {[
                   { label: "Book a Wash", href: WHATSAPP_BOOKING_URL, external: true },
-                  { label: "Staff Login", href: "#", isLogin: true },
+                  { label: "Login", href: "#", isLogin: true },
                   { label: "Privacy Policy", href: createPageUrl("PrivacyPolicy") },
                   { label: "Terms of Service", href: createPageUrl("TermsOfService") },
                 ].map(item => (

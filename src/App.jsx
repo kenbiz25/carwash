@@ -16,7 +16,7 @@ const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
 // Pages that don't require authentication (must match keys in pages.config)
-const PUBLIC_PAGES = new Set(["Landing", "Help", "Login", "CustomerPortal", "JoinBusiness", "PrivacyPolicy", "TermsOfService"]);
+const PUBLIC_PAGES = new Set(["Landing", "Login", "CustomerPortal", "JoinBusiness", "PrivacyPolicy", "TermsOfService"]);
 
 // Pages that require super-admin (must match keys in pages.config)
 const SUPER_ADMIN_PAGES = new Set(["SuperAdminDashboard", "SuperAdminBusinessView"]);
@@ -100,7 +100,7 @@ const AuthenticatedApp = () => {
         );
       })}
 
-      {/* Public per-branch page (e.g. /njiru) — a static path above (e.g. /Landing,
+      {/* Public per-branch page (e.g. /njiru) - a static path above (e.g. /Landing,
           /Login) always outranks this dynamic segment in React Router's matching,
           so it only catches slugs that aren't one of the named pages above. */}
       <Route path="/:slug" element={<BranchPage />} />

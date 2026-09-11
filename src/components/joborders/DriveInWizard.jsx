@@ -325,7 +325,7 @@ export default function DriveInWizard({ order, services, staff, onSave, onClose 
                 type="button"
                 onClick={goNext}
                 disabled={!form.plate_number || form.services_selected.length === 0}
-                className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-8"
+                variant="gradient" className="px-8"
               >
                 Start Job <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -457,7 +457,7 @@ export default function DriveInWizard({ order, services, staff, onSave, onClose 
               <div className="bg-white dark:bg-slate-900 border rounded-xl p-4 font-mono text-xs space-y-1 text-slate-600 dark:text-slate-400">
                 <p className="font-bold text-center text-sm text-slate-800 dark:text-white">CAR WASH RECEIPT</p>
                 <p>Plate: {form.plate_number} | {form.vehicle_type?.toUpperCase()}</p>
-                {form.services_selected.map((s,i) => <p key={i}>• {s.name}{s.price > 0 ? ` — KES ${s.price}` : ""}</p>)}
+                {form.services_selected.map((s,i) => <p key={i}>• {s.name}{s.price > 0 ? ` - KES ${s.price}` : ""}</p>)}
                 <p className="border-t pt-1 font-bold">Total: KES {form.amount.toLocaleString()}</p>
                 <p>Paid: KES {((Number(form.deposit_paid)||0)+(Number(form.amount_paid)||0)).toLocaleString()}</p>
                 <p className="text-center pt-1 text-slate-400">Thank you for choosing us!</p>
@@ -479,7 +479,7 @@ export default function DriveInWizard({ order, services, staff, onSave, onClose 
                 type="button"
                 onClick={handleCollect}
                 disabled={saving}
-                className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-8"
+                variant="gradient" className="px-8"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                 Mark Collected

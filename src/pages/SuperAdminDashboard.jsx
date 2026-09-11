@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { listPendingUsers, assignPendingUser } from "@/lib/userAdminClient";
+import { toast } from "sonner";
 import {
   Building2,
   Car,
@@ -17,7 +20,11 @@ import {
   AlertCircle,
   CheckCircle,
   Eye,
+  UserPlus,
+  Loader2,
 } from "lucide-react";
+
+const ASSIGNABLE_ROLES = ["owner", "manager", "cashier", "staff"];
 
 export default function SuperAdminDashboard() {
   const [search, setSearch] = useState("");
@@ -53,6 +60,36 @@ export default function SuperAdminDashboard() {
     queryFn: () => api.entities.BusinessSubscription.list("-created_date", 200),
     enabled: isSuperAdmin,
   });
+
+  // Accounts with no role/branch assigned yet — first-time Google sign-ins
+  // land here until a super admin picks a business + role for them.
+  const { data: pendingUsers = [], refetch: refetchPending, isError: pendingErrored, error: pendingError } = useQuery({
+    queryKey: ["pending-users"],
+    queryFn: listPendingUsers,
+    enabled: isSuperAdmin,
+    retry: false,
+  });
+  const [pendingAssign, setPendingAssign] = useState({}); // uid -> { business_id, role }
+  const [assigningUid, setAssigningUid] = useState(null);
+
+  const handleAssignPending = async (uid) => {
+    const choice = pendingAssign[uid];
+    if (!choice?.business_id || !choice?.role) {
+      toast.error("Pick a business and a role first");
+      return;
+    }
+    setAssigningUid(uid);
+    try {
+      await assignPendingUser(uid, choice);
+      const bizName = allBusinesses.find((b) => b.id === choice.business_id)?.name || "the branch";
+      toast.success(`Assigned as ${choice.role} at ${bizName} - they'll see it next time they sign in`);
+      refetchPending();
+    } catch (err) {
+      toast.error(err?.message || "Failed to assign");
+    } finally {
+      setAssigningUid(null);
+    }
+  };
 
   // ─────────────────────────────────────────────────────────────
   // ✅ Precompute for performance (avoid filtering in every row)
@@ -172,7 +209,7 @@ export default function SuperAdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Activity className="h-6 w-6 text-emerald-600" />
-            Super Admin — All Carwashes
+            Super Admin - All Carwashes
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Platform-wide overview
@@ -221,7 +258,7 @@ export default function SuperAdminDashboard() {
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {loadingAny ? "—" : stat.value}
+                {loadingAny ? "-" : stat.value}
               </p>
               <p className="text-sm text-slate-500">{stat.label}</p>
             </CardContent>
@@ -247,7 +284,7 @@ export default function SuperAdminDashboard() {
           <Card key={i} className={`border-0 shadow-sm ${s.color}`}>
             <CardContent className="p-4 text-center">
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {loadingAny ? "—" : s.count}
+                {loadingAny ? "-" : s.count}
               </p>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                 {s.plan} Plans
@@ -256,6 +293,63 @@ export default function SuperAdminDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Pending sign-ups - Google accounts with no branch/role yet */}
+      {(pendingUsers.length > 0 || pendingErrored) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-amber-500" />
+              Pending Sign-ups ({pendingUsers.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pendingErrored && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{pendingError?.message || "Couldn't load pending sign-ups."}</span>
+              </div>
+            )}
+            {pendingUsers.map((u) => {
+              const choice = pendingAssign[u.uid] || {};
+              return (
+                <div key={u.uid} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{u.full_name || u.email}</p>
+                    <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                  </div>
+                  <Select
+                    value={choice.business_id || ""}
+                    onValueChange={(val) => setPendingAssign(p => ({ ...p, [u.uid]: { ...p[u.uid], business_id: val } }))}
+                  >
+                    <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Business" /></SelectTrigger>
+                    <SelectContent>
+                      {allBusinesses.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={choice.role || ""}
+                    onValueChange={(val) => setPendingAssign(p => ({ ...p, [u.uid]: { ...p[u.uid], role: val } }))}
+                  >
+                    <SelectTrigger className="w-full sm:w-32"><SelectValue placeholder="Role" /></SelectTrigger>
+                    <SelectContent>
+                      {ASSIGNABLE_ROLES.map((r) => (
+                        <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="gradient" disabled={assigningUid === u.uid} onClick={() => handleAssignPending(u.uid)}>
+                    {assigningUid === u.uid && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                    {assigningUid === u.uid ? "Assigning…" : "Assign"}
+                  </Button>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* All Businesses Table */}
       <Card className="border-0 shadow-sm">
@@ -305,17 +399,17 @@ export default function SuperAdminDashboard() {
                     >
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-900 dark:text-white">
-                          {biz.name || "—"}
+                          {biz.name || "-"}
                         </div>
                         <div className="text-xs text-slate-500">{biz.bays_count || 1} bays</div>
                       </td>
 
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                        {biz.city || biz.location || "—"}
+                        {biz.city || biz.location || "-"}
                       </td>
 
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">
-                        {biz.owner_email || "—"}
+                        {biz.owner_email || "-"}
                       </td>
 
                       <td className="px-4 py-3">

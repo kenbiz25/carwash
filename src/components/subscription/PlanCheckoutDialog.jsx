@@ -270,7 +270,7 @@ export default function PlanCheckoutDialog({ plan, open, onOpenChange, onSuccess
           <Button
             onClick={handleSubscribe}
             disabled={loading}
-            className="w-full h-12 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
+            variant="gradient" className="w-full h-12"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
