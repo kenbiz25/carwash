@@ -27,7 +27,7 @@ async function logout() {
   await page.waitForURL(/Login/, { timeout: 10000 });
 }
 
-await login("kenbiz25+owner@gmail.com", "owner123");
+await login("kenbiz25+owner@gmail.com", process.env.SEED_OWNER_PASSWORD);
 await page.click('button:has-text("Check-In Vehicle")');
 await page.waitForSelector('text="Plate Number *"', { timeout: 10000 });
 await page.fill('input[placeholder="KAA 123B"]', "KSC777Z");
@@ -49,7 +49,7 @@ console.log("Owner check-in done for KSC777Z assigned to John Kamau");
 
 await logout();
 
-await login("kenbiz25+staff@gmail.com", "staff123");
+await login("kenbiz25+staff@gmail.com", process.env.SEED_STAFF_PASSWORD);
 const bellButton = page.locator("header button:has(svg.lucide-bell)");
 await bellButton.click();
 await page.waitForTimeout(500);

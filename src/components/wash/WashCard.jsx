@@ -75,10 +75,10 @@ export default function WashCard({ wash, onStatusChange, onPayment }) {
           <p className="font-bold text-lg text-emerald-600">
             KES {(wash.amount_due || 0).toLocaleString()}
           </p>
-          {wash.status === 'paid' && (
-            <p className="text-xs text-slate-400">
-              {wash.payment_method && <StatusBadge status={wash.payment_method} />}
-            </p>
+          {wash.status === 'paid' && wash.payment_method && (
+            <div className="text-xs text-slate-400">
+              <StatusBadge status={wash.payment_method} />
+            </div>
           )}
           
           <div className="flex items-center gap-2 mt-2">

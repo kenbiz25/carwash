@@ -170,6 +170,11 @@ created; see `src/pages/BranchPage.jsx`.
 
 ## M-Pesa
 
+`mpesa-server/` is kept out of this repo (it's gitignored) since it's where
+real payment-provider secrets eventually live — it exists locally but isn't
+pushed. The section below documents it for whoever has that folder; without
+it, the M-Pesa tab in the payment dialog has nothing to talk to.
+
 Real M-Pesa payments (STK Push / Lipa Na M-Pesa Online) need a server that
 holds Safaricom's consumer secret and passkey and that Safaricom can call
 back — a browser-only app can't do either safely. That backend lives in its

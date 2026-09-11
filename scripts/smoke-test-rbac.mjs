@@ -1,9 +1,9 @@
 import { chromium } from "playwright";
 
 const accounts = [
-  { role: "staff", email: "kenbiz25+staff@gmail.com", password: "staff123" },
-  { role: "cashier", email: "kenbiz25+cashier@gmail.com", password: "cashier123" },
-  { role: "owner", email: "kenbiz25+owner@gmail.com", password: "owner123" },
+  { role: "staff", email: "kenbiz25+staff@gmail.com", password: process.env.SEED_STAFF_PASSWORD },
+  { role: "cashier", email: "kenbiz25+cashier@gmail.com", password: process.env.SEED_CASHIER_PASSWORD },
+  { role: "owner", email: "kenbiz25+owner@gmail.com", password: process.env.SEED_OWNER_PASSWORD },
 ];
 
 const browser = await chromium.launch();

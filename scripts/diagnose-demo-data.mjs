@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyABaO9d60tQEUPEVI7clu595vjr_yTPyME",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "carwash-managerke.firebaseapp.com",
   projectId: "carwash-managerke",
   storageBucket: "carwash-managerke.firebasestorage.app",
@@ -18,11 +18,11 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const accounts = [
-  { role: "owner", email: "kenbiz25+owner@gmail.com", password: "owner123" },
-  { role: "manager", email: "kenbiz25+manager@gmail.com", password: "manager123" },
-  { role: "staff", email: "kenbiz25+staff@gmail.com", password: "staff123" },
-  { role: "cashier", email: "kenbiz25+cashier@gmail.com", password: "cashier123" },
-  { role: "superadmin", email: "kenbiz25+superadmin@gmail.com", password: "superadmin123" },
+  { role: "owner", email: "kenbiz25+owner@gmail.com", password: process.env.SEED_OWNER_PASSWORD },
+  { role: "manager", email: "kenbiz25+manager@gmail.com", password: process.env.SEED_MANAGER_PASSWORD },
+  { role: "staff", email: "kenbiz25+staff@gmail.com", password: process.env.SEED_STAFF_PASSWORD },
+  { role: "cashier", email: "kenbiz25+cashier@gmail.com", password: process.env.SEED_CASHIER_PASSWORD },
+  { role: "superadmin", email: "kenbiz25+superadmin@gmail.com", password: process.env.SEED_SUPERADMIN_PASSWORD },
 ];
 
 for (const acc of accounts) {

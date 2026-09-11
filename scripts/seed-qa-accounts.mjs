@@ -10,7 +10,7 @@ import {
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyABaO9d60tQEUPEVI7clu595vjr_yTPyME",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "carwash-managerke.firebaseapp.com",
   projectId: "carwash-managerke",
   storageBucket: "carwash-managerke.firebasestorage.app",
@@ -20,7 +20,11 @@ const firebaseConfig = {
 };
 
 const EMAIL = (role) => `kenbiz25+${role}@gmail.com`;
-const PASSWORD = (role) => `${role}123`; // Firebase requires 6+ chars
+const PASSWORD = (role) => {
+  const value = process.env[`SEED_${role.toUpperCase()}_PASSWORD`];
+  if (!value) throw new Error(`Set SEED_${role.toUpperCase()}_PASSWORD in your environment before running this script`);
+  return value;
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

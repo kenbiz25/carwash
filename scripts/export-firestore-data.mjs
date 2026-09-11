@@ -7,7 +7,7 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "fi
 import { writeFileSync } from "fs";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyABaO9d60tQEUPEVI7clu595vjr_yTPyME",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "carwash-managerke.firebaseapp.com",
   projectId: "carwash-managerke",
   storageBucket: "carwash-managerke.firebasestorage.app",
@@ -18,9 +18,9 @@ const firebaseConfig = {
 
 const BUSINESS_ID = "qa-test-wash";
 const OWNER_EMAIL = "kenbiz25+owner@gmail.com";
-const OWNER_PASSWORD = "owner123";
+const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD;
 const SUPERADMIN_EMAIL = "kenbiz25+superadmin@gmail.com";
-const SUPERADMIN_PASSWORD = "superadmin123";
+const SUPERADMIN_PASSWORD = process.env.SEED_SUPERADMIN_PASSWORD;
 const USER_UIDS = [
   "SvrMBj9GtPRZQWdOI0cdGFfOPLB2", // owner
   "ejOMbFupv6O1rDVpCx2Mswzg0kv1", // manager

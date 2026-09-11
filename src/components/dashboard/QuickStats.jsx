@@ -13,11 +13,16 @@ export default function QuickStats({ washes = [], payments = [], staff = [], inv
     .filter(p => new Date(p.created_date).toDateString() === today && p.status === 'confirmed')
     .reduce((sum, p) => sum + (p.amount || 0), 0);
   
-  const mpesaPayments = payments
-    .filter(p => new Date(p.created_date).toDateString() === today && p.method === 'mpesa' && p.status === 'confirmed');
-  
-  const mpesaPercent = todayWashes.length > 0 
-    ? Math.round((mpesaPayments.length / todayWashes.filter(w => w.status === 'paid').length) * 100) || 0
+  // Share of today's confirmed payments taken via M-Pesa (not "of today's
+  // paid washes" — that divided by a count that's routinely 0 before a wash
+  // is marked paid, which produced a literal "Infinity%" whenever an M-Pesa
+  // payment landed before any wash had that status yet).
+  const todayConfirmedPayments = payments
+    .filter(p => new Date(p.created_date).toDateString() === today && p.status === 'confirmed');
+  const mpesaPayments = todayConfirmedPayments.filter(p => p.method === 'mpesa');
+
+  const mpesaPercent = todayConfirmedPayments.length > 0
+    ? Math.round((mpesaPayments.length / todayConfirmedPayments.length) * 100)
     : 0;
   
   const pendingWashes = washes.filter(w => ['waiting', 'washing'].includes(w.status));

@@ -11,7 +11,7 @@ ownerPage.on("pageerror", (err) => errors.push("[owner] pageerror: " + err.messa
 await ownerPage.goto("http://localhost:5183/Login");
 await ownerPage.waitForSelector("input#email", { timeout: 15000 });
 await ownerPage.fill("input#email", "kenbiz25+owner@gmail.com");
-await ownerPage.fill("input#password", "owner123");
+await ownerPage.fill("input#password", process.env.SEED_OWNER_PASSWORD);
 await ownerPage.click('button[type="submit"]');
 await ownerPage.waitForURL(/Dashboard/, { timeout: 15000 });
 await ownerPage.waitForTimeout(1500);
@@ -82,7 +82,7 @@ staffPage.on("pageerror", (err) => errors.push("[staff] pageerror: " + err.messa
 await staffPage.goto("http://localhost:5183/Login");
 await staffPage.waitForSelector("input#email", { timeout: 15000 });
 await staffPage.fill("input#email", "kenbiz25+staff@gmail.com");
-await staffPage.fill("input#password", "staff123");
+await staffPage.fill("input#password", process.env.SEED_STAFF_PASSWORD);
 await staffPage.click('button[type="submit"]');
 await staffPage.waitForURL(/Dashboard/, { timeout: 15000 });
 await staffPage.waitForTimeout(2000);

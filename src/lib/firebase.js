@@ -5,7 +5,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyABaO9d60tQEUPEVI7clu595vjr_yTPyME",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "carwash-managerke.firebaseapp.com",
   projectId: "carwash-managerke",
   storageBucket: "carwash-managerke.firebasestorage.app",

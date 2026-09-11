@@ -2,6 +2,13 @@
 .env
 .env.*
 
+# Claude Code local session/config state — not meant to be shared
+.claude/
+
+# Standalone M-Pesa backend — kept out of this repo (has its own .env with
+# real payment-provider secrets once configured; see its own README locally)
+mpesa-server/
+
 # Logs
 logs
 *.log

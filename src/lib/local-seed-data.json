@@ -2038,7 +2038,8 @@
       "requires_photo_proof": false,
       "is_active": true,
       "created_date": "2026-09-09T09:38:26.954Z",
-      "price_suv": 300
+      "price_suv": 300,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "2dudMjxFxcZr6YUetqmF",
@@ -2051,7 +2052,8 @@
       "created_date": "2026-09-09T09:38:28.607Z",
       "requires_photo_proof": false,
       "price_kes": 3000,
-      "price_suv": 5000
+      "price_suv": 5000,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "5xGy8aMwrDD8OTIylTZZ",
@@ -2063,7 +2065,8 @@
       "price_kes": 1000,
       "created_date": "2026-09-09T09:38:28.059Z",
       "business_id": "qa-test-wash",
-      "category": "detailing"
+      "category": "detailing",
+      "pricing_kind": "flat"
     },
     {
       "id": "7TgZuMwTctyvLDHIXjWb",
@@ -2075,7 +2078,8 @@
       "updated_date": "2026-09-09T09:38:27.301Z",
       "created_date": "2026-09-09T09:38:27.301Z",
       "requires_photo_proof": false,
-      "price_kes": 1000
+      "price_kes": 1000,
+      "pricing_kind": "flat"
     },
     {
       "id": "7sluOc9QwDJSCjvDCz79",
@@ -2088,7 +2092,8 @@
       "created_date": "2026-09-09T09:38:26.702Z",
       "business_id": "qa-test-wash",
       "category": "exterior_wash",
-      "price_suv": 300
+      "price_suv": 300,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "AHrsUq55HTxnGjaNlDNI",
@@ -2101,7 +2106,8 @@
       "requires_photo_proof": false,
       "updated_date": "2026-09-09T09:38:28.434Z",
       "business_id": "qa-test-wash",
-      "price_suv": 800
+      "price_suv": 800,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "Bx2NoaRkloNAa34vK2tN",
@@ -2113,7 +2119,8 @@
       "price_kes": 700,
       "is_active": true,
       "requires_photo_proof": false,
-      "category": "exterior_wash"
+      "category": "exterior_wash",
+      "pricing_kind": "flat"
     },
     {
       "id": "EJjUIIYHTksqRtBcjRjy",
@@ -2125,7 +2132,8 @@
       "created_date": "2026-09-09T09:38:28.858Z",
       "price_kes": 1500,
       "business_id": "qa-test-wash",
-      "category": "add_on"
+      "category": "add_on",
+      "pricing_kind": "flat"
     },
     {
       "id": "GHMyf2mB3KjNa8wBYsLk",
@@ -2138,7 +2146,8 @@
       "category": "exterior_wash",
       "is_active": true,
       "price_kes": 300,
-      "price_suv": 400
+      "price_suv": 400,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "GdTQ9vUrAnHLaUBz1JP6",
@@ -2150,7 +2159,8 @@
       "created_date": "2026-09-09T09:38:27.973Z",
       "requires_photo_proof": false,
       "category": "detailing",
-      "updated_date": "2026-09-09T09:38:27.973Z"
+      "updated_date": "2026-09-09T09:38:27.973Z",
+      "pricing_kind": "flat"
     },
     {
       "id": "H3m1v9FomnEc5i2bq9fW",
@@ -2162,7 +2172,8 @@
       "created_date": "2026-09-09T09:38:27.209Z",
       "requires_photo_proof": false,
       "is_active": true,
-      "updated_date": "2026-09-09T09:38:27.209Z"
+      "updated_date": "2026-09-09T09:38:27.209Z",
+      "pricing_kind": "flat"
     },
     {
       "id": "JnB8Zldedxo5xRVhsI6O",
@@ -2175,7 +2186,8 @@
       "updated_date": "2026-09-09T09:38:28.311Z",
       "sort_order": 21,
       "business_id": "qa-test-wash",
-      "price_kes": 100
+      "price_kes": 100,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "Mfwpw8HMzQ1jyfcZdglN",
@@ -2187,7 +2199,8 @@
       "is_active": true,
       "business_id": "qa-test-wash",
       "updated_date": "2026-09-09T09:38:27.131Z",
-      "price_kes": 300
+      "price_kes": 300,
+      "pricing_kind": "flat"
     },
     {
       "id": "PJCZ1WG8DisRMiakfuXb",
@@ -2200,7 +2213,8 @@
       "created_date": "2026-09-09T09:38:27.384Z",
       "price_kes": 1500,
       "is_active": true,
-      "price_suv": 2000
+      "price_suv": 2000,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "PxXqNnOrVuhtRpwqksl3",
@@ -2213,7 +2227,10 @@
       "business_id": "qa-test-wash",
       "updated_date": "2026-09-09T09:38:29.026Z",
       "created_date": "2026-09-09T09:38:29.026Z",
-      "price_kes": 250
+      "price_kes": 250,
+      "price_suv": 300,
+      "price_van": 600,
+      "pricing_kind": "variant"
     },
     {
       "id": "RRMLUKbD4vEvbOrB0Hjk",
@@ -2225,7 +2242,8 @@
       "business_id": "qa-test-wash",
       "updated_date": "2026-09-09T09:38:29.220Z",
       "sort_order": 31,
-      "price_kes": 1000
+      "price_kes": 1000,
+      "pricing_kind": "flat"
     },
     {
       "id": "ReXnEqGorhyQmmTxG3f0",
@@ -2237,7 +2255,8 @@
       "category": "exterior_wash",
       "updated_date": "2026-09-09T09:38:29.985Z",
       "sort_order": 40,
-      "created_date": "2026-09-09T09:38:29.985Z"
+      "created_date": "2026-09-09T09:38:29.985Z",
+      "pricing_kind": "flat"
     },
     {
       "id": "Wc437hG2MB0VQEl5Wiut",
@@ -2251,7 +2270,8 @@
       "sort_order": 33,
       "description": "Ksh 400 (14-seater) / 500 (33-seater)",
       "category": "exterior_wash",
-      "price_kes": 400
+      "price_kes": 400,
+      "pricing_kind": "flat"
     },
     {
       "id": "Z32OOQMxnsqWvbypTjcG",
@@ -2263,7 +2283,8 @@
       "is_active": true,
       "sort_order": 43,
       "business_id": "qa-test-wash",
-      "price_kes": 250
+      "price_kes": 250,
+      "pricing_kind": "flat"
     },
     {
       "id": "ZCxc5igCIqSxfZn0wVfJ",
@@ -2275,7 +2296,8 @@
       "created_date": "2026-09-09T09:38:29.725Z",
       "updated_date": "2026-09-09T09:38:29.725Z",
       "price_kes": 1000,
-      "business_id": "qa-test-wash"
+      "business_id": "qa-test-wash",
+      "pricing_kind": "flat"
     },
     {
       "id": "ahnq0HzCMSBm4ggXWrKs",
@@ -2287,7 +2309,8 @@
       "is_active": true,
       "business_id": "qa-test-wash",
       "updated_date": "2026-09-09T09:38:29.472Z",
-      "price_kes": 600
+      "price_kes": 600,
+      "pricing_kind": "flat"
     },
     {
       "id": "bCL4gIHguT8CCRFmFem0",
@@ -2299,7 +2322,8 @@
       "business_id": "qa-test-wash",
       "created_date": "2026-09-09T09:38:29.641Z",
       "price_kes": 1000,
-      "is_active": true
+      "is_active": true,
+      "pricing_kind": "flat"
     },
     {
       "id": "eIEz9kcUKzGgPPeOf27Z",
@@ -2311,7 +2335,8 @@
       "price_kes": 800,
       "updated_date": "2026-09-09T09:38:29.554Z",
       "sort_order": 35,
-      "created_date": "2026-09-09T09:38:29.554Z"
+      "created_date": "2026-09-09T09:38:29.554Z",
+      "pricing_kind": "flat"
     },
     {
       "id": "fpgE1VJbKoTMwzySXykt",
@@ -2324,7 +2349,8 @@
       "created_date": "2026-09-09T09:38:26.618Z",
       "name": "Basic Wash",
       "updated_date": "2026-09-09T09:38:26.618Z",
-      "price_suv": 400
+      "price_suv": 400,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "gkqgfuZAZUj1fEtrg4kV",
@@ -2336,7 +2362,8 @@
       "category": "mechanical",
       "updated_date": "2026-09-09T09:38:30.068Z",
       "created_date": "2026-09-09T09:38:30.068Z",
-      "name": "Mini Lorries/Canter (Greasing)"
+      "name": "Mini Lorries/Canter (Greasing)",
+      "pricing_kind": "flat"
     },
     {
       "id": "kfa3lTIdw523PeTP4AvF",
@@ -2348,7 +2375,8 @@
       "created_date": "2026-09-09T09:38:29.303Z",
       "name": "Public Matatus",
       "sort_order": 32,
-      "updated_date": "2026-09-09T09:38:29.303Z"
+      "updated_date": "2026-09-09T09:38:29.303Z",
+      "pricing_kind": "flat"
     },
     {
       "id": "m4PJD3ZZTOpPy9ony97N",
@@ -2360,7 +2388,8 @@
       "created_date": "2026-09-09T09:38:28.772Z",
       "requires_photo_proof": false,
       "updated_date": "2026-09-09T09:38:28.772Z",
-      "is_active": true
+      "is_active": true,
+      "pricing_kind": "flat"
     },
     {
       "id": "oFrC0OPEiYvRt3xQshmp",
@@ -2372,7 +2401,8 @@
       "requires_photo_proof": false,
       "price_kes": 600,
       "name": "Dashboard Polish Spray",
-      "category": "add_on"
+      "category": "add_on",
+      "pricing_kind": "flat"
     },
     {
       "id": "rhMzkKIX2a54vbIIund2",
@@ -2384,7 +2414,8 @@
       "is_active": true,
       "price_kes": 300,
       "business_id": "qa-test-wash",
-      "created_date": "2026-09-09T09:38:27.889Z"
+      "created_date": "2026-09-09T09:38:27.889Z",
+      "pricing_kind": "flat"
     },
     {
       "id": "snMpOlp27ePZgjg52Qv4",
@@ -2397,7 +2428,8 @@
       "business_id": "qa-test-wash",
       "is_active": true,
       "category": "detailing",
-      "price_suv": 2500
+      "price_suv": 2500,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "sukPApbydJ60nUdh8Wg7",
@@ -2410,7 +2442,8 @@
       "updated_date": "2026-09-09T09:38:27.716Z",
       "category": "exterior_wash",
       "business_id": "qa-test-wash",
-      "price_suv": 500
+      "price_suv": 500,
+      "pricing_kind": "vehicle"
     },
     {
       "id": "y0GSctJvuWFSttVAHKP9",
@@ -2422,7 +2455,8 @@
       "sort_order": 39,
       "created_date": "2026-09-09T09:38:29.899Z",
       "updated_date": "2026-09-09T09:38:29.899Z",
-      "business_id": "qa-test-wash"
+      "business_id": "qa-test-wash",
+      "pricing_kind": "flat"
     },
     {
       "id": "zXGsJLmGBgzMieQt9YcF",
@@ -2435,7 +2469,22 @@
       "price_kes": 1000,
       "is_active": true,
       "price_suv": 2000,
-      "created_date": "2026-09-09T09:38:28.945Z"
+      "created_date": "2026-09-09T09:38:28.945Z",
+      "pricing_kind": "vehicle"
+    },
+    {
+      "id": "carpetCleanSqm001",
+      "business_id": "qa-test-wash",
+      "name": "Carpet Cleaning (per square meter)",
+      "category": "interior_clean",
+      "price_kes": 200,
+      "price_suv": 250,
+      "requires_photo_proof": false,
+      "sort_order": 34,
+      "is_active": true,
+      "created_date": "2026-09-10T09:38:26.618Z",
+      "updated_date": "2026-09-10T09:38:26.618Z",
+      "pricing_kind": "unit"
     }
   ],
   "inventory": [

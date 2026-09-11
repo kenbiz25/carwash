@@ -99,6 +99,8 @@ function ensureSeeded() {
       await migrateMergeVehicleTieredServices();
       await migrateOfficialPhoneNumber();
       await migrateBranchSlugsAndPhotos();
+      await migratePricelistUpdate();
+      await migrateAddPricingKind();
     })();
   }
   return seedPromise;
@@ -156,6 +158,69 @@ async function migrateBranchSlugsAndPhotos() {
       slug: biz.slug || slugify(biz.location || biz.name),
       photos: biz.photos?.length ? biz.photos : DEFAULT_BRANCH_PHOTOS,
     });
+  }
+}
+
+// Reconciles two gaps against the owner's latest official pricelist:
+// "Air-Fresheners" was seeded with only a flat price even though its own
+// description always said "250 / 300 / 600 depending on scent/type", and
+// "Carpet Cleaning (per square meter)" was missing from the catalogue
+// entirely.
+async function migratePricelistUpdate() {
+  const services = await rawGetAll("services");
+  if (!services.length) return;
+  const db = await openDb();
+  const os = tx(db, "services", "readwrite");
+
+  const airFresheners = services.find((s) => s.name === "Air-Fresheners");
+  if (airFresheners && (airFresheners.price_suv !== 300 || airFresheners.price_van !== 600)) {
+    os.put({ ...airFresheners, price_suv: 300, price_van: 600 });
+  }
+
+  const hasCarpetCleaning = services.some((s) => s.name === "Carpet Cleaning (per square meter)");
+  if (!hasCarpetCleaning) {
+    const businessId = services[0]?.business_id;
+    os.put({
+      id: "carpetCleanSqm001",
+      business_id: businessId,
+      name: "Carpet Cleaning (per square meter)",
+      category: "interior_clean",
+      pricing_kind: "unit",
+      price_kes: 200,
+      price_suv: 250,
+      requires_photo_proof: false,
+      sort_order: services.length + 1,
+      is_active: true,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+    });
+  }
+}
+
+// `pricing_kind` is presentation-only — it tells the catalogue UI what to
+// call a service's price columns (Saloon/SUV/Van, a per-m² rate, a scent
+// variant, or nothing beyond a single flat price). It never affects the
+// actual numeric price_kes/price_suv/price_van fields or how DriveInWizard/
+// EnhancedCheckIn pick a price — those still just read the numbers.
+const PRICING_KIND_BY_NAME = {
+  "Basic Wash": "vehicle", "Flash Wash": "vehicle", "Vacuuming/Hoovering": "vehicle",
+  "Interior Steam Wash": "vehicle", "Under Wash Cleaning": "vehicle", "Roof Cleaning": "vehicle",
+  "Interior Deep Cleaning": "vehicle", "Waxing": "vehicle", "Buffing": "vehicle",
+  "Rim Restoration": "vehicle", "Tyre Shiner": "vehicle",
+  "Carpet Cleaning (per square meter)": "unit",
+  "Air-Fresheners": "variant",
+};
+function inferPricingKind(name) {
+  return PRICING_KIND_BY_NAME[name] || "flat";
+}
+async function migrateAddPricingKind() {
+  const services = await rawGetAll("services");
+  const stale = services.filter((s) => !s.pricing_kind);
+  if (!stale.length) return;
+  const db = await openDb();
+  const os = tx(db, "services", "readwrite");
+  for (const svc of stale) {
+    os.put({ ...svc, pricing_kind: inferPricingKind(svc.name) });
   }
 }
 

@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyABaO9d60tQEUPEVI7clu595vjr_yTPyME",
+  apiKey: process.env.FIREBASE_API_KEY,
   authDomain: "carwash-managerke.firebaseapp.com",
   projectId: "carwash-managerke",
   storageBucket: "carwash-managerke.firebasestorage.app",
@@ -24,7 +24,7 @@ const firebaseConfig = {
 
 const BUSINESS_ID = "qa-test-wash";
 const OWNER_EMAIL = "kenbiz25+owner@gmail.com";
-const OWNER_PASSWORD = "owner123";
+const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD;
 const MANAGER_EMAIL = "kenbiz25+manager@gmail.com";
 const STAFF_EMAIL = "kenbiz25+staff@gmail.com";
 const CASHIER_EMAIL = "kenbiz25+cashier@gmail.com";

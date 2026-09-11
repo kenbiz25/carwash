@@ -14,6 +14,7 @@ import {
 import { api } from "@/api/firebaseClient";
 import { toast } from "sonner";
 import { sendPaymentConfirmation } from "@/components/notifications/NotificationService";
+import { initiateStkPush, waitForStkPushResult } from "@/lib/mpesaClient";
 
 export default function PaymentDialog({ wash, open, onOpenChange, businessId, onSuccess }) {
   const [method, setMethod] = useState("mpesa");
@@ -31,45 +32,59 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
     setLoading(true);
     setMpesaStatus("pending");
 
-    // Simulate STK Push - In production, this would call your M-Pesa API
-    // The actual integration would use Safaricom Daraja API
-    toast.info("STK Push sent to " + phone, {
-      description: "Customer will receive M-Pesa prompt on their phone"
-    });
+    try {
+      // Real request to mpesa-server (see mpesa-server/README.md) — it calls
+      // Safaricom (or, in mock mode, simulates the same shape of response)
+      // and gives us back an id to poll while the customer completes the
+      // prompt on their phone.
+      const { checkoutRequestId, customerMessage } = await initiateStkPush({
+        phone,
+        amount: wash.amount_due,
+        accountReference: wash.plate_number,
+        transactionDesc: `Car wash payment - ${wash.plate_number}`,
+      });
 
-    // Simulate waiting for callback
-    setTimeout(async () => {
-      // In production, this would be triggered by M-Pesa callback
+      toast.info(customerMessage || "STK Push sent to " + phone, {
+        description: "Customer will receive M-Pesa prompt on their phone"
+      });
+
+      const result = await waitForStkPushResult(checkoutRequestId);
+
+      if (result.status !== "completed") {
+        throw new Error(result.failureReason || "Payment was not completed");
+      }
+
       setMpesaStatus("success");
-      
-      // Create payment record
+
+      // Create payment record — amount/receipt come from the confirmed
+      // transaction (Safaricom's callback in real mode), not from what we
+      // asked for, so this reflects what the customer actually paid.
       await api.entities.Payment.create({
         business_id: businessId,
         wash_id: wash.id,
-        amount: wash.amount_due,
+        amount: result.amount ?? wash.amount_due,
         method: "mpesa",
-        phone_number: phone,
-        transaction_ref: `MPESA${Date.now()}`,
-        mpesa_receipt: `QHL${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+        phone_number: result.phoneNumber || phone,
+        transaction_ref: checkoutRequestId,
+        mpesa_receipt: result.mpesaReceipt,
         status: "confirmed"
       });
 
       // Update wash status
       await api.entities.Wash.update(wash.id, {
         status: "paid",
-        amount_paid: wash.amount_due,
+        amount_paid: result.amount ?? wash.amount_due,
         payment_method: "mpesa",
         exit_time: new Date().toISOString()
       });
 
-      setLoading(false);
       toast.success("Payment confirmed!");
-      
+
       // Send SMS notification to customer
       if (wash.customer_phone) {
-        sendPaymentConfirmation(wash, { amount: wash.amount_due, mpesa_receipt: `QHL${Math.random().toString(36).substr(2, 8).toUpperCase()}` }, null);
+        sendPaymentConfirmation(wash, { amount: result.amount ?? wash.amount_due, mpesa_receipt: result.mpesaReceipt }, null);
       }
-      
+
       // Update loyalty points (10 points per 100 KES)
       if (wash.customer_phone) {
         const customers = await api.entities.LoyaltyCustomer.filter({ phone: wash.customer_phone, business_id: businessId });
@@ -83,10 +98,17 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
           });
         }
       }
-      
+
+      // Same query keys Washes.jsx/Payments.jsx/Dashboard already use — this
+      // is what makes the confirmed payment show up live without a refresh.
       onSuccess?.();
       setTimeout(() => onOpenChange(false), 1500);
-    }, 3000);
+    } catch (err) {
+      setMpesaStatus("failed");
+      toast.error(err.message || "M-Pesa payment failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCashPayment = async () => {
@@ -282,6 +304,17 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
                       Customer should enter M-Pesa PIN on their phone
                     </p>
                   </div>
+                </div>
+              )}
+
+              {mpesaStatus === "failed" && (
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+                  <p className="font-medium text-red-800 dark:text-red-200">
+                    Payment not completed
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-300">
+                    The customer may have cancelled or the request timed out — you can try again.
+                  </p>
                 </div>
               )}
 

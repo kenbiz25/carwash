@@ -33,9 +33,26 @@ const CAT_COLORS = {
   package: "bg-pink-100 text-pink-700",
 };
 
+// Purely a labeling concern — price_kes/price_suv/price_van stay the same
+// three numeric fields no matter which kind is picked, so DriveInWizard and
+// EnhancedCheckIn's price-picking logic never has to know this exists. This
+// only controls what the catalogue calls those fields: most of the pricelist
+// isn't actually "Saloon/SUV/Van" (matatus, lorries, carpet-per-m², air
+// freshener scent options all reuse the same three numbers for something
+// else entirely), and showing them all under vehicle-type labels was the
+// dishonest/confusing part.
+const PRICING_KINDS = {
+  vehicle: { label: "Vehicle-tiered (Saloon/SUV/Van)", tiers: ["Saloon", "SUV", "Van"] },
+  unit: { label: "Per-unit rate (e.g. per m²)", tiers: ["Rate", "Premium rate"] },
+  variant: { label: "Variant-based (e.g. scent/type)", tiers: ["Option A", "Option B", "Option C"] },
+  flat: { label: "Flat rate", tiers: [] },
+};
+const pricingKindOf = (svc) => PRICING_KINDS[svc?.pricing_kind] || PRICING_KINDS.flat;
+
 const EMPTY = {
   name: "", category: "exterior_wash", description: "", price_kes: "",
   price_suv: "", price_van: "", duration_minutes: "", is_active: true, is_package: false,
+  pricing_kind: "flat",
 };
 
 export default function ProductCatalogue() {
@@ -71,24 +88,22 @@ export default function ProductCatalogue() {
     return matchSearch && matchCat;
   });
 
-  const [tieredPricing, setTieredPricing] = useState(false);
-
-  const openCreate = () => { setForm(EMPTY); setEditItem(null); setTieredPricing(false); setFormOpen(true); };
+  const openCreate = () => { setForm(EMPTY); setEditItem(null); setFormOpen(true); };
   const openEdit = (svc) => {
-    setForm({ ...EMPTY, ...svc });
+    setForm({ ...EMPTY, ...svc, pricing_kind: svc.pricing_kind || "flat" });
     setEditItem(svc);
-    setTieredPricing(!!(svc.price_suv || svc.price_van));
     setFormOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const tierCount = PRICING_KINDS[form.pricing_kind]?.tiers.length || 0;
     const payload = {
       ...form,
       price_kes: Number(form.price_kes) || 0,
-      price_suv: tieredPricing ? (Number(form.price_suv) || 0) : 0,
-      price_van: tieredPricing ? (Number(form.price_van) || 0) : 0,
+      price_suv: tierCount >= 2 ? (Number(form.price_suv) || 0) : 0,
+      price_van: tierCount >= 3 ? (Number(form.price_van) || 0) : 0,
       duration_minutes: Number(form.duration_minutes) || 0,
       business_id: businessId,
     };
@@ -169,16 +184,18 @@ export default function ProductCatalogue() {
                 <TableRow className="bg-slate-50 dark:bg-slate-900/50">
                   <TableHead>Service</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Saloon</TableHead>
-                  <TableHead>SUV</TableHead>
-                  <TableHead>Van</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>2nd Tier</TableHead>
+                  <TableHead>3rd Tier</TableHead>
                   <TableHead>Duration</TableHead>
                   {canEdit && <TableHead>Active</TableHead>}
                   {canEdit && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(svc => (
+                {filtered.map(svc => {
+                  const kind = pricingKindOf(svc);
+                  return (
                   <TableRow key={svc.id} className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 ${!svc.is_active ? "opacity-50" : ""}`}>
                     <TableCell>
                       <p className="font-medium text-sm text-slate-900 dark:text-white">{svc.name}</p>
@@ -190,9 +207,26 @@ export default function ProductCatalogue() {
                         {CATEGORIES[svc.category] || svc.category}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-semibold text-sm">KES {(svc.price_kes || 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{svc.price_suv ? `KES ${svc.price_suv.toLocaleString()}` : "—"}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{svc.price_van ? `KES ${svc.price_van.toLocaleString()}` : "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {kind.tiers[0] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[0]}</p>}
+                      <p className="font-semibold">KES {(svc.price_kes || 0).toLocaleString()}</p>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {svc.price_suv ? (
+                        <>
+                          {kind.tiers[1] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[1]}</p>}
+                          <p>KES {svc.price_suv.toLocaleString()}</p>
+                        </>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-500">
+                      {svc.price_van ? (
+                        <>
+                          {kind.tiers[2] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[2]}</p>}
+                          <p>KES {svc.price_van.toLocaleString()}</p>
+                        </>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell className="text-sm text-slate-500">{svc.duration_minutes ? `${svc.duration_minutes} min` : "—"}</TableCell>
                     {canEdit && (
                       <TableCell>
@@ -212,7 +246,8 @@ export default function ProductCatalogue() {
                       </TableCell>
                     )}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -241,42 +276,51 @@ export default function ProductCatalogue() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Duration (min)</Label>
+                <Label>Est. Duration (min)</Label>
                 <Input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} placeholder="30" />
+                <p className="text-[11px] text-slate-400">A rough estimate for wait times — this is hand-washing, not a timed machine cycle, so actual time will vary.</p>
               </div>
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
               <Textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What's included in this service..." />
             </div>
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-              <div>
-                <Label>Price varies by vehicle type</Label>
-                <p className="text-xs text-slate-500">Off for products or flat-rate services (e.g. carpet washing, air fresheners)</p>
-              </div>
-              <Switch checked={tieredPricing} onCheckedChange={setTieredPricing} />
+            <div className="space-y-1">
+              <Label>Pricing type</Label>
+              <Select value={form.pricing_kind} onValueChange={v => setForm(f => ({ ...f, pricing_kind: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRICING_KINDS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">
+                What the price columns mean for this service — most of the pricelist isn't
+                actually about vehicle size (matatus, lorries, carpet-per-m², air freshener
+                scents all use the same price fields for something else).
+              </p>
             </div>
-            {tieredPricing ? (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label>Price – Saloon (KES) *</Label>
-                  <Input required type="number" value={form.price_kes} onChange={e => setForm(f => ({ ...f, price_kes: e.target.value }))} placeholder="500" />
+            {(() => {
+              const tiers = PRICING_KINDS[form.pricing_kind]?.tiers || [];
+              const fieldFor = (idx, key) => (
+                <div className="space-y-1" key={key}>
+                  <Label>{tiers[idx] ? `Price – ${tiers[idx]} (KES)` : "Price (KES)"}{idx === 0 && " *"}</Label>
+                  <Input
+                    required={idx === 0}
+                    type="number"
+                    value={form[key]}
+                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    placeholder={idx === 0 ? "500" : idx === 1 ? "700" : "900"}
+                  />
                 </div>
-                <div className="space-y-1">
-                  <Label>Price – SUV (KES)</Label>
-                  <Input type="number" value={form.price_suv} onChange={e => setForm(f => ({ ...f, price_suv: e.target.value }))} placeholder="700" />
+              );
+              return (
+                <div className={tiers.length > 1 ? "grid grid-cols-3 gap-3" : ""}>
+                  {fieldFor(0, "price_kes")}
+                  {tiers.length >= 2 && fieldFor(1, "price_suv")}
+                  {tiers.length >= 3 && fieldFor(2, "price_van")}
                 </div>
-                <div className="space-y-1">
-                  <Label>Price – Van (KES)</Label>
-                  <Input type="number" value={form.price_van} onChange={e => setForm(f => ({ ...f, price_van: e.target.value }))} placeholder="900" />
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Label>Price (KES) *</Label>
-                <Input required type="number" value={form.price_kes} onChange={e => setForm(f => ({ ...f, price_kes: e.target.value }))} placeholder="500" />
-              </div>
-            )}
+              );
+            })()}
             <div className="flex items-center justify-between">
               <Label>Is Package?</Label>
               <Switch checked={form.is_package} onCheckedChange={v => setForm(f => ({ ...f, is_package: v }))} />

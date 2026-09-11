@@ -5,7 +5,7 @@ const page = await browser.newPage();
 await page.goto("http://localhost:5183/Login");
 await page.waitForSelector("input#email", { timeout: 15000 });
 await page.fill("input#email", "kenbiz25+owner@gmail.com");
-await page.fill("input#password", "owner123");
+await page.fill("input#password", process.env.SEED_OWNER_PASSWORD);
 await page.click('button[type="submit"]');
 await page.waitForURL(/Dashboard/, { timeout: 15000 });
 
