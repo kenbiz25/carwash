@@ -1,0 +1,20 @@
+---
+# cPanel Git Version Control deployment script - runs when you click "Deploy
+# HEAD Commit" on this repo in cPanel. Builds the Vite frontend from source
+# and copies the output into public_html - .env is never part of this repo
+# (gitignored from the start), so this can never touch/overwrite it, unlike
+# the manual zip uploads this replaces for the frontend.
+#
+# Only covers the frontend - app-data-server/, user-admin-server/,
+# whatsapp-server/, and mpesa-server/ are deliberately excluded from git
+# (they hold real secrets) and still need their own manual zip deploys.
+#
+# DEPLOYPATH is a best guess (/home/fjwkkmge/public_html) - confirm this is
+# actually where your site's document root lives before relying on this;
+# a wrong path just means nothing gets copied, it won't break anything.
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/fjwkkmge/public_html/
+    - npm install
+    - npm run build
+    - /bin/cp -R dist/. $DEPLOYPATH
