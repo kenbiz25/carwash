@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { createPageUrl } from "@/utils";
 import { useBusiness } from "@/lib/BusinessContext";
 import { auth } from "@/lib/firebase";
-import { Plus, Link2, Clock3, RefreshCw } from "lucide-react";
+import { Plus, Link2, Clock3, RefreshCw } from "@/lib/icons";
 
 export default function DashboardEmptyState() {
   const navigate = useNavigate();

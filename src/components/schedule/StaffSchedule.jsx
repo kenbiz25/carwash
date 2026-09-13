@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Plus, ChevronLeft, ChevronRight, Users, Check, X } from "lucide-react";
+import { Calendar, Clock, Plus, ChevronLeft, ChevronRight, Users, Check, X } from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
 import { toast } from "sonner";
 import moment from "moment";

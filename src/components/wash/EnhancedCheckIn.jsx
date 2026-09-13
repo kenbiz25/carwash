@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus, Car, Camera, X, Loader2, Upload, AlertTriangle, UserCheck,
-  Layers, Truck, MapPin, Mail, Home, Check
-} from "lucide-react";
+  Layers, Truck, MapPin, Mail, Home, Check, Sparkles
+} from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
 import { toast } from "sonner";
 import UpsellPrompt from "./UpsellPrompt";
-import { notifyInApp } from "@/components/notifications/NotificationService";
+import { notifyInApp, sendCheckInConfirmation } from "@/components/notifications/NotificationService";
+import { scanVehiclePhoto } from "@/lib/visionClient";
+import VehicleIcon from "../common/VehicleIcon";
 
 const vehicleTypes = [
   { value: "saloon", label: "Saloon/Sedan" },
@@ -42,6 +44,28 @@ const serviceCategories = {
   add_on: "Add-Ons",
   package: "Packages"
 };
+
+// price_suv/price_van only mean "SUV/Van price" for a vehicle-tiered
+// service - for a per-unit or variant-priced one they mean something else
+// entirely (e.g. "Premium rate", "Option B"), so only substitute them when
+// the vehicle_type picked here actually applies. A service saved before
+// pricing_kind existed has no value for it, which always meant vehicle
+// tiers back then - default it that way, not to "flat" (see ProductCatalogue.jsx).
+const getServicePrice = (service, vehicleType) => {
+  const kind = service.pricing_kind || "vehicle";
+  if (kind !== "vehicle") return service.price_kes;
+  let price = service.price_kes;
+  if (vehicleType === "suv" && service.price_suv) price = service.price_suv;
+  if (["van", "truck", "bus"].includes(vehicleType) && service.price_van) price = service.price_van;
+  return price;
+};
+
+// A service with no vehicle_types set applies to every vehicle (most add-ons
+// and engine/interior services aren't vehicle-size-specific) - one is only
+// excluded once it's been explicitly tagged and the current vehicle isn't in
+// that list, e.g. "Basic Wash (SUV)" shouldn't show up for a saloon.
+const appliesToVehicle = (service, vehicleType) =>
+  !service.vehicle_types?.length || service.vehicle_types.includes(vehicleType);
 
 const carpetSizes = [
   { value: "small", label: "Small", sublabel: "Car mat / floor mat", color: "border-sky-300 bg-sky-50 text-sky-700" },
@@ -88,9 +112,15 @@ const emptyForm = {
 };
 
 export default function EnhancedCheckIn({
-  businessId, services = [], staff = [], onSuccess, user,
+  businessId, services = [], staff = [], onSuccess, user, business,
   open: controlledOpen, onOpenChange: controlledOnOpenChange,
-  defaultType = "vehicle"
+  defaultType = "vehicle",
+  // A wash someone already started with "Save & Finish Later" (see
+  // handleSaveForLater) - when set, this dialog edits that record instead of
+  // creating a new one, pre-filled with whatever was captured so far, so a
+  // manager or any other staff member can pick up where the first person
+  // left off instead of starting over.
+  editingWash = null,
 }) {
   const isControlled = controlledOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
@@ -113,7 +143,16 @@ export default function EnhancedCheckIn({
   const [prevWash, setPrevWash] = useState(null);
   const [showAutofill, setShowAutofill] = useState(false);
   const [loadingRepeat, setLoadingRepeat] = useState(false);
+  const [scanningPhoto, setScanningPhoto] = useState(false);
   const [formData, setFormData] = useState({ ...emptyForm });
+
+  // Pre-fill from a pending entry being finished, instead of starting blank.
+  useEffect(() => {
+    if (!open || !editingWash) return;
+    setCheckInType(editingWash.type || "vehicle");
+    setFormData({ ...emptyForm, ...editingWash });
+    setActiveTab(editingWash.services?.length ? "assign" : "services");
+  }, [open, editingWash?.id]);
 
   const handleTypeSwitch = (type) => {
     setCheckInType(type);
@@ -190,9 +229,7 @@ export default function EnhancedCheckIn({
       if (exists) {
         return { ...prev, services: prev.services.filter(s => s.service_id !== service.id) };
       }
-      let price = service.price_kes;
-      if (formData.vehicle_type === 'suv' && service.price_suv) price = service.price_suv;
-      if (['van', 'truck', 'bus'].includes(formData.vehicle_type) && service.price_van) price = service.price_van;
+      const price = getServicePrice(service, formData.vehicle_type);
       return {
         ...prev,
         services: [...prev.services, {
@@ -205,6 +242,21 @@ export default function EnhancedCheckIn({
       };
     });
   };
+
+  // Switching vehicle type can make an already-picked service disappear from
+  // the list (e.g. an SUV-only wash after switching to saloon) - drop it from
+  // the total too, rather than silently keep charging for something that no
+  // longer shows as selected anywhere in the form.
+  useEffect(() => {
+    if (checkInType !== "vehicle" || formData.services.length === 0) return;
+    setFormData(prev => {
+      const kept = prev.services.filter(s => {
+        const service = services.find(svc => svc.id === s.service_id);
+        return !service || appliesToVehicle(service, formData.vehicle_type);
+      });
+      return kept.length === prev.services.length ? prev : { ...prev, services: kept };
+    });
+  }, [formData.vehicle_type]);
 
   const totalAmount = formData.services.reduce((sum, s) => sum + (s.price || 0), 0);
 
@@ -227,6 +279,47 @@ export default function EnhancedCheckIn({
     toast.success("Photo uploaded");
   };
 
+  // Scans one photo of the vehicle to auto-fill plate/type/make/model/color
+  // instead of typing them in - the same photo is also saved as a "before"
+  // photo, so the Photos tab doesn't need it taken again unless more are
+  // wanted. AI guesses are left in the (still-editable) fields for staff to
+  // confirm, never submitted blind - a misread plate would misbill someone.
+  const handleScanVehiclePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setScanningPhoto(true);
+    try {
+      const { file_url } = await api.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({
+        ...prev,
+        photos_before: [...prev.photos_before, file_url],
+        photos_proof: [...prev.photos_proof, {
+          url: file_url, type: "before",
+          uploaded_by: user?.email,
+          uploaded_at: new Date().toISOString(),
+        }],
+      }));
+
+      const fields = await scanVehiclePhoto(file_url);
+      const matchedMake = vehicleMakes.find(m => m.toLowerCase() === fields.vehicle_make?.toLowerCase());
+      setFormData(prev => ({
+        ...prev,
+        plate_number: fields.plate_number || prev.plate_number,
+        vehicle_type: fields.vehicle_type || prev.vehicle_type,
+        vehicle_make: matchedMake || (fields.vehicle_make ? "Other" : prev.vehicle_make),
+        vehicle_model: matchedMake
+          ? (fields.vehicle_model || prev.vehicle_model)
+          : [fields.vehicle_make, fields.vehicle_model].filter(Boolean).join(" ") || prev.vehicle_model,
+        vehicle_color: fields.vehicle_color || prev.vehicle_color,
+      }));
+      toast.success("Filled in from the photo - please double-check before continuing");
+    } catch (err) {
+      toast.error(err.message || "Couldn't read that photo - fill the details in manually");
+    }
+    setScanningPhoto(false);
+  };
+
   const removePhoto = (index) => {
     const photoUrl = formData.photos_before[index];
     setFormData(prev => ({
@@ -234,6 +327,56 @@ export default function EnhancedCheckIn({
       photos_before: prev.photos_before.filter((_, i) => i !== index),
       photos_proof: prev.photos_proof.filter(p => p.url !== photoUrl)
     }));
+  };
+
+  // Captures just the Details tab and queues the car for anyone (a manager
+  // or any other staff member) to finish later from the Washes board - the
+  // whole point being that a fast-paced, wet-handed front desk shouldn't
+  // have to pick services or take photos before moving on to the next car.
+  const handleSaveForLater = async () => {
+    if (checkInType === "vehicle" && !formData.plate_number.trim()) {
+      toast.error("Please enter plate number");
+      return;
+    }
+    if (checkInType === "carpet" && !formData.customer_name.trim()) {
+      toast.error("Please enter customer name");
+      return;
+    }
+
+    setLoading(true);
+    const ref = checkInType === "carpet"
+      ? (formData.carpet_reference || generateCarpetRef())
+      : formData.plate_number.toUpperCase();
+
+    const draftWash = await api.entities.Wash.create({
+      business_id: businessId,
+      type: checkInType,
+      wash_number: generateWashNumber(),
+      plate_number: ref,
+      ...(checkInType === "vehicle" && {
+        vehicle_type: formData.vehicle_type,
+        vehicle_make: formData.vehicle_make,
+        vehicle_model: formData.vehicle_model,
+        vehicle_color: formData.vehicle_color,
+      }),
+      customer_name: formData.customer_name,
+      customer_phone: formData.customer_phone,
+      photos_before: formData.photos_before,
+      photos_proof: formData.photos_proof,
+      services: [],
+      amount_due: 0,
+      checked_in_by: user?.email,
+      entry_time: new Date().toISOString(),
+      status: "waiting",
+      entry_status: "pending",
+    });
+    sendCheckInConfirmation(draftWash, business).catch(() => {});
+
+    toast.success("Saved - anyone can finish this from the Washes board");
+    setFormData({ ...emptyForm });
+    setLoading(false);
+    setOpen(false);
+    onSuccess?.();
   };
 
   const generateWashNumber = () => {
@@ -268,10 +411,8 @@ export default function EnhancedCheckIn({
       ? (formData.carpet_reference || generateCarpetRef())
       : formData.plate_number.toUpperCase();
 
-    const newWash = await api.entities.Wash.create({
-      business_id: businessId,
+    const sharedFields = {
       type: checkInType,
-      wash_number: generateWashNumber(),
       plate_number: ref,
       ...(checkInType === "vehicle" && {
         vehicle_type: formData.vehicle_type,
@@ -296,16 +437,35 @@ export default function EnhancedCheckIn({
       services: formData.services,
       assigned_staff_id: formData.assigned_staff_id,
       assigned_staff_name: staffMember?.name || "",
-      checked_in_by: user?.email,
       bay_number: formData.bay_number ? parseInt(formData.bay_number) : null,
       notes: formData.notes,
       damage_notes: formData.damage_notes,
       photos_before: formData.photos_before,
       photos_proof: formData.photos_proof,
       amount_due: totalAmount,
-      entry_time: new Date().toISOString(),
-      status: "waiting"
-    });
+      entry_status: "complete",
+    };
+
+    // Finishing a pending entry someone else started - update that record
+    // (keeping its original entry_time/checked_in_by/wash_number) instead of
+    // creating a second one for the same car.
+    const newWash = editingWash
+      ? await api.entities.Wash.update(editingWash.id, { ...sharedFields, completed_by: user?.email })
+      : await api.entities.Wash.create({
+          ...sharedFields,
+          business_id: businessId,
+          wash_number: generateWashNumber(),
+          checked_in_by: user?.email,
+          entry_time: new Date().toISOString(),
+          status: "waiting",
+        });
+
+    // Only a brand-new, fully-filled-out check-in counts as "just arrived" -
+    // finishing a pending entry already sent this when it was first queued
+    // (see handleSaveForLater).
+    if (!editingWash) {
+      sendCheckInConfirmation(newWash, business).catch(() => {});
+    }
 
     if (staffMember?.user_email) {
       notifyInApp({
@@ -318,7 +478,11 @@ export default function EnhancedCheckIn({
       }).catch(() => {});
     }
 
-    toast.success(checkInType === "carpet" ? "Carpet job checked in!" : "Vehicle checked in successfully!");
+    toast.success(
+      editingWash
+        ? "Entry completed!"
+        : checkInType === "carpet" ? "Carpet job checked in!" : "Vehicle checked in successfully!"
+    );
     setFormData({ ...emptyForm });
     setPrevWash(null);
     setShowAutofill(false);
@@ -332,6 +496,7 @@ export default function EnhancedCheckIn({
   // Group services by category; for carpet mode show only carpet_wash + add_on
   const groupedServices = services.reduce((acc, service) => {
     if (service.is_active === false) return acc;
+    if (checkInType === "vehicle" && !appliesToVehicle(service, formData.vehicle_type)) return acc;
     const cat = service.category || "add_on";
     if (checkInType === "carpet" && !["carpet_wash", "add_on"].includes(cat)) return acc;
     if (!acc[cat]) acc[cat] = [];
@@ -393,9 +558,16 @@ export default function EnhancedCheckIn({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Type toggle - carpets are paused for now (carwash is the primary product);
-            re-enable by rendering this when a second type is offered again. */}
-        {defaultType === "carpet" && (
+        {editingWash && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            Finishing an entry {editingWash.checked_in_by ? `started by ${editingWash.checked_in_by}` : "started earlier"} -
+            pick services, add photos, and assign staff to complete it.
+          </div>
+        )}
+
+        {/* Type toggle - lets staff switch to a carpet drop-off from the same
+            dialog, regardless of which button opened it. */}
+        {(
           <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
             <button
               type="button"
@@ -438,36 +610,65 @@ export default function EnhancedCheckIn({
 
               {checkInType === "vehicle" ? (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Plate Number *</Label>
-                      <div className="relative">
-                        <Input
-                          placeholder="KAA 123B"
-                          value={formData.plate_number}
-                          onChange={(e) => setFormData(prev => ({ ...prev, plate_number: e.target.value }))}
-                          onBlur={handlePlateBlur}
-                          className="uppercase font-mono text-lg"
-                          autoFocus
-                        />
-                        {loadingRepeat && (
-                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
-                        )}
-                      </div>
+                  <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-blue-mid/40 bg-brand-blue-mid/5 hover:bg-brand-blue-mid/10 transition-colors py-3 px-4 cursor-pointer text-sm font-medium text-brand-blue-mid">
+                    {scanningPhoto ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Reading photo...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Scan Vehicle Photo - auto-fills plate, type, make, model, color
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      disabled={scanningPhoto}
+                      onChange={handleScanVehiclePhoto}
+                    />
+                  </label>
+
+                  <div className="space-y-2">
+                    <Label>Plate Number *</Label>
+                    <div className="relative">
+                      <Input
+                        placeholder="KAA 123B"
+                        value={formData.plate_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, plate_number: e.target.value }))}
+                        onBlur={handlePlateBlur}
+                        className="uppercase font-mono text-2xl h-14 text-center tracking-wider"
+                        autoFocus
+                      />
+                      {loadingRepeat && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <Label>Vehicle Type</Label>
-                      <Select
-                        value={formData.vehicle_type}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, vehicle_type: value }))}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {vehicleTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  </div>
+
+                  {/* Big tappable icons instead of a dropdown - easier to hit
+                      with wet or gloved hands than picking from a menu. */}
+                  <div className="space-y-2">
+                    <Label>Vehicle Type</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {vehicleTypes.map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, vehicle_type: type.value }))}
+                          className={`flex flex-col items-center gap-1 rounded-xl border-2 py-3 px-1 transition-all ${
+                            formData.vehicle_type === type.value
+                              ? "border-brand-blue-mid bg-brand-blue-mid/10 dark:bg-brand-blue-mid/20"
+                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <VehicleIcon type={type.value} size="default" />
+                          <span className="text-[11px] font-medium text-center leading-tight">{type.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -702,7 +903,18 @@ export default function EnhancedCheckIn({
                 </>
               )}
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                {!editingWash && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loading}
+                    onClick={handleSaveForLater}
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                    Save &amp; Finish Later
+                  </Button>
+                )}
                 <Button type="button" onClick={() => setActiveTab("services")}>
                   Next: Select Services
                 </Button>
@@ -724,9 +936,7 @@ export default function EnhancedCheckIn({
                   <div className="grid grid-cols-2 gap-2">
                     {categoryServices.map((service) => {
                       const isSelected = formData.services.some(s => s.service_id === service.id);
-                      let displayPrice = service.price_kes;
-                      if (formData.vehicle_type === 'suv' && service.price_suv) displayPrice = service.price_suv;
-                      if (['van', 'truck', 'bus'].includes(formData.vehicle_type) && service.price_van) displayPrice = service.price_van;
+                      const displayPrice = getServicePrice(service, formData.vehicle_type);
 
                       return (
                         <div

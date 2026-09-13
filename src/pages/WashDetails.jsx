@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, Car, User, Clock, Banknote, Camera, Play, CheckCircle, X, Loader2, Phone,
   Upload, Image, AlertTriangle, Star, Pause, Trash2
-} from "lucide-react";
+} from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StatusBadge from "@/components/common/StatusBadge";
@@ -20,6 +20,7 @@ import PaymentDialog from "@/components/payment/PaymentDialog";
 import moment from "moment";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
+import { sendWashingStartedNotification, sendWashReadyNotification } from "@/components/notifications/NotificationService";
 
 export default function WashDetails() {
   const queryClient = useQueryClient();
@@ -70,14 +71,24 @@ export default function WashDetails() {
 
   const handleStatusChange = async (newStatus) => {
     const updateData = { status: newStatus };
-    
+
     if (newStatus === "washing") {
       updateData.start_time = new Date().toISOString();
     } else if (newStatus === "done") {
       updateData.exit_time = new Date().toISOString();
     }
 
-    await api.entities.Wash.update(washId, updateData);
+    const updated = await api.entities.Wash.update(washId, updateData);
+
+    // WashDetails is a second place staff can change status from (besides
+    // the Washes board) - it needs the same customer notifications, not a
+    // silent status change just because it's a different page.
+    if (newStatus === "washing") {
+      sendWashingStartedNotification(updated, business).catch(() => {});
+    } else if (newStatus === "done") {
+      sendWashReadyNotification(updated, business).catch(() => {});
+    }
+
     toast.success(`Status updated to ${newStatus}`);
     refetch();
   };

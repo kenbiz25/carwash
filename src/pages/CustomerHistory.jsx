@@ -20,7 +20,7 @@ import {
   ArrowLeft,
   Clock,
   TrendingUp,
-} from "lucide-react";
+} from "@/lib/icons";
 import { useUserBusinesses } from "@/hooks/useUserBusinesses";
 import moment from "moment";
 import { createPageUrl } from "@/utils";

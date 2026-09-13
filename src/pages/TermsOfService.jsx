@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import Logo from "@/components/common/Logo";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "@/lib/icons";
 
 const EFFECTIVE_DATE = "1 March 2025";
 const COMPANY = "BGO Shine Hub";

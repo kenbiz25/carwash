@@ -9,19 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
-import { 
-  Plus, 
+import {
+  Plus,
   Package,
   AlertTriangle,
   Edit,
   Trash2,
   Loader2,
   Search,
-  Phone,
   User,
-  RefreshCw
-} from "lucide-react";
+  ClipboardCheck,
+  Sunrise,
+  Sunset,
+} from "@/lib/icons";
 import { toast } from "sonner";
 
 const categories = [
@@ -52,12 +52,15 @@ export default function Inventory() {
     unit: "",
     unit_cost: "",
     low_stock_threshold: "",
-    usage_per_wash: "",
     supplier_name: "",
     supplier_phone: "",
-    auto_deduct: true
   });
   const [saving, setSaving] = useState(false);
+  const [countDialogOpen, setCountDialogOpen] = useState(false);
+  const [countType, setCountType] = useState("opening");
+  const [countDate, setCountDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [countValues, setCountValues] = useState({});
+  const [savingCount, setSavingCount] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ["currentUser"],
@@ -79,6 +82,15 @@ export default function Inventory() {
     enabled: !!business?.id,
   });
 
+  // Visibility only for now, per the owner's request - no per-wash deduction,
+  // no discrepancy/variance alerts yet. A manager logs what's actually on
+  // the shelf at opening or closing; the owner can see it happened and when.
+  const { data: recentCounts = [], refetch: refetchCounts } = useQuery({
+    queryKey: ["inventory-counts", business?.id],
+    queryFn: () => api.entities.InventoryCount.filter({ business_id: business?.id }, "-recorded_at", 20),
+    enabled: !!business?.id,
+  });
+
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.item_name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
@@ -97,10 +109,8 @@ export default function Inventory() {
         unit: item.unit || "",
         unit_cost: item.unit_cost || "",
         low_stock_threshold: item.low_stock_threshold || "",
-        usage_per_wash: item.usage_per_wash || "",
         supplier_name: item.supplier_name || "",
         supplier_phone: item.supplier_phone || "",
-        auto_deduct: item.auto_deduct !== false
       });
     } else {
       setEditingItem(null);
@@ -111,10 +121,8 @@ export default function Inventory() {
         unit: "",
         unit_cost: "",
         low_stock_threshold: "",
-        usage_per_wash: "",
         supplier_name: "",
         supplier_phone: "",
-        auto_deduct: true
       });
     }
     setDialogOpen(true);
@@ -133,7 +141,6 @@ export default function Inventory() {
       quantity: parseFloat(formData.quantity) || 0,
       unit_cost: formData.unit_cost ? parseFloat(formData.unit_cost) : null,
       low_stock_threshold: formData.low_stock_threshold ? parseFloat(formData.low_stock_threshold) : null,
-      usage_per_wash: formData.usage_per_wash ? parseFloat(formData.usage_per_wash) : null,
       last_restock_date: editingItem ? undefined : new Date().toISOString().split('T')[0],
       last_restock_quantity: editingItem ? undefined : parseFloat(formData.quantity) || 0
     };
@@ -168,6 +175,54 @@ export default function Inventory() {
     refetch();
   };
 
+  // Daily stock count - no per-wash deduction, no variance/discrepancy math
+  // yet. A manager counts what's actually on the shelf at open or close of
+  // business; this just records it and updates the visible quantity, purely
+  // for the owner to see it's being done and what it said each time.
+  const handleOpenCountDialog = () => {
+    const values = {};
+    for (const item of inventory) values[item.id] = String(item.quantity ?? "");
+    setCountValues(values);
+    setCountType("opening");
+    setCountDate(new Date().toISOString().split("T")[0]);
+    setCountDialogOpen(true);
+  };
+
+  const handleSaveCount = async () => {
+    setSavingCount(true);
+    try {
+      let counted = 0;
+      for (const item of inventory) {
+        const raw = countValues[item.id];
+        if (raw === "" || raw === undefined) continue; // not counted this round - leave it alone
+        const quantity = parseFloat(raw) || 0;
+        await api.entities.InventoryCount.create({
+          business_id: business.id,
+          inventory_item_id: item.id,
+          item_name: item.item_name,
+          date: countDate,
+          count_type: countType,
+          quantity,
+          recorded_by: user?.email || "",
+        });
+        await api.entities.Inventory.update(item.id, {
+          quantity,
+          last_counted_date: countDate,
+          last_counted_type: countType,
+        });
+        counted++;
+      }
+      toast.success(`Recorded ${countType} count for ${counted} item(s)`);
+      setCountDialogOpen(false);
+      refetch();
+      refetchCounts();
+    } catch (err) {
+      toast.error(err?.message || "Failed to save count");
+    } finally {
+      setSavingCount(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -178,13 +233,23 @@ export default function Inventory() {
             Track consumables, chemicals, and equipment
           </p>
         </div>
-        <Button 
-          variant="gradient"
-          onClick={() => handleOpenDialog()}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleOpenCountDialog}
+            disabled={inventory.length === 0}
+          >
+            <ClipboardCheck className="h-4 w-4 mr-2" />
+            Record Daily Count
+          </Button>
+          <Button
+            variant="gradient"
+            onClick={() => handleOpenDialog()}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Item
+          </Button>
+        </div>
       </div>
 
       {/* Low Stock Alert */}
@@ -300,13 +365,13 @@ export default function Inventory() {
                     {item.unit_cost && (
                       <span>KES {item.unit_cost}/{item.unit || "unit"}</span>
                     )}
-                    {item.usage_per_wash && (
-                      <span>• {item.usage_per_wash}/wash</span>
-                    )}
-                    {item.auto_deduct && (
-                      <Badge variant="outline" className="text-xs">Auto-deduct</Badge>
-                    )}
                   </div>
+                  {item.last_counted_date && (
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                      <ClipboardCheck className="h-3 w-3" />
+                      Last counted {item.last_counted_date} ({item.last_counted_type})
+                    </p>
+                  )}
                   {item.supplier_name && (
                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                       <User className="h-3 w-3" />
@@ -359,6 +424,37 @@ export default function Inventory() {
             );
           })}
         </div>
+      )}
+
+      {/* Recent Counts - visibility only for now: confirms counts are
+          actually happening and what they said, no variance analysis yet. */}
+      {recentCounts.length > 0 && (
+        <Card className="p-5 bg-white dark:bg-slate-800 border-0 shadow-sm">
+          <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+            Recent Stock Counts
+          </h3>
+          <div className="space-y-2">
+            {recentCounts.map((c) => (
+              <div key={c.id} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  {c.count_type === "opening" ? (
+                    <Sunrise className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                  ) : (
+                    <Sunset className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                  )}
+                  <span className="font-medium text-slate-700 dark:text-slate-200 truncate">{c.item_name}</span>
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize flex-shrink-0">{c.count_type}</Badge>
+                </div>
+                <div className="flex items-center gap-3 text-slate-400 flex-shrink-0">
+                  <span className="text-slate-700 dark:text-slate-200 font-semibold">{c.quantity}</span>
+                  <span>{c.date}</span>
+                  <span className="hidden sm:inline">{c.recorded_by}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Add/Edit Dialog */}
@@ -426,28 +522,16 @@ export default function Inventory() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Low Stock Alert At</Label>
-                <Input
-                  type="number"
-                  placeholder="5"
-                  value={formData.low_stock_threshold}
-                  onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Usage Per Wash</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  placeholder="0.5"
-                  value={formData.usage_per_wash}
-                  onChange={(e) => setFormData({ ...formData, usage_per_wash: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Low Stock Alert At</Label>
+              <Input
+                type="number"
+                placeholder="5"
+                value={formData.low_stock_threshold}
+                onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
+              />
             </div>
-            
+
             <div className="border-t pt-4 mt-4">
               <Label className="text-base mb-3 block">Supplier Details</Label>
               <div className="grid grid-cols-2 gap-4">
@@ -470,24 +554,88 @@ export default function Inventory() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <div>
-                <Label>Auto-deduct on Wash</Label>
-                <p className="text-xs text-slate-500">Automatically reduce stock when wash is completed</p>
-              </div>
-              <Switch
-                checked={formData.auto_deduct}
-                onCheckedChange={(checked) => setFormData({ ...formData, auto_deduct: checked })}
-              />
-            </div>
-            
-            <Button 
+            <Button
               onClick={handleSave} 
               variant="gradient" className="w-full"
               disabled={saving}
             >
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {editingItem ? "Update Item" : "Add Item"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Daily Stock Count Dialog */}
+      <Dialog open={countDialogOpen} onOpenChange={setCountDialogOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Record Daily Count</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              Count what's actually on the shelf and enter it below - leave an item blank to
+              skip it this round. This updates the current quantity and logs it for the owner
+              to see.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={countDate} onChange={(e) => setCountDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>When</Label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCountType("opening")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                      countType === "opening"
+                        ? "border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/20"
+                        : "border-slate-200 dark:border-slate-700 text-slate-500"
+                    }`}
+                  >
+                    <Sunrise className="h-4 w-4" /> Opening
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCountType("closing")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                      countType === "closing"
+                        ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-900/20"
+                        : "border-slate-200 dark:border-slate-700 text-slate-500"
+                    }`}
+                  >
+                    <Sunset className="h-4 w-4" /> Closing
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {inventory.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-3">
+                  <Label className="flex-1 truncate font-normal">{item.item_name}</Label>
+                  <div className="flex items-center gap-1.5 w-32">
+                    <Input
+                      type="number"
+                      placeholder="-"
+                      value={countValues[item.id] ?? ""}
+                      onChange={(e) => setCountValues((v) => ({ ...v, [item.id]: e.target.value }))}
+                    />
+                    <span className="text-xs text-slate-400 w-10 flex-shrink-0">{item.unit || ""}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleSaveCount}
+              variant="gradient" className="w-full"
+              disabled={savingCount}
+            >
+              {savingCount ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ClipboardCheck className="h-4 w-4 mr-2" />}
+              Save {countType === "opening" ? "Opening" : "Closing"} Count
             </Button>
           </div>
         </DialogContent>

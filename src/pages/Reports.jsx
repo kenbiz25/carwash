@@ -24,7 +24,7 @@ import {
   Car,
   Banknote,
   Users
-} from "lucide-react";
+} from "@/lib/icons";
 import moment from "moment";
 import StatCard from "@/components/common/StatCard";
 import { useBusiness } from "@/lib/BusinessContext";
@@ -192,30 +192,30 @@ export default function Reports() {
           title={`Revenue (${dateRangeLabels[dateRange]})`}
           value={`KES ${stats.totalRevenue.toLocaleString()}`}
           icon={Banknote}
-          iconColor="text-emerald-600"
-          iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+          iconColor="text-brand-orange"
+          iconBg="bg-brand-orange-50 dark:bg-brand-orange/10"
         />
         <StatCard
           title="Washes Completed"
           value={stats.completedWashes}
           icon={Car}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-100 dark:bg-blue-900/30"
+          iconColor="text-brand-navy dark:text-brand-blue-light"
+          iconBg="bg-brand-navy-50 dark:bg-brand-navy-mid/40"
           subtitle={`${stats.totalWashes} total`}
         />
         <StatCard
           title="Avg Wash Value"
           value={`KES ${stats.avgWashValue.toLocaleString()}`}
           icon={TrendingUp}
-          iconColor="text-cyan-600"
-          iconBg="bg-cyan-100 dark:bg-cyan-900/30"
+          iconColor="text-brand-blue-mid dark:text-brand-blue-light"
+          iconBg="bg-brand-blue-pale/40 dark:bg-brand-blue-mid/20"
         />
         <StatCard
           title="M-Pesa Rate"
           value={`${Math.round((stats.mpesaRevenue / stats.totalRevenue) * 100) || 0}%`}
           icon={FileText}
-          iconColor="text-green-600"
-          iconBg="bg-green-100 dark:bg-green-900/30"
+          iconColor="text-brand-orange-hot"
+          iconBg="bg-brand-orange-100 dark:bg-brand-orange/10"
           subtitle={`KES ${stats.mpesaRevenue.toLocaleString()}`}
         />
       </div>

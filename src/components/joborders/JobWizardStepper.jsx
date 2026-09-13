@@ -1,6 +1,6 @@
 ﻿import React from "react";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { Check } from "@/lib/icons";
 
 export default function JobWizardStepper({ steps, currentStep }) {
   return (

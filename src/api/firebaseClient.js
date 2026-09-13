@@ -10,6 +10,7 @@ const COLLECTION_MAP = {
   Staff: 'staff',
   Service: 'services',
   Inventory: 'inventory',
+  InventoryCount: 'inventoryCounts',
   LoyaltyCustomer: 'loyaltyCustomers',
   Schedule: 'schedules',
   CCTVFeed: 'cctvFeeds',

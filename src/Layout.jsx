@@ -4,11 +4,11 @@ import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import { cn } from "@/lib/utils";
 import { useBusiness } from "@/lib/BusinessContext";
-import { LayoutDashboard, Car, Banknote, Menu } from "lucide-react";
+import { LayoutDashboard, Car, Banknote, Menu } from "@/lib/icons";
 import { createPageUrl } from "@/utils";
 
 // Pages that don't need the dashboard layout
-const publicPages = ["Landing", "Login", "JoinBusiness", "CustomerPortal", "PrivacyPolicy", "TermsOfService"];
+const publicPages = ["Landing", "Login", "JoinBusiness", "CustomerPortal", "PrivacyPolicy", "TermsOfService", "TrackCar"];
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);

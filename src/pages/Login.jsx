@@ -15,7 +15,7 @@ import { toLoginIdentifier } from '@/lib/userAdminClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, Lock, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowLeft, CheckCircle2 } from '@/lib/icons';
 import Logo from '@/components/common/Logo';
 import { toast } from 'sonner';
 

@@ -15,11 +15,12 @@ import {
   MapPin,
   Phone,
   Mail,
-  MessageCircle,
-} from "lucide-react";
+  Search,
+} from "@/lib/icons";
 import { motion } from "framer-motion";
 import { api } from "@/api/firebaseClient";
 import { WHATSAPP_BOOKING_URL } from "@/lib/constants";
+import { PUBLIC_LOCATIONS } from "@/lib/publicLocations";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -95,17 +96,14 @@ export default function Landing() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [mapBusinesses, setMapBusinesses] = useState([]);
+  // The public site's locations are static (see src/lib/publicLocations.js),
+  // independent of whatever branches exist in the operational database -
+  // this section always has something to show, even before any business is
+  // set up by an owner.
+  const mapBusinesses = PUBLIC_LOCATIONS.filter(b => b.latitude && b.longitude);
 
   useEffect(() => {
     api.auth.isAuthenticated().then(setIsAuthenticated);
-  }, []);
-
-  // Load businesses that have coordinates for the map
-  useEffect(() => {
-    api.entities.Business.list(null, 100).then((list) => {
-      setMapBusinesses(list.filter(b => b.latitude && b.longitude));
-    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -164,6 +162,16 @@ export default function Landing() {
                 </Button>
                 <Button size="lg" variant="outline" className="border-brand-blue-light/50 text-brand-blue-light hover:bg-brand-blue-light/10 hover:text-white text-lg px-8 h-14" asChild>
                   <a href="tel:+254757234111">Call Us</a>
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10 text-lg px-8 h-14"
+                  asChild
+                >
+                  <Link to={createPageUrl("TrackCar")}>
+                    <Search className="mr-2 h-5 w-5" /> Track My Car
+                  </Link>
                 </Button>
               </div>
               <button
@@ -551,23 +559,17 @@ export default function Landing() {
                   bgoshinehubltd@gmail.com
                 </li>
               </ul>
-              <div className="flex flex-wrap gap-2">
-                <a href="https://wa.me/254757234111" aria-label="WhatsApp" className="h-8 w-8 rounded-lg flex items-center justify-center hover:opacity-80 transition-opacity bg-[#25D366]">
-                  <MessageCircle className="h-3.5 w-3.5 text-white" />
-                </a>
-              </div>
             </div>
 
             {/* Column 2 - Quick Links */}
             <div>
-              <h4 className="font-bold text-base mb-1 pb-2 border-b-2 border-brand-blue-light inline-block">
-                Quick Links
-              </h4>
-              <ul className="mt-3 space-y-0">
+              <h4 className="font-bold text-base mb-2">Quick Links</h4>
+              <div className="w-10 h-0.5 bg-brand-blue-light mb-4" />
+              <ul className="space-y-0">
                 {[
                   { label: "Services", href: "#services" },
                   { label: "Reviews",  href: "#testimonials" },
-                  { label: "My Wash History", href: createPageUrl("CustomerPortal") },
+                  { label: "My Wash History", href: createPageUrl("TrackCar") },
                 ].map(item => (
                   <li key={item.label} className="border-b border-white/10 border-dashed last:border-0">
                     <a href={item.href} className="flex items-center gap-2 py-2 text-slate-400 hover:text-brand-blue-light text-sm transition-colors">
@@ -580,12 +582,10 @@ export default function Landing() {
 
             {/* Column 3 - Get Started */}
             <div>
-              <h4 className="font-bold text-base mb-1 pb-2 border-b-2 border-brand-orange inline-block">
-                Get Started
-              </h4>
-              <ul className="mt-3 space-y-0 mb-4">
+              <h4 className="font-bold text-base mb-2">Get Started</h4>
+              <div className="w-10 h-0.5 bg-brand-orange mb-4" />
+              <ul className="space-y-0 mb-4">
                 {[
-                  { label: "Book a Wash", href: WHATSAPP_BOOKING_URL, external: true },
                   { label: "Login", href: "#", isLogin: true },
                   { label: "Privacy Policy", href: createPageUrl("PrivacyPolicy") },
                   { label: "Terms of Service", href: createPageUrl("TermsOfService") },

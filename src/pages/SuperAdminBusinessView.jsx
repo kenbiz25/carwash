@@ -19,7 +19,7 @@ import {
   Phone,
   MapPin,
   Calendar,
-} from "lucide-react";
+} from "@/lib/icons";
 import moment from "moment";
 
 const planColor = (plan) =>
@@ -234,18 +234,18 @@ export default function SuperAdminBusinessView() {
 
       {/* Key Metrics – row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Today's Washes"       value={loading ? "-" : stats.todayWashes}                              icon={Car}       color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/20" />
-        <StatCard label="Today's Revenue (KES)" value={loading ? "-" : stats.todayRevenue.toLocaleString()}           icon={Banknote}  color="text-green-600"   bg="bg-green-50 dark:bg-green-900/20"   />
-        <StatCard label="Month Washes"          value={loading ? "-" : stats.monthWashes}                             icon={TrendingUp} color="text-blue-600"   bg="bg-blue-50 dark:bg-blue-900/20"     />
-        <StatCard label="Month Revenue (KES)"   value={loading ? "-" : `${(stats.monthRevenue / 1000).toFixed(1)}K`} icon={TrendingUp} color="text-purple-600" bg="bg-purple-50 dark:bg-purple-900/20" />
+        <StatCard label="Today's Washes"       value={loading ? "-" : stats.todayWashes}                              icon={Car}       color="text-brand-orange" bg="bg-brand-orange-50 dark:bg-brand-orange/10" />
+        <StatCard label="Today's Revenue (KES)" value={loading ? "-" : stats.todayRevenue.toLocaleString()}           icon={Banknote}  color="text-brand-navy dark:text-brand-blue-light" bg="bg-brand-navy-50 dark:bg-brand-navy-mid/40" />
+        <StatCard label="Month Washes"          value={loading ? "-" : stats.monthWashes}                             icon={TrendingUp} color="text-brand-blue-mid dark:text-brand-blue-light" bg="bg-brand-blue-pale/40 dark:bg-brand-blue-mid/20" />
+        <StatCard label="Month Revenue (KES)"   value={loading ? "-" : `${(stats.monthRevenue / 1000).toFixed(1)}K`} icon={TrendingUp} color="text-brand-orange-hot" bg="bg-brand-orange-100 dark:bg-brand-orange/10" />
       </div>
 
       {/* Key Metrics – row 2 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Washes"          value={loading ? "-" : stats.totalWashes}                              icon={Car}       color="text-cyan-600"    bg="bg-cyan-50 dark:bg-cyan-900/20"     />
-        <StatCard label="Total Revenue (KES)"   value={loading ? "-" : `${(stats.totalRevenue / 1000).toFixed(1)}K`}  icon={Banknote}  color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/20" />
-        <StatCard label="Active Staff"          value={loading ? "-" : stats.activeStaff}                              icon={Users}     color="text-amber-600"   bg="bg-amber-50 dark:bg-amber-900/20"   />
-        <StatCard label="In Queue Now"          value={loading ? "-" : stats.pendingWashes}                            icon={Clock}     color="text-red-600"     bg="bg-red-50 dark:bg-red-900/20"       />
+        <StatCard label="Total Washes"          value={loading ? "-" : stats.totalWashes}                              icon={Car}       color="text-brand-blue-bright dark:text-brand-blue-light" bg="bg-brand-navy-100 dark:bg-brand-navy-mid/40" />
+        <StatCard label="Total Revenue (KES)"   value={loading ? "-" : `${(stats.totalRevenue / 1000).toFixed(1)}K`}  icon={Banknote}  color="text-brand-navy dark:text-brand-blue-light" bg="bg-brand-navy-50 dark:bg-brand-navy-mid/40" />
+        <StatCard label="Active Staff"          value={loading ? "-" : stats.activeStaff}                              icon={Users}     color="text-brand-orange" bg="bg-brand-orange-50 dark:bg-brand-orange/10" />
+        <StatCard label="In Queue Now"          value={loading ? "-" : stats.pendingWashes}                            icon={Clock}     color="text-brand-orange-hot" bg="bg-brand-orange-100 dark:bg-brand-orange/10" />
       </div>
 
       {/* Recent Washes */}

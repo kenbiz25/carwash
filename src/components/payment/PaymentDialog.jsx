@@ -10,11 +10,12 @@ import {
   CreditCard, 
   Loader2,
   CheckCircle
-} from "lucide-react";
+} from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
 import { toast } from "sonner";
 import { sendPaymentConfirmation } from "@/components/notifications/NotificationService";
 import { initiateStkPush, waitForStkPushResult } from "@/lib/mpesaClient";
+import Receipt from "./Receipt";
 
 export default function PaymentDialog({ wash, open, onOpenChange, businessId, onSuccess }) {
   const [method, setMethod] = useState("mpesa");
@@ -22,6 +23,39 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
   const [transactionRef, setTransactionRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [mpesaStatus, setMpesaStatus] = useState(null); // 'pending' | 'success' | 'failed'
+  const [receiptPayment, setReceiptPayment] = useState(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+
+  // Shared by all three payment methods - records the sale, tells the
+  // customer, updates loyalty, then hands off to the receipt instead of just
+  // closing silently (the owner specifically wants a receipt every time).
+  const finishPayment = async (payment) => {
+    await api.entities.Wash.update(wash.id, {
+      status: "paid",
+      amount_paid: payment.amount,
+      payment_method: payment.method,
+      exit_time: new Date().toISOString(),
+    });
+
+    if (wash.customer_phone) {
+      sendPaymentConfirmation(wash, payment, null).catch(() => {});
+      const customers = await api.entities.LoyaltyCustomer.filter({ phone: wash.customer_phone, business_id: businessId });
+      if (customers[0]) {
+        const pointsEarned = Math.floor(payment.amount / 100) * 10;
+        await api.entities.LoyaltyCustomer.update(customers[0].id, {
+          points: (customers[0].points || 0) + pointsEarned,
+          total_spent: (customers[0].total_spent || 0) + payment.amount,
+          visits_count: (customers[0].visits_count || 0) + 1,
+          last_visit_date: new Date().toISOString(),
+        });
+      }
+    }
+
+    onSuccess?.();
+    setReceiptPayment(payment);
+    setReceiptOpen(true);
+    onOpenChange(false);
+  };
 
   const handleMpesaSTKPush = async () => {
     if (!phone || phone.length < 10) {
@@ -59,7 +93,7 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
       // Create payment record — amount/receipt come from the confirmed
       // transaction (Safaricom's callback in real mode), not from what we
       // asked for, so this reflects what the customer actually paid.
-      await api.entities.Payment.create({
+      const payment = await api.entities.Payment.create({
         business_id: businessId,
         wash_id: wash.id,
         amount: result.amount ?? wash.amount_due,
@@ -70,39 +104,8 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
         status: "confirmed"
       });
 
-      // Update wash status
-      await api.entities.Wash.update(wash.id, {
-        status: "paid",
-        amount_paid: result.amount ?? wash.amount_due,
-        payment_method: "mpesa",
-        exit_time: new Date().toISOString()
-      });
-
       toast.success("Payment confirmed!");
-
-      // Send SMS notification to customer
-      if (wash.customer_phone) {
-        sendPaymentConfirmation(wash, { amount: result.amount ?? wash.amount_due, mpesa_receipt: result.mpesaReceipt }, null);
-      }
-
-      // Update loyalty points (10 points per 100 KES)
-      if (wash.customer_phone) {
-        const customers = await api.entities.LoyaltyCustomer.filter({ phone: wash.customer_phone, business_id: businessId });
-        if (customers[0]) {
-          const pointsEarned = Math.floor(wash.amount_due / 100) * 10;
-          await api.entities.LoyaltyCustomer.update(customers[0].id, {
-            points: (customers[0].points || 0) + pointsEarned,
-            total_spent: (customers[0].total_spent || 0) + wash.amount_due,
-            visits_count: (customers[0].visits_count || 0) + 1,
-            last_visit_date: new Date().toISOString()
-          });
-        }
-      }
-
-      // Same query keys Washes.jsx/Payments.jsx/Dashboard already use — this
-      // is what makes the confirmed payment show up live without a refresh.
-      onSuccess?.();
-      setTimeout(() => onOpenChange(false), 1500);
+      await finishPayment(payment);
     } catch (err) {
       setMpesaStatus("failed");
       toast.error(err.message || "M-Pesa payment failed");
@@ -113,42 +116,20 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
 
   const handleCashPayment = async () => {
     setLoading(true);
-
-    await api.entities.Payment.create({
-      business_id: businessId,
-      wash_id: wash.id,
-      amount: wash.amount_due,
-      method: "cash",
-      transaction_ref: transactionRef || `CASH${Date.now()}`,
-      status: "confirmed"
-    });
-
-    await api.entities.Wash.update(wash.id, {
-      status: "paid",
-      amount_paid: wash.amount_due,
-      payment_method: "cash",
-      exit_time: new Date().toISOString()
-    });
-
-    setLoading(false);
-    toast.success("Cash payment recorded!");
-    
-    // Update loyalty
-    if (wash.customer_phone) {
-      const customers = await api.entities.LoyaltyCustomer.filter({ phone: wash.customer_phone, business_id: businessId });
-      if (customers[0]) {
-        const pointsEarned = Math.floor(wash.amount_due / 100) * 10;
-        await api.entities.LoyaltyCustomer.update(customers[0].id, {
-          points: (customers[0].points || 0) + pointsEarned,
-          total_spent: (customers[0].total_spent || 0) + wash.amount_due,
-          visits_count: (customers[0].visits_count || 0) + 1,
-          last_visit_date: new Date().toISOString()
-        });
-      }
+    try {
+      const payment = await api.entities.Payment.create({
+        business_id: businessId,
+        wash_id: wash.id,
+        amount: wash.amount_due,
+        method: "cash",
+        transaction_ref: transactionRef || `CASH${Date.now()}`,
+        status: "confirmed"
+      });
+      toast.success("Cash payment recorded!");
+      await finishPayment(payment);
+    } finally {
+      setLoading(false);
     }
-    
-    onSuccess?.();
-    onOpenChange(false);
   };
 
   const handleCardPayment = async () => {
@@ -158,47 +139,26 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
     }
 
     setLoading(true);
-
-    await api.entities.Payment.create({
-      business_id: businessId,
-      wash_id: wash.id,
-      amount: wash.amount_due,
-      method: "card",
-      transaction_ref: transactionRef,
-      status: "confirmed"
-    });
-
-    await api.entities.Wash.update(wash.id, {
-      status: "paid",
-      amount_paid: wash.amount_due,
-      payment_method: "card",
-      exit_time: new Date().toISOString()
-    });
-
-    setLoading(false);
-    toast.success("Card payment recorded!");
-    
-    // Update loyalty
-    if (wash.customer_phone) {
-      const customers = await api.entities.LoyaltyCustomer.filter({ phone: wash.customer_phone, business_id: businessId });
-      if (customers[0]) {
-        const pointsEarned = Math.floor(wash.amount_due / 100) * 10;
-        await api.entities.LoyaltyCustomer.update(customers[0].id, {
-          points: (customers[0].points || 0) + pointsEarned,
-          total_spent: (customers[0].total_spent || 0) + wash.amount_due,
-          visits_count: (customers[0].visits_count || 0) + 1,
-          last_visit_date: new Date().toISOString()
-        });
-      }
+    try {
+      const payment = await api.entities.Payment.create({
+        business_id: businessId,
+        wash_id: wash.id,
+        amount: wash.amount_due,
+        method: "card",
+        transaction_ref: transactionRef,
+        status: "confirmed"
+      });
+      toast.success("Card payment recorded!");
+      await finishPayment(payment);
+    } finally {
+      setLoading(false);
     }
-    
-    onSuccess?.();
-    onOpenChange(false);
   };
 
   if (!wash) return null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -387,5 +347,14 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
         </div>
       </DialogContent>
     </Dialog>
+
+    <Receipt
+      wash={wash}
+      payment={receiptPayment}
+      businessId={businessId}
+      open={receiptOpen}
+      onOpenChange={(v) => { setReceiptOpen(v); if (!v) setReceiptPayment(null); }}
+    />
+    </>
   );
 }

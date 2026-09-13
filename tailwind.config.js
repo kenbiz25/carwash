@@ -20,6 +20,8 @@ module.exports = {
   				navy:            '#0B2241',
   				'navy-dark':     '#071729',
   				'navy-mid':      '#16345C',
+  				'navy-50':       '#F0F2F5', // near-white navy tint - card/icon-pill backgrounds
+  				'navy-100':      '#E1E5EB',
   				blue:            '#0F2E56',
   				'blue-mid':      '#1E4E8C',
   				'blue-bright':   '#2E71BE',
@@ -27,6 +29,8 @@ module.exports = {
   				'blue-pale':     '#B7CEF0',
   				orange:          '#F8344C',
   				'orange-hot':    '#D81F3A',
+  				'orange-50':     '#FDECEF', // near-white coral tint - card/icon-pill backgrounds
+  				'orange-100':    '#FBD8DE',
   			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',

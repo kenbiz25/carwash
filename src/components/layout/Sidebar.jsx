@@ -25,16 +25,13 @@ import {
   ChevronDown,
   Building2,
   Check,
-  ExternalLink,
-} from "lucide-react";
+  Plus,
+} from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
-
-const PRODUCT_SPEC_URL = "https://claude.ai/code/artifact/1591b171-5165-4727-a592-b095c4cdefd9";
 
 // Items shown ONLY when no business has been set up yet
 const SETUP_MENU_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard",     page: "Dashboard", roles: ["superadmin", "owner", "manager", "staff", "cashier"] },
-  { icon: ExternalLink,    label: "Product Spec",  href: PRODUCT_SPEC_URL, external: true, roles: ["superadmin"] },
   { icon: HelpCircle,      label: "Help & Support", page: "Help",     roles: ["superadmin", "owner", "manager", "staff", "cashier"] },
 ];
 
@@ -53,7 +50,7 @@ const ALL_MENU_ITEMS = [
   { icon: Crown,           label: "Subscriptions",        page: "Memberships",         roles: ["owner"] },
   { icon: Settings,        label: "Settings & Users",     page: "Settings",            roles: ["owner"] },
   { icon: ShieldCheck,     label: "Super Admin",          page: "SuperAdminDashboard", roles: ["superadmin"] },
-  { icon: ExternalLink,    label: "Product Spec",         href: PRODUCT_SPEC_URL, external: true, roles: ["superadmin"] },
+  { icon: Plus,            label: "Create Business",      page: "CreateBusiness",      roles: ["superadmin"] },
   { icon: HelpCircle,      label: "Help & Support",       page: "Help",                roles: ["superadmin", "owner", "manager", "staff", "cashier"] },
 ];
 
@@ -77,12 +74,16 @@ export default function Sidebar({
 }) {
   const [bizDropdownOpen, setBizDropdownOpen] = useState(false);
 
-  const menuItems = hasBusiness ? ALL_MENU_ITEMS : SETUP_MENU_ITEMS;
+  // A super admin correctly has no business of their own (they're
+  // platform-wide, not scoped to one branch) - the reduced setup menu is
+  // only meant for someone who genuinely hasn't set up a business yet, so
+  // it must not apply to them or their own "Super Admin" link disappears.
+  const menuItems = (hasBusiness || userRole === "superadmin") ? ALL_MENU_ITEMS : SETUP_MENU_ITEMS;
   const visibleItems = menuItems.filter(item => item.roles.includes(userRole));
   // Before a business exists, "role" defaults to a literal "staff" purely so
   // nav-visibility checks above have something to filter on — it doesn't
   // reflect an actual assigned role, so don't present it as one.
-  const roleInfo = !hasBusiness
+  const roleInfo = (!hasBusiness && userRole !== "superadmin")
     ? { label: "Getting Started", color: "bg-slate-100 text-slate-500" }
     : (ROLE_LABELS[userRole] || ROLE_LABELS.staff);
 
@@ -171,7 +172,7 @@ export default function Sidebar({
         )}
 
         {/* Setup prompt */}
-        {!hasBusiness && !collapsed && (
+        {!hasBusiness && userRole !== "superadmin" && !collapsed && (
           <div className="px-4 py-3 border-b border-brand-orange/20 bg-brand-orange/10">
             <p className="text-xs text-orange-200">
               Complete your business setup in Dashboard to unlock all features.

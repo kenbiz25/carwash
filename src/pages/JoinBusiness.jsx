@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Lock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Mail, Lock, CheckCircle2, AlertTriangle } from '@/lib/icons';
 import Logo from '@/components/common/Logo';
 import { toast } from 'sonner';
 

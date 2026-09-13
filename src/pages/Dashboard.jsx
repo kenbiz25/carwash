@@ -54,11 +54,15 @@ export default function Dashboard() {
 
   const data = useBusinessScopedData(selectedBusinessId);
 
-  // 1) No businesses → setup CTA
-  if (businesses.length === 0) return <DashboardEmptyState />;
-
-  // 2) Super admin → gate to superadmin dashboard
+  // 1) Super admin → gate to superadmin dashboard. Checked before the
+  // "no businesses" case below: a super admin correctly has zero business
+  // memberships of their own (they're platform-wide, not scoped to one
+  // branch), so that check must not run first or it traps every super
+  // admin on the "set up your business" empty state instead.
   if (isSuperAdmin) return <DashboardSuperAdminGate />;
+
+  // 2) No businesses → setup CTA
+  if (businesses.length === 0) return <DashboardEmptyState />;
 
   // 3) Only owners and managers get the full dashboard
   if (businessRole === "owner" || businessRole === "manager") {

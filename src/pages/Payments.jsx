@@ -14,7 +14,7 @@ import {
   CreditCard,
   RefreshCw,
   TrendingUp
-} from "lucide-react";
+} from "@/lib/icons";
 import StatusBadge from "@/components/common/StatusBadge";
 import StatCard from "@/components/common/StatCard";
 import moment from "moment";
@@ -121,32 +121,32 @@ export default function Payments() {
           title={`Total (${dateRangeLabels[dateRange]})`}
           value={`KES ${totalRevenue.toLocaleString()}`}
           icon={TrendingUp}
-          iconColor="text-emerald-600"
-          iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+          iconColor="text-brand-orange"
+          iconBg="bg-brand-orange-50 dark:bg-brand-orange/10"
           subtitle={`${confirmedPayments.length} transactions`}
         />
         <StatCard
           title="M-Pesa"
           value={`KES ${mpesaTotal.toLocaleString()}`}
           icon={Smartphone}
-          iconColor="text-green-600"
-          iconBg="bg-green-100 dark:bg-green-900/30"
+          iconColor="text-brand-navy dark:text-brand-blue-light"
+          iconBg="bg-brand-navy-50 dark:bg-brand-navy-mid/40"
           subtitle={`${Math.round((mpesaTotal / totalRevenue) * 100) || 0}% of total`}
         />
         <StatCard
           title="Cash"
           value={`KES ${cashTotal.toLocaleString()}`}
           icon={Banknote}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-100 dark:bg-blue-900/30"
+          iconColor="text-brand-blue-mid dark:text-brand-blue-light"
+          iconBg="bg-brand-blue-pale/40 dark:bg-brand-blue-mid/20"
           subtitle={`${Math.round((cashTotal / totalRevenue) * 100) || 0}% of total`}
         />
         <StatCard
           title="Card"
           value={`KES ${cardTotal.toLocaleString()}`}
           icon={CreditCard}
-          iconColor="text-purple-600"
-          iconBg="bg-purple-100 dark:bg-purple-900/30"
+          iconColor="text-brand-orange-hot"
+          iconBg="bg-brand-orange-100 dark:bg-brand-orange/10"
           subtitle={`${Math.round((cardTotal / totalRevenue) * 100) || 0}% of total`}
         />
       </div>

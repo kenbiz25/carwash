@@ -66,10 +66,10 @@ async function requestJson(path, options = {}) {
 }
 
 /** Creates a staff login (username OR phone + password), tagged with role/branch right away. */
-export function createTeamUser({ username, phone, password, full_name, role, business_id }) {
+export function createTeamUser({ username, phone, email, password, full_name, role, business_id }) {
   return requestJson("/api/users", {
     method: "POST",
-    body: JSON.stringify({ username, phone, password, full_name, role, business_id }),
+    body: JSON.stringify({ username, phone, email, password, full_name, role, business_id }),
   });
 }
 

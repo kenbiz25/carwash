@@ -34,7 +34,7 @@ export default defineConfig({
           if (id.includes('leaflet')) return 'leaflet';
           if (id.includes('framer-motion')) return 'motion';
           if (id.includes('@radix-ui')) return 'ui-vendor';
-          if (id.includes('lucide')) return 'icons';
+          if (id.includes('phosphor-icons')) return 'icons';
           return 'vendor';
         },
       },

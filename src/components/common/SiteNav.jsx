@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/common/Logo";
-import { Phone, Mail, MessageCircle, BadgeCheck, Menu, X, ArrowRight } from "lucide-react";
+import { Phone, Mail, MessageCircle, BadgeCheck, Menu, X, ArrowRight } from "@/lib/icons";
 import { motion } from "framer-motion";
 import { api } from "@/api/firebaseClient";
 import { WHATSAPP_BOOKING_URL } from "@/lib/constants";

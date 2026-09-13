@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, ChevronRight } from "lucide-react";
+import { Clock, ChevronRight } from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StatusBadge from "../common/StatusBadge";

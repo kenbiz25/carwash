@@ -1,7 +1,7 @@
 ﻿import React, { useRef } from "react";
 import { api } from "@/api/firebaseClient";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, X, Loader2 } from "lucide-react";
+import { Camera, Upload, X, Loader2 } from "@/lib/icons";
 import { useState } from "react";
 
 export default function PhotoUploadGrid({ photos = [], onChange, label = "Photos", slots = [] }) {

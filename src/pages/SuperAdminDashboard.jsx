@@ -22,7 +22,7 @@ import {
   Eye,
   UserPlus,
   Loader2,
-} from "lucide-react";
+} from "@/lib/icons";
 
 const ASSIGNABLE_ROLES = ["owner", "manager", "cashier", "staff"];
 

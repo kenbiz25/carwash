@@ -3,17 +3,25 @@ import { sendWhatsappText } from "@/lib/whatsappClient";
 
 // Notification Templates
 const templates = {
+  checked_in: (data) => ({
+    subject: "We've got it! ✅",
+    message: `Hi ${data.customerName || "there"}! We've received your ${data.itemLabel} at ${data.businessName} and it's in the queue. We'll message you again once washing begins.`
+  }),
+  washing_started: (data) => ({
+    subject: "Washing has started 🧽",
+    message: `Hi ${data.customerName || "there"}! Your ${data.itemLabel} is now being washed at ${data.businessName}. We'll let you know the moment it's ready.`
+  }),
   wash_ready: (data) => ({
     subject: "Your car is ready! 🚗",
-    message: `Hello ${data.customerName || "Customer"}! Your ${data.vehiclePlate} is clean and ready for pickup at ${data.businessName}. Total: KES ${data.amount}. Thank you for choosing us!`
+    message: `Hello ${data.customerName || "Customer"}! Your ${data.itemLabel} is clean and ready for pickup at ${data.businessName}. Total: KES ${data.amount}. Thank you for choosing us!`
   }),
   wash_complete: (data) => ({
     subject: "Wash Completed",
-    message: `Hi ${data.customerName}, your ${data.vehiclePlate} wash is complete. Services: ${data.services}. Amount: KES ${data.amount}. Receipt: ${data.receiptUrl || "Available at pickup"}`
+    message: `Hi ${data.customerName}, your ${data.itemLabel} wash is complete. Services: ${data.services}. Amount: KES ${data.amount}. Receipt: ${data.receiptUrl || "Available at pickup"}`
   }),
   payment_received: (data) => ({
     subject: "Payment Confirmed ✓",
-    message: `Thank you ${data.customerName}! Payment of KES ${data.amount} received for ${data.vehiclePlate}. M-Pesa: ${data.mpesaRef || "N/A"}. Points earned: ${data.pointsEarned || 0}`
+    message: `Thank you ${data.customerName}! Payment of KES ${data.amount} received for ${data.itemLabel}. M-Pesa: ${data.mpesaRef || "N/A"}. Points earned: ${data.pointsEarned || 0}`
   }),
   loyalty_update: (data) => ({
     subject: "Loyalty Points Update",
@@ -153,10 +161,61 @@ export async function sendNotification({ businessId, type, channel = "sms", reci
   return notification;
 }
 
-// Convenience functions
+// A carpet/rug drop-off and a vehicle wash share the same Wash record shape
+// (plate_number doubles as the carpet's reference number - see
+// EnhancedCheckIn.jsx), so every status message needs to say "carpet order
+// CARP-..." rather than "vehicle CARP-..." when type is "carpet".
+function itemLabel(wash) {
+  return wash.type === "carpet"
+    ? `carpet order ${wash.plate_number}`
+    : `vehicle ${wash.plate_number}`;
+}
+
+// Convenience functions - one per point in the wash lifecycle a customer
+// would want to hear about. All silently no-op without a phone number, and
+// all currently go out as free-form text via whatsapp-server's mock mode
+// (see that server's README for what "live" mode needs).
+export async function sendCheckInConfirmation(wash, business) {
+  if (!wash.customer_phone) return null;
+
+  return sendNotification({
+    businessId: wash.business_id,
+    type: "checked_in",
+    channel: "whatsapp",
+    recipientPhone: wash.customer_phone,
+    recipientName: wash.customer_name,
+    data: {
+      customerName: wash.customer_name,
+      itemLabel: itemLabel(wash),
+      businessName: business?.name || "our car wash",
+      referenceType: "wash",
+      referenceId: wash.id
+    }
+  });
+}
+
+export async function sendWashingStartedNotification(wash, business) {
+  if (!wash.customer_phone) return null;
+
+  return sendNotification({
+    businessId: wash.business_id,
+    type: "washing_started",
+    channel: "whatsapp",
+    recipientPhone: wash.customer_phone,
+    recipientName: wash.customer_name,
+    data: {
+      customerName: wash.customer_name,
+      itemLabel: itemLabel(wash),
+      businessName: business?.name || "our car wash",
+      referenceType: "wash",
+      referenceId: wash.id
+    }
+  });
+}
+
 export async function sendWashReadyNotification(wash, business) {
   if (!wash.customer_phone) return null;
-  
+
   return sendNotification({
     businessId: wash.business_id,
     type: "wash_ready",
@@ -165,8 +224,8 @@ export async function sendWashReadyNotification(wash, business) {
     recipientName: wash.customer_name,
     data: {
       customerName: wash.customer_name,
-      vehiclePlate: wash.plate_number,
-      businessName: business?.name,
+      itemLabel: itemLabel(wash),
+      businessName: business?.name || "our car wash",
       amount: wash.amount_due,
       referenceType: "wash",
       referenceId: wash.id
@@ -176,7 +235,7 @@ export async function sendWashReadyNotification(wash, business) {
 
 export async function sendPaymentConfirmation(wash, payment, business) {
   if (!wash.customer_phone) return null;
-  
+
   return sendNotification({
     businessId: wash.business_id,
     type: "payment_received",
@@ -185,7 +244,8 @@ export async function sendPaymentConfirmation(wash, payment, business) {
     recipientName: wash.customer_name,
     data: {
       customerName: wash.customer_name,
-      vehiclePlate: wash.plate_number,
+      itemLabel: itemLabel(wash),
+      businessName: business?.name || "our car wash",
       amount: payment.amount,
       mpesaRef: payment.mpesa_receipt,
       referenceType: "payment",
@@ -276,6 +336,8 @@ function getNextReward(points) {
 export default {
   sendNotification,
   notifyInApp,
+  sendCheckInConfirmation,
+  sendWashingStartedNotification,
   sendWashReadyNotification,
   sendPaymentConfirmation,
   sendLowStockAlert,

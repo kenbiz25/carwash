@@ -1,17 +1,16 @@
-﻿// Firebase Auth is the only remaining Firebase dependency — all app data
-// (Firestore + Storage previously) now lives in the browser via src/lib/localDb.js
-// until a hosting decision is made.
+﻿// Firebase is used for authentication only - all app data lives in a real
+// MySQL database via app-data-server (see src/lib/localDb.js, its client).
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "carwash-managerke.firebaseapp.com",
-  projectId: "carwash-managerke",
-  storageBucket: "carwash-managerke.firebasestorage.app",
-  messagingSenderId: "38414357255",
-  appId: "1:38414357255:web:430a67291d770ebcc46ba2",
-  measurementId: "G-WXKBQT4Q95"
+  authDomain: "njiru-carwash.firebaseapp.com",
+  projectId: "njiru-carwash",
+  storageBucket: "njiru-carwash.firebasestorage.app",
+  messagingSenderId: "112675754201",
+  appId: "1:112675754201:web:55eb9b48ed58432d912ec8",
+  measurementId: "G-2P8489N3N7"
 };
 
 const app = initializeApp(firebaseConfig);

@@ -16,6 +16,10 @@ whatsapp-server/
 # configured (see its own README locally); same reasoning as mpesa-server/
 user-admin-server/
 
+# Standalone app-data backend — holds real MySQL database credentials once
+# configured (see its own README locally); same reasoning as mpesa-server/
+app-data-server/
+
 # Logs
 logs
 *.log

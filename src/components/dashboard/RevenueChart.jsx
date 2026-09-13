@@ -1,7 +1,7 @@
 ﻿import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, BarChart3 } from "lucide-react";
+import { TrendingUp, BarChart3 } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import moment from "moment";
 

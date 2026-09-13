@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Search, Bell, Moon, Sun, Settings, LogOut, User, CheckCheck, Building2, Check, ChevronDown } from "lucide-react";
+import { Menu, Search, Bell, Moon, Sun, Settings, LogOut, User, CheckCheck, Building2, Check, ChevronDown } from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { api } from "@/api/firebaseClient";
@@ -221,7 +221,7 @@ export default function TopBar({
                   {firstName}
                 </p>
                 <p className="text-xs text-slate-500 capitalize">
-                  {hasBusiness ? (role || "staff") : "Getting started"}
+                  {hasBusiness || role === "superadmin" ? (role || "staff") : "Getting started"}
                 </p>
               </div>
             </Button>

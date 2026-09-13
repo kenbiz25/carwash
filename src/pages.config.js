@@ -73,6 +73,8 @@ import JoinBusiness from './pages/JoinBusiness';
 import CustomerHistory from './pages/CustomerHistory';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import CreateBusiness from './pages/CreateBusiness';
+import TrackCar from './pages/TrackCar';
 import __Layout from './Layout.jsx';
 
 
@@ -102,6 +104,8 @@ export const PAGES = {
     "CustomerHistory": CustomerHistory,
     "PrivacyPolicy": PrivacyPolicy,
     "TermsOfService": TermsOfService,
+    "CreateBusiness": CreateBusiness,
+    "TrackCar": TrackCar,
     "Login": Login,
 }
 

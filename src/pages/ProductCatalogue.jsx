@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit2, Trash2, Search, BookOpen, Package, Loader2, Save } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Edit2, Trash2, Search, BookOpen, Package, Loader2, Save } from "@/lib/icons";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
 
@@ -47,12 +48,31 @@ const PRICING_KINDS = {
   variant: { label: "Variant-based (e.g. scent/type)", tiers: ["Option A", "Option B", "Option C"] },
   flat: { label: "Flat rate", tiers: [] },
 };
-const pricingKindOf = (svc) => PRICING_KINDS[svc?.pricing_kind] || PRICING_KINDS.flat;
+// A service saved before "pricing_kind" existed has no value for it at all -
+// back then price_suv/price_van always meant literal SUV/Van prices, so an
+// absent pricing_kind must default to "vehicle", never "flat". Getting this
+// wrong is what silently zeroed out real SUV/Van prices on save (see
+// openEdit below) - a service explicitly saved as "flat" still means flat.
+const pricingKindOf = (svc) => PRICING_KINDS[svc?.pricing_kind] || PRICING_KINDS.vehicle;
+
+// Which vehicles a service shows up for during check-in - an empty list
+// means "every vehicle type" (most add-ons and engine/interior work aren't
+// vehicle-size-specific), matching EnhancedCheckIn.jsx's vehicleTypes.
+const VEHICLE_TYPES = [
+  { value: "saloon", label: "Saloon/Sedan" },
+  { value: "suv", label: "SUV" },
+  { value: "van", label: "Van/Minibus" },
+  { value: "pickup", label: "Pickup" },
+  { value: "motorcycle", label: "Motorcycle" },
+  { value: "truck", label: "Truck" },
+  { value: "bus", label: "Bus" },
+  { value: "other", label: "Other" },
+];
 
 const EMPTY = {
   name: "", category: "exterior_wash", description: "", price_kes: "",
   price_suv: "", price_van: "", duration_minutes: "", is_active: true, is_package: false,
-  pricing_kind: "flat",
+  pricing_kind: "flat", vehicle_types: [],
 };
 
 export default function ProductCatalogue() {
@@ -90,7 +110,12 @@ export default function ProductCatalogue() {
 
   const openCreate = () => { setForm(EMPTY); setEditItem(null); setFormOpen(true); };
   const openEdit = (svc) => {
-    setForm({ ...EMPTY, ...svc, pricing_kind: svc.pricing_kind || "flat" });
+    // Same "flat" trap as pricingKindOf above - a service with no pricing_kind
+    // yet is a pre-existing vehicle-tiered one, not a flat-rate one. Defaulting
+    // to "flat" here hid the SUV/Van price fields from the form entirely, so
+    // saving (even for an unrelated change like the description) sent
+    // price_suv/price_van as 0 and wiped the real prices.
+    setForm({ ...EMPTY, ...svc, pricing_kind: svc.pricing_kind || "vehicle", vehicle_types: svc.vehicle_types || [] });
     setEditItem(svc);
     setFormOpen(true);
   };
@@ -200,7 +225,14 @@ export default function ProductCatalogue() {
                     <TableCell>
                       <p className="font-medium text-sm text-slate-900 dark:text-white">{svc.name}</p>
                       {svc.description && <p className="text-xs text-slate-500 line-clamp-1">{svc.description}</p>}
-                      {svc.is_package && <Badge className="bg-pink-100 text-pink-700 border-0 text-[10px] px-1.5 py-0 mt-0.5">Package</Badge>}
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {svc.is_package && <Badge className="bg-pink-100 text-pink-700 border-0 text-[10px] px-1.5 py-0">Package</Badge>}
+                        {svc.vehicle_types?.length > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
+                            {svc.vehicle_types.map((v) => VEHICLE_TYPES.find((vt) => vt.value === v)?.label || v).join(", ")}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge className={`${CAT_COLORS[svc.category] || ""} border-0 text-[10px] px-1.5 py-0 whitespace-nowrap`}>
@@ -321,6 +353,31 @@ export default function ProductCatalogue() {
                 </div>
               );
             })()}
+            <div className="space-y-1">
+              <Label>Applies to</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {VEHICLE_TYPES.map((vt) => (
+                  <label key={vt.value} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={form.vehicle_types.includes(vt.value)}
+                      onCheckedChange={(checked) => setForm(f => ({
+                        ...f,
+                        vehicle_types: checked
+                          ? [...f.vehicle_types, vt.value]
+                          : f.vehicle_types.filter((v) => v !== vt.value),
+                      }))}
+                    />
+                    {vt.label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">
+                Leave everything unchecked for a service that applies to any vehicle (most
+                add-ons, engine/interior work). Check specific types to only show this service
+                during check-in when that vehicle type is selected - e.g. "Basic Wash (SUV)"
+                should only check Saloon off and SUV on, so it doesn't clutter a saloon's list.
+              </p>
+            </div>
             <div className="flex items-center justify-between">
               <Label>Is Package?</Label>
               <Switch checked={form.is_package} onCheckedChange={v => setForm(f => ({ ...f, is_package: v }))} />

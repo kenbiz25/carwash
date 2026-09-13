@@ -5,12 +5,12 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "fi
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: "carwash-managerke.firebaseapp.com",
-  projectId: "carwash-managerke",
-  storageBucket: "carwash-managerke.firebasestorage.app",
-  messagingSenderId: "38414357255",
-  appId: "1:38414357255:web:430a67291d770ebcc46ba2",
-  measurementId: "G-WXKBQT4Q95",
+  authDomain: "njiru-carwash.firebaseapp.com",
+  projectId: "njiru-carwash",
+  storageBucket: "njiru-carwash.firebasestorage.app",
+  messagingSenderId: "112675754201",
+  appId: "1:112675754201:web:55eb9b48ed58432d912ec8",
+  measurementId: "G-2P8489N3N7",
 };
 
 const app = initializeApp(firebaseConfig);

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Car, ClipboardList, Clock, ChevronRight, CheckCircle2, Wallet, Banknote, Smartphone } from "lucide-react";
+import { Car, ClipboardList, Clock, ChevronRight, CheckCircle2, Wallet, Banknote, Smartphone } from "@/lib/icons";
 import { Badge } from "@/components/ui/badge";
 import RecentWashes from "@/components/dashboard/RecentWashes";
 import EnhancedCheckIn from "@/components/wash/EnhancedCheckIn";
@@ -241,6 +241,7 @@ export default function DashboardStaffView({ user, userRole, currentBusiness, wa
         services={services}
         staff={staff}
         user={user}
+        business={currentBusiness}
         defaultType="vehicle"
         onSuccess={() => setCheckInOpen(false)}
       />

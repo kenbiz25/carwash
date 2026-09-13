@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import {
   Car, Crown, Phone, History, Gift,
   Loader2, CheckCircle, Clock, Droplets, Home, Sparkles
-} from "lucide-react";
+} from "@/lib/icons";
 import moment from "moment";
 import { toast } from "sonner";
 import Logo from "@/components/common/Logo";

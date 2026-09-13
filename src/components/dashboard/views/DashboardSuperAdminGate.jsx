@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { createPageUrl } from "@/utils";
-import { Activity, Shield } from "lucide-react";
+import { Activity, Shield } from "@/lib/icons";
 
 export default function DashboardSuperAdminGate() {
   return (

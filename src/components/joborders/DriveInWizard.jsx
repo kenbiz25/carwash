@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, ChevronRight, ChevronLeft, Car, CheckCircle2 } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Car, CheckCircle2 } from "@/lib/icons";
 import JobWizardStepper from "./JobWizardStepper.jsx";
 import PhotoUploadGrid from "./PhotoUploadGrid.jsx";
 
@@ -24,7 +24,12 @@ const DRIVE_IN_SERVICES = [
 
 // Picks the catalogue price for the selected vehicle type — mirrors EnhancedCheckIn.jsx
 // so drive-in and quick check-in always charge the same, owner-configured price.
+// Only a vehicle-tiered service actually means "SUV/Van price" by price_suv/
+// price_van - for per-unit or variant pricing those fields mean something
+// else (e.g. "Premium rate"), so leave those alone.
 function getServicePrice(svc, vehicleType) {
+  const kind = svc.pricing_kind || "vehicle";
+  if (kind !== "vehicle") return svc.price_kes;
   let price = svc.price_kes;
   if (vehicleType === "suv" && svc.price_suv) price = svc.price_suv;
   if (["van", "truck", "bus"].includes(vehicleType) && svc.price_van) price = svc.price_van;
@@ -49,8 +54,14 @@ const QUALITY_CHECKS_DRIVE_IN = [
 
 const STEPS = ["Intake", "In Progress", "Completion"];
 
+// A service with no vehicle_types set applies to every vehicle - mirrors
+// EnhancedCheckIn.jsx's appliesToVehicle so the two check-in flows never
+// disagree on which services show up for a given vehicle type.
+function appliesToVehicle(service, vehicleType) {
+  return !service.vehicle_types?.length || service.vehicle_types.includes(vehicleType);
+}
+
 export default function DriveInWizard({ order, services, staff, onSave, onClose }) {
-  const catalogueServices = services.length > 0 ? services.filter(s => s.is_active !== false) : [];
   const startStep = order?.status === "in_progress" ? 1 : order?.status === "ready" || order?.status === "collected" ? 2 : 0;
 
   const [step, setStep] = useState(startStep);
@@ -96,18 +107,23 @@ export default function DriveInWizard({ order, services, staff, onSave, onClose 
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const catalogueServices = services.filter(s => s.is_active !== false && appliesToVehicle(s, form.vehicle_type));
+
   // Prices are captured at selection time (see toggleService), so switching vehicle
   // type after services are already picked would otherwise leave them charging the
   // stale saloon/SUV/van price. Re-price every already-selected service whenever the
-  // vehicle type changes, as long as the job hasn't started yet.
+  // vehicle type changes, as long as the job hasn't started yet. A service that no
+  // longer applies to the new vehicle type (see appliesToVehicle) is dropped instead.
   useEffect(() => {
     if (step !== 0 || form.services_selected.length === 0) return;
     setForm(f => ({
       ...f,
-      services_selected: f.services_selected.map(sel => {
-        const svc = catalogueServices.find(s => s.name === sel.name);
-        return svc ? { ...sel, price: getServicePrice(svc, f.vehicle_type) } : sel;
-      }),
+      services_selected: f.services_selected
+        .map(sel => {
+          const svc = catalogueServices.find(s => s.name === sel.name);
+          return svc ? { ...sel, price: getServicePrice(svc, f.vehicle_type) } : sel;
+        })
+        .filter(sel => catalogueServices.some(s => s.name === sel.name)),
     }));
   }, [form.vehicle_type]);
 

@@ -16,7 +16,7 @@ import {
   Phone,
   ArrowLeft,
   ChevronRight
-} from "lucide-react";
+} from "@/lib/icons";
 
 const faqCategories = [
   {

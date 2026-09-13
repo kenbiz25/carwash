@@ -40,7 +40,7 @@ export function useBusinessScopedData(selectedBusinessId) {
   const servicesQuery = useQuery({
     queryKey: ["services", selectedBusinessId],
     enabled: !!selectedBusinessId,
-    queryFn: () => api.entities.Service.filter({ business_id: selectedBusinessId }),
+    queryFn: () => api.entities.Service.filter({ business_id: selectedBusinessId }, "sort_order"),
   });
 
   const inventoryQuery = useQuery({

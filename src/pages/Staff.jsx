@@ -18,11 +18,13 @@ import {
   Trash2,
   Loader2,
   Search,
-  Calendar
-} from "lucide-react";
+  Calendar,
+  Link2
+} from "@/lib/icons";
 import { toast } from "sonner";
 import StaffSchedule from "@/components/schedule/StaffSchedule";
 import { useBusiness } from "@/lib/BusinessContext";
+import { listBusinessUsers } from "@/lib/userAdminClient";
 
 export default function Staff() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -45,6 +47,19 @@ export default function Staff() {
     queryKey: ["staff", business?.id],
     queryFn: () => api.entities.Staff.filter({ business_id: business?.id }),
     enabled: !!business?.id,
+  });
+
+  // Team logins (My Business > Team) are a separate thing from this
+  // commission/schedule record on purpose - a washer doesn't need app
+  // access, and an owner doesn't need a commission rate. This is only here
+  // so a staff record can optionally be linked to a real, existing login
+  // instead of the old free-text "email for login" field, which never
+  // actually granted access to anything.
+  const { data: businessLogins = [] } = useQuery({
+    queryKey: ["business-logins", business?.id],
+    queryFn: () => listBusinessUsers(business.id),
+    enabled: !!business?.id,
+    retry: false,
   });
 
   const { data: washes = [] } = useQuery({
@@ -150,9 +165,10 @@ export default function Staff() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff & Commissions</h1>
           <p className="text-slate-500 dark:text-slate-400">
-            Manage your team, schedules, and performance
+            Track who does the washing, their schedule, and their commission - not the same as who
+            can sign in (that's My Business → Team).
           </p>
         </div>
         <Button 
@@ -240,6 +256,14 @@ export default function Staff() {
                         <Phone className="h-3 w-3" />
                         {member.phone}
                       </p>
+                      {(() => {
+                        const linkedLogin = businessLogins.find((u) => u.email === member.user_email);
+                        return linkedLogin ? (
+                          <p className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                            <Link2 className="h-3 w-3" /> App access: {linkedLogin.role}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
 
@@ -335,15 +359,24 @@ export default function Staff() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Email (For App Login)</Label>
-              <Input
-                type="email"
-                placeholder="staff@email.com"
-                value={formData.user_email}
-                onChange={(e) => setFormData({ ...formData, user_email: e.target.value })}
-              />
+              <Label>Linked App Login (optional)</Label>
+              <Select
+                value={formData.user_email || "none"}
+                onValueChange={(value) => setFormData({ ...formData, user_email: value === "none" ? "" : value })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No app access - commission tracking only</SelectItem>
+                  {businessLogins.map((u) => (
+                    <SelectItem key={u.uid} value={u.email}>
+                      {u.full_name || u.username || u.phone || u.email} ({u.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-slate-500">
-                If they'll use the app, enter their email so they can log in
+                Only matters if this person also needs to sign in - create their login first from
+                My Business → Team → Staff Logins, then link it here. Most washers don't need this.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">

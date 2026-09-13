@@ -1,6 +1,6 @@
 ﻿import React from "react";
 import StatCard from "../common/StatCard";
-import { Car, Banknote, Clock, Users, TrendingUp, AlertTriangle } from "lucide-react";
+import { Car, Banknote, Clock, Users, TrendingUp, AlertTriangle } from "@/lib/icons";
 
 export default function QuickStats({ washes = [], payments = [], staff = [], inventory = [] }) {
   const today = new Date().toDateString();
@@ -39,16 +39,16 @@ export default function QuickStats({ washes = [], payments = [], staff = [], inv
         title="Today's Washes"
         value={todayWashes.length}
         icon={Car}
-        iconColor="text-emerald-600"
-        iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+        iconColor="text-brand-orange"
+        iconBg="bg-brand-orange-50 dark:bg-brand-orange/10"
         subtitle="vehicles serviced"
       />
       <StatCard
         title="Revenue Today"
         value={`KES ${todayRevenue.toLocaleString()}`}
         icon={Banknote}
-        iconColor="text-green-600"
-        iconBg="bg-green-100 dark:bg-green-900/30"
+        iconColor="text-brand-navy dark:text-brand-blue-light"
+        iconBg="bg-brand-navy-50 dark:bg-brand-navy-mid/40"
         trend="+12% vs yesterday"
         trendUp={true}
       />
@@ -56,32 +56,32 @@ export default function QuickStats({ washes = [], payments = [], staff = [], inv
         title="M-Pesa %"
         value={`${mpesaPercent}%`}
         icon={TrendingUp}
-        iconColor="text-cyan-600"
-        iconBg="bg-cyan-100 dark:bg-cyan-900/30"
+        iconColor="text-brand-blue-mid dark:text-brand-blue-light"
+        iconBg="bg-brand-blue-pale/40 dark:bg-brand-blue-mid/20"
         subtitle="digital payments"
       />
       <StatCard
         title="In Queue"
         value={pendingWashes.length}
         icon={Clock}
-        iconColor="text-amber-600"
-        iconBg="bg-amber-100 dark:bg-amber-900/30"
+        iconColor="text-brand-orange-hot"
+        iconBg="bg-brand-orange-100 dark:bg-brand-orange/10"
         subtitle="waiting/washing"
       />
       <StatCard
         title="Active Staff"
         value={activeStaff.length}
         icon={Users}
-        iconColor="text-blue-600"
-        iconBg="bg-blue-100 dark:bg-blue-900/30"
+        iconColor="text-brand-blue-bright dark:text-brand-blue-light"
+        iconBg="bg-brand-navy-100 dark:bg-brand-navy-mid/40"
         subtitle="on duty"
       />
       <StatCard
         title="Low Stock"
         value={lowStockItems.length}
         icon={AlertTriangle}
-        iconColor={lowStockItems.length > 0 ? "text-red-600" : "text-slate-400"}
-        iconBg={lowStockItems.length > 0 ? "bg-red-100 dark:bg-red-900/30" : "bg-slate-100 dark:bg-slate-800"}
+        iconColor={lowStockItems.length > 0 ? "text-brand-orange-hot" : "text-slate-400"}
+        iconBg={lowStockItems.length > 0 ? "bg-brand-orange-100 dark:bg-brand-orange/10" : "bg-slate-100 dark:bg-slate-800"}
         subtitle="items need restock"
       />
     </div>

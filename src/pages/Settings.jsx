@@ -43,7 +43,7 @@ import {
   Eye,
   EyeOff,
   Wallet,
-} from "lucide-react";
+} from "@/lib/icons";
 import { toast } from "sonner";
 
 // Role config: all available roles for team members
@@ -152,7 +152,7 @@ export default function Settings() {
   const originalMembersRef = useRef(new Set()); // Set<string> of emails
   const originalBusinessIdRef = useRef(null); // helps avoid snapshot confusion on business switch
 
-  const { data: user, refetch: refetchUser } = useQuery({
+  const { data: user } = useQuery({
     queryKey: ["currentUser"],
     queryFn: () => api.auth.me(),
   });
@@ -457,42 +457,11 @@ export default function Settings() {
         // ✅ leave settings after successful update
         setTimeout(() => navigateToDesignatedPage(), 400);
       } else {
-        // Ensure creator is in members as owner
-        let members = businessForm.members;
-        if (!members.find((m) => m.email === user.email)) {
-          members = [{ email: user.email, role: "owner" }, ...members];
-        }
-
-        const newBusiness = await api.entities.Business.create({
-          ...payload,
-          members,
-          owner_email: user.email,
-          created_by: user.email,
-          is_active: true,
-          subscription_plan: "free",
-        });
-
-        await api.auth.updateMe({
-          business_id: newBusiness.id,
-          user_role: "owner",
-        });
-
-        // Send invites AFTER successful create
-        await inviteNewMembers({
-          businessId: newBusiness.id,
-          businessName: payload.name,
-        });
-
-        // Update snapshot
-        originalBusinessIdRef.current = newBusiness.id;
-        originalMembersRef.current = new Set(members.map((m) => m.email));
-
-        refetchUser();
-
-        toast.success("Business created! Redirecting…");
-
-        // ✅ leave settings after successful create
-        setTimeout(() => navigateToDesignatedPage(), 500);
+        // Creating a new business is now a super-admin-only action (see
+        // CreateBusiness.jsx) - this form only ever edits an existing one,
+        // and its own "no business assigned" state above keeps this branch
+        // from being reachable through the UI, but guard it directly too.
+        toast.error("Setting up a new business is handled by a super admin, not from here.");
         return;
       }
     } catch (err) {
@@ -569,6 +538,17 @@ export default function Settings() {
               <CardDescription>Set up your car wash details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {!business ? (
+                <div className="text-center py-8">
+                  <Building2 className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                  <p className="font-medium text-slate-700 dark:text-slate-200">No business assigned yet</p>
+                  <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                    Setting up a new business is now handled by a super admin, not from here -
+                    ask one to create it and assign you as its owner.
+                  </p>
+                </div>
+              ) : (
+              <>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Business Name *</Label>
@@ -658,6 +638,8 @@ export default function Settings() {
                 )}
                 Save Changes
               </Button>
+              </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,6 +1,7 @@
 ﻿import React from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,21 +18,23 @@ import {
   Clock,
   X,
   Pause,
-  Trash2
-} from "lucide-react";
+  Trash2,
+  ClipboardEdit
+} from "@/lib/icons";
 import StatusBadge from "../common/StatusBadge";
 import VehicleIcon from "../common/VehicleIcon";
 import moment from "moment";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function WashCard({ wash, onStatusChange, onPayment, canManageWashes, onPause, onResume, onDelete }) {
+export default function WashCard({ wash, onStatusChange, onPayment, canManageWashes, onPause, onResume, onDelete, onFinishEntry }) {
   const statusActions = {
     waiting: { label: "Start Washing", icon: Play, nextStatus: "washing" },
     washing: { label: "Mark Done", icon: CheckCircle, nextStatus: "done" },
     done: { label: "Process Payment", icon: Banknote, action: "payment" },
   };
 
+  const isPendingEntry = wash.entry_status === "pending";
   const currentAction = statusActions[wash.status];
 
   return (
@@ -48,10 +51,15 @@ export default function WashCard({ wash, onStatusChange, onPayment, canManageWas
               {wash.plate_number}
             </Link>
             <StatusBadge status={wash.status} />
+            {isPendingEntry && (
+              <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
+                Needs Details
+              </Badge>
+            )}
           </div>
-          
+
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-            {wash.services?.map(s => s.name).join(", ") || "No services"}
+            {isPendingEntry ? "Services not picked yet" : (wash.services?.map(s => s.name).join(", ") || "No services")}
           </p>
           
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
@@ -84,7 +92,11 @@ export default function WashCard({ wash, onStatusChange, onPayment, canManageWas
           )}
           
           <div className="flex items-center gap-2 mt-2">
-            {wash.status === 'paused' && canManageWashes ? (
+            {isPendingEntry ? (
+              <Button size="sm" onClick={() => onFinishEntry?.(wash)} className="bg-amber-600 hover:bg-amber-700">
+                <ClipboardEdit className="h-3 w-3 mr-1" />Finish Entry
+              </Button>
+            ) : wash.status === 'paused' && canManageWashes ? (
               <Button size="sm" onClick={() => onResume?.(wash.id)} className="bg-blue-600 hover:bg-blue-700">
                 <Play className="h-3 w-3 mr-1" />Resume
               </Button>

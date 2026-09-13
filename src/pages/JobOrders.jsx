@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/firebaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ClipboardList, Car, Clock, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Search, ClipboardList, Car, Clock, AlertCircle, CheckCircle2, Loader2 } from "@/lib/icons";
 import DriveInWizard from "@/components/joborders/DriveInWizard.jsx";
 import DropOffWizard from "@/components/joborders/DropOffWizard.jsx";
 import JobOrderCard from "@/components/joborders/JobOrderCard.jsx";
@@ -35,7 +35,7 @@ export default function JobOrders() {
 
   const { data: services = [] } = useQuery({
     queryKey: ["services", businessId],
-    queryFn: () => api.entities.Service.filter({ business_id: businessId }),
+    queryFn: () => api.entities.Service.filter({ business_id: businessId }, "sort_order"),
     enabled: !!businessId,
   });
 

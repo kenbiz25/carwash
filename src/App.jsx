@@ -16,10 +16,10 @@ const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
 // Pages that don't require authentication (must match keys in pages.config)
-const PUBLIC_PAGES = new Set(["Landing", "Login", "CustomerPortal", "JoinBusiness", "PrivacyPolicy", "TermsOfService"]);
+const PUBLIC_PAGES = new Set(["Landing", "Login", "CustomerPortal", "JoinBusiness", "PrivacyPolicy", "TermsOfService", "TrackCar"]);
 
 // Pages that require super-admin (must match keys in pages.config)
-const SUPER_ADMIN_PAGES = new Set(["SuperAdminDashboard", "SuperAdminBusinessView"]);
+const SUPER_ADMIN_PAGES = new Set(["SuperAdminDashboard", "SuperAdminBusinessView", "CreateBusiness"]);
 
 const FullScreenLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center">

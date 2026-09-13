@@ -18,7 +18,7 @@ import {
   Edit,
   Gift,
   TrendingUp
-} from "lucide-react";
+} from "@/lib/icons";
 import { toast } from "sonner";
 import moment from "moment";
 import StatCard from "@/components/common/StatCard";
@@ -143,30 +143,30 @@ export default function Loyalty() {
           title="Total Customers"
           value={totalCustomers}
           icon={Heart}
-          iconColor="text-pink-600"
-          iconBg="bg-pink-100 dark:bg-pink-900/30"
+          iconColor="text-brand-orange"
+          iconBg="bg-brand-orange-50 dark:bg-brand-orange/10"
         />
         <StatCard
           title="Total Visits"
           value={totalVisits}
           icon={TrendingUp}
-          iconColor="text-emerald-600"
-          iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+          iconColor="text-brand-navy dark:text-brand-blue-light"
+          iconBg="bg-brand-navy-50 dark:bg-brand-navy-mid/40"
         />
         <StatCard
           title="Total Spent"
           value={`KES ${totalSpent.toLocaleString()}`}
           icon={Star}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-100 dark:bg-amber-900/30"
+          iconColor="text-brand-blue-mid dark:text-brand-blue-light"
+          iconBg="bg-brand-blue-pale/40 dark:bg-brand-blue-mid/20"
         />
         <StatCard
           title="Top Customer"
           value={topCustomer?.name || "-"}
           subtitle={topCustomer ? `${topCustomer.visits_count} visits` : ""}
           icon={Gift}
-          iconColor="text-purple-600"
-          iconBg="bg-purple-100 dark:bg-purple-900/30"
+          iconColor="text-brand-orange-hot"
+          iconBg="bg-brand-orange-100 dark:bg-brand-orange/10"
         />
       </div>
 

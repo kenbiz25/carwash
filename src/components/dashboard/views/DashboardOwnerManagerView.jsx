@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Building2, BookOpen, ClipboardList, Car, Banknote, TrendingUp, Loader2, CalendarDays, Users } from "lucide-react";
+import { RefreshCw, Building2, BookOpen, ClipboardList, Car, Banknote, TrendingUp, Loader2, CalendarDays, Users } from "@/lib/icons";
 import { useCumulativeStats } from "@/hooks/useCumulativeStats";
 
 import QuickStats from "@/components/dashboard/QuickStats";
@@ -136,6 +136,7 @@ export default function DashboardOwnerManagerView({
               services={services}
               staff={staff}
               user={user}
+              business={currentBusiness}
               onSuccess={refetchWashes}
             />
           )}

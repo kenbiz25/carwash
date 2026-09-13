@@ -17,7 +17,7 @@ import {
   Camera,
   CheckCircle2,
   MailCheck,
-} from "lucide-react";
+} from "@/lib/icons";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
 

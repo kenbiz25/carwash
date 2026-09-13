@@ -10,8 +10,8 @@ export default function StatCard({
   trend, 
   trendUp,
   className,
-  iconColor = "text-emerald-600",
-  iconBg = "bg-emerald-100 dark:bg-emerald-900/30"
+  iconColor = "text-brand-orange",
+  iconBg = "bg-brand-orange-50 dark:bg-brand-orange/10"
 }) {
   return (
     <Card className={cn(

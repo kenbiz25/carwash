@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Plus, X } from "lucide-react";
+import { Sparkles, Plus, X } from "@/lib/icons";
 
 export default function UpsellPrompt({ selectedServices = [], allServices = [], vehicleType = "saloon", onAddService, onDismiss }) {
   // Get service IDs that are commonly upsold together

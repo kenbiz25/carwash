@@ -1,6 +1,6 @@
 ﻿import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, Repeat, DollarSign, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, Repeat, DollarSign, BarChart3 } from "@/lib/icons";
 import moment from "moment";
 
 export default function AdvancedStats({ washes = [], payments = [], customers = [] }) {

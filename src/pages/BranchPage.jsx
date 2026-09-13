@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams, Link } from "react-router-dom";
-import { api } from "@/api/firebaseClient";
+import { getPublicLocationBySlug } from "@/lib/publicLocations";
 import SiteNav from "@/components/common/SiteNav";
 import PhotoGalleryFan from "@/components/common/PhotoGalleryFan";
 import PhotoGallerySpotlight from "@/components/common/PhotoGallerySpotlight";
 import { Button } from "@/components/ui/button";
-import { MapPin, Phone, MessageCircle, Navigation, Clock } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Navigation, Clock } from "@/lib/icons";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -19,25 +19,9 @@ L.Icon.Default.mergeOptions({
 
 export default function BranchPage() {
   const { slug } = useParams();
-  const [business, setBusiness] = useState(undefined); // undefined = loading, null = not found
+  const business = getPublicLocationBySlug(slug);
 
-  useEffect(() => {
-    let cancelled = false;
-    api.entities.Business.filter({ slug: (slug || "").toLowerCase() })
-      .then((list) => { if (!cancelled) setBusiness(list[0] || null); })
-      .catch(() => { if (!cancelled) setBusiness(null); });
-    return () => { cancelled = true; };
-  }, [slug]);
-
-  if (business === undefined) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-brand-orange rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (business === null) {
+  if (!business) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center p-8 bg-white">
         <h1 className="text-2xl font-bold text-slate-900 mb-2">Branch not found</h1>
@@ -74,15 +58,14 @@ export default function BranchPage() {
         </div>
       </div>
 
-      {/* Photo gallery - each branch can pick its own presentation style */}
+      {/* Photo gallery - "spotlight" is the shared default look for every
+          branch; "fan" remains available as an opt-in alternative. */}
       {photos.length > 0 && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          {business.gallery_style === "spotlight-wide" ? (
-            <PhotoGallerySpotlight photos={photos} altPrefix={business.name} sideCount={3} />
-          ) : business.gallery_style === "spotlight" ? (
-            <PhotoGallerySpotlight photos={photos} altPrefix={business.name} sideCount={1} />
-          ) : (
+          {business.gallery_style === "fan" ? (
             <PhotoGalleryFan photos={photos} altPrefix={business.name} />
+          ) : (
+            <PhotoGallerySpotlight photos={photos} altPrefix={business.name} sideCount={2} />
           )}
         </div>
       )}

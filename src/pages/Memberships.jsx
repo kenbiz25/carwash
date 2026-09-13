@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, Crown, Users, Calendar, CreditCard, Edit, Trash2, Loader2,
   Check, Infinity, Gift
-} from "lucide-react";
+} from "@/lib/icons";
 import { toast } from "sonner";
 import moment from "moment";
 import { useBusiness } from "@/lib/BusinessContext";

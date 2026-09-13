@@ -13,7 +13,7 @@ import {
   Crown,
   Calendar,
   Shield
-} from "lucide-react";
+} from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
 import { toast } from "sonner";
 import { format, addDays, addMonths, addYears } from "date-fns";

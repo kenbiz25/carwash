@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { api } from "@/api/firebaseClient";
-import { Camera, X, Loader2 } from "lucide-react";
+import { Camera, X, Loader2 } from "@/lib/icons";
 
 // Works on a flat array of image URLs (matches business.photos' existing
 // shape — the branch page just does photos.map(src => <img src={src} />)),

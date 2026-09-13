@@ -8,11 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, RefreshCw, Car, Loader2 } from "lucide-react";
+import { Search, RefreshCw, Car, Loader2 } from "@/lib/icons";
 import WashCard from "@/components/wash/WashCard";
 import QuickCheckIn from "@/components/wash/QuickCheckIn";
 import PaymentDialog from "@/components/payment/PaymentDialog";
-import { notifyInApp, sendWashReadyNotification } from "@/components/notifications/NotificationService";
+import { notifyInApp, sendWashReadyNotification, sendWashingStartedNotification } from "@/components/notifications/NotificationService";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
 
@@ -22,6 +22,8 @@ export default function Washes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWash, setSelectedWash] = useState(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [finishingWash, setFinishingWash] = useState(null);
+  const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [reasonDialog, setReasonDialog] = useState(null); // { wash, action: 'pause' | 'delete' } | null
   const [reasonText, setReasonText] = useState("");
   const [submittingReason, setSubmittingReason] = useState(false);
@@ -46,7 +48,7 @@ export default function Washes() {
 
   const { data: services = [] } = useQuery({
     queryKey: ["services", business?.id],
-    queryFn: () => api.entities.Service.filter({ business_id: business?.id }),
+    queryFn: () => api.entities.Service.filter({ business_id: business?.id }, "sort_order"),
     enabled: !!business?.id,
   });
 
@@ -66,6 +68,11 @@ export default function Washes() {
     }
 
     await api.entities.Wash.update(washId, updateData);
+
+    if (newStatus === "washing" && business) {
+      const wash = washes.find((w) => w.id === washId);
+      sendWashingStartedNotification(wash, business).catch(() => {});
+    }
 
     if (newStatus === "done" && business) {
       const wash = washes.find((w) => w.id === washId);
@@ -135,6 +142,11 @@ export default function Washes() {
     setPaymentDialogOpen(true);
   };
 
+  const handleFinishEntry = (wash) => {
+    setFinishingWash(wash);
+    setFinishDialogOpen(true);
+  };
+
   const filteredWashes = washes.filter((wash) => {
     const matchesStatus = statusFilter === "all" || wash.status === statusFilter;
     const matchesSearch = !searchQuery || 
@@ -167,10 +179,12 @@ export default function Washes() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <QuickCheckIn 
-            businessId={business?.id} 
-            services={services} 
+          <QuickCheckIn
+            businessId={business?.id}
+            services={services}
             staff={staff}
+            user={user}
+            business={business}
             onSuccess={refetch}
           />
         </div>
@@ -228,10 +242,12 @@ export default function Washes() {
                 : "Check in your first vehicle to get started"}
             </p>
             {!searchQuery && statusFilter === "all" && (
-              <QuickCheckIn 
-                businessId={business?.id} 
-                services={services} 
+              <QuickCheckIn
+                businessId={business?.id}
+                services={services}
                 staff={staff}
+                user={user}
+                business={business}
                 onSuccess={refetch}
               />
             )}
@@ -247,10 +263,24 @@ export default function Washes() {
               onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
               onResume={handleResume}
               onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
+              onFinishEntry={handleFinishEntry}
             />
           ))
         )}
       </div>
+
+      {/* Finish a pending entry someone else started */}
+      <QuickCheckIn
+        open={finishDialogOpen}
+        onOpenChange={(v) => { setFinishDialogOpen(v); if (!v) setFinishingWash(null); }}
+        editingWash={finishingWash}
+        businessId={business?.id}
+        services={services}
+        staff={staff}
+        user={user}
+        business={business}
+        onSuccess={() => { refetch(); setFinishingWash(null); }}
+      />
 
       {/* Payment Dialog */}
       <PaymentDialog
