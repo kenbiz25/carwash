@@ -9,12 +9,9 @@
 # whatsapp-server/, and mpesa-server/ are deliberately excluded from git
 # (they hold real secrets) and still need their own manual zip deploys.
 #
-# DEPLOYPATH is a best guess (/home/fjwkkmge/public_html) - confirm this is
-# actually where your site's document root lives before relying on this;
-# a wrong path just means nothing gets copied, it won't break anything.
+# Everything below is captured into ~/deploy.log (viewable directly in File
+# Manager) since cPanel's own UI doesn't surface task output anywhere -
+# without this we're deploying blind.
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/fjwkkmge/public_html/
-    - npm install
-    - npm run build
-    - /bin/cp -R dist/. $DEPLOYPATH
+    - cd /home/fjwkkmge/repositories/carwash && (echo "=== $(date) ==="; echo "PATH=$PATH"; which node; which npm; node -v; npm -v; npm install && npm run build && cp -R dist/. /home/fjwkkmge/public_html/ && echo DEPLOY_OK || echo DEPLOY_FAILED) > /home/fjwkkmge/deploy.log 2>&1
