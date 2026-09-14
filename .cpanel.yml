@@ -14,4 +14,4 @@
 # without this we're deploying blind.
 deployment:
   tasks:
-    - cd /home/fjwkkmge/repositories/carwash && (echo "=== $(date) ==="; echo "PATH=$PATH"; which node; which npm; node -v; npm -v; npm install && npm run build && cp -R dist/. /home/fjwkkmge/public_html/ && echo DEPLOY_OK || echo DEPLOY_FAILED) > /home/fjwkkmge/deploy.log 2>&1
+    - . /home/fjwkkmge/nodevenv/data.bgoshinehub.co.ke/app-data-server/20/bin/activate && cd /home/fjwkkmge/repositories/carwash && (echo "=== $(date) ==="; which node; which npm; node -v; npm -v; npm install && npm run build && cp -R dist/. /home/fjwkkmge/public_html/ && echo DEPLOY_OK || echo DEPLOY_FAILED) > /home/fjwkkmge/deploy.log 2>&1
