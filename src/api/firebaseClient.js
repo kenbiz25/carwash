@@ -17,7 +17,6 @@ const COLLECTION_MAP = {
   JobOrder: 'jobOrders',
   Membership: 'memberships',
   CustomerSubscription: 'customerSubscriptions',
-  BusinessSubscription: 'businessSubscriptions',
   Notification: 'notifications',
   Invitation: 'invitations',
 };

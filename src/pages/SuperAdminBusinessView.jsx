@@ -22,13 +22,6 @@ import {
 } from "@/lib/icons";
 import moment from "moment";
 
-const planColor = (plan) =>
-  ({
-    starter: "bg-slate-100 text-slate-700",
-    pro: "bg-blue-100 text-blue-700",
-    enterprise: "bg-purple-100 text-purple-700",
-  })[String(plan || "").toLowerCase()] || "bg-slate-100 text-slate-700";
-
 const statusColor = (status) =>
   ({
     paid:      "bg-emerald-100 text-emerald-700",
@@ -209,11 +202,6 @@ export default function SuperAdminBusinessView() {
               </div>
 
               <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-4 pt-2 border-t border-slate-100 dark:border-slate-700">
-                <Badge className={`${planColor(business.subscription_plan)} border-0`}>
-                  {String(business.subscription_plan || "starter").charAt(0).toUpperCase() +
-                    String(business.subscription_plan || "starter").slice(1)}{" "}
-                  Plan
-                </Badge>
                 {business.is_active !== false ? (
                   <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium">
                     <CheckCircle className="h-3 w-3" /> Active

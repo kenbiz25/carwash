@@ -55,12 +55,6 @@ export default function SuperAdminDashboard() {
     enabled: isSuperAdmin,
   });
 
-  const { data: allSubscriptions = [], isLoading: loadingSubs } = useQuery({
-    queryKey: ["all-subscriptions"],
-    queryFn: () => api.entities.BusinessSubscription.list("-created_date", 200),
-    enabled: isSuperAdmin,
-  });
-
   // Accounts with no role/branch assigned yet — first-time Google sign-ins
   // land here until a super admin picks a business + role for them.
   const { data: pendingUsers = [], refetch: refetchPending, isError: pendingErrored, error: pendingError } = useQuery({
@@ -112,27 +106,6 @@ export default function SuperAdminDashboard() {
     return map;
   }, [allWashes]);
 
-  const subByBizId = useMemo(() => {
-    const map = new Map();
-    for (const s of allSubscriptions) {
-      if (s?.business_id) map.set(s.business_id, s);
-    }
-    return map;
-  }, [allSubscriptions]);
-
-  const subByUserEmail = useMemo(() => {
-    const map = new Map();
-    for (const s of allSubscriptions) {
-      if (s?.user_email) map.set(String(s.user_email).toLowerCase(), s);
-    }
-    return map;
-  }, [allSubscriptions]);
-
-  const getSubForBusiness = (biz) =>
-    subByBizId.get(biz?.id) ||
-    subByUserEmail.get(String(biz?.owner_email || "").toLowerCase()) ||
-    null;
-
   const totalRevenue = useMemo(() => {
     return allPayments
       .filter((p) => p?.status === "confirmed")
@@ -148,18 +121,6 @@ export default function SuperAdminDashboard() {
     }).length;
   }, [allWashes]);
 
-  const activeSubscriptions = useMemo(() => {
-    return allSubscriptions.filter((s) =>
-      ["active", "trialing"].includes(String(s?.status || "").toLowerCase())
-    );
-  }, [allSubscriptions]);
-
-  const proPlans = activeSubscriptions.filter((s) => s?.plan === "pro").length;
-  const enterprisePlans = activeSubscriptions.filter((s) => s?.plan === "enterprise").length;
-
-  // Your pricing logic (leave as-is)
-  const mrr = proPlans * 1500 + enterprisePlans * 4500;
-
   const filteredBusinesses = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allBusinesses;
@@ -171,14 +132,7 @@ export default function SuperAdminDashboard() {
     });
   }, [allBusinesses, search]);
 
-  const planColor = (plan) =>
-    ({
-      starter: "bg-slate-100 text-slate-700",
-      pro: "bg-blue-100 text-blue-700",
-      enterprise: "bg-purple-100 text-purple-700",
-    })[String(plan || "").toLowerCase()] || "bg-slate-100 text-slate-700";
-
-  const loadingAny = loadingBusinesses || loadingWashes || loadingPayments || loadingSubs;
+  const loadingAny = loadingBusinesses || loadingWashes || loadingPayments;
 
   // If user is still loading, avoid flashing Access Denied
   if (loadingUser) {
@@ -245,8 +199,8 @@ export default function SuperAdminDashboard() {
             bg: "bg-cyan-50 dark:bg-cyan-900/20",
           },
           {
-            label: "Monthly MRR (KES)",
-            value: `${(mrr / 1000).toFixed(1)}K`,
+            label: "Total Washes",
+            value: allWashes.length,
             icon: TrendingUp,
             color: "text-purple-600",
             bg: "bg-purple-50 dark:bg-purple-900/20",
@@ -261,34 +215,6 @@ export default function SuperAdminDashboard() {
                 {loadingAny ? "-" : stat.value}
               </p>
               <p className="text-sm text-slate-500">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Subscription Breakdown */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          {
-            plan: "Starter",
-            count: allSubscriptions.filter((s) => s?.plan === "starter").length,
-            color: "bg-slate-100 dark:bg-slate-800",
-          },
-          { plan: "Pro", count: proPlans, color: "bg-blue-50 dark:bg-blue-900/20" },
-          {
-            plan: "Enterprise",
-            count: enterprisePlans,
-            color: "bg-purple-50 dark:bg-purple-900/20",
-          },
-        ].map((s, i) => (
-          <Card key={i} className={`border-0 shadow-sm ${s.color}`}>
-            <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {loadingAny ? "-" : s.count}
-              </p>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                {s.plan} Plans
-              </p>
             </CardContent>
           </Card>
         ))}
@@ -373,7 +299,7 @@ export default function SuperAdminDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  {["Business", "Location", "Owner", "Plan", "Status", "Washes", "Actions"].map(
+                  {["Business", "Location", "Owner", "Status", "Washes", "Actions"].map(
                     (h) => (
                       <th
                         key={h}
@@ -388,9 +314,7 @@ export default function SuperAdminDashboard() {
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredBusinesses.map((biz) => {
-                  const sub = getSubForBusiness(biz);
                   const bizWashes = washesCountByBiz.get(biz.id) || 0;
-                  const plan = sub?.plan || biz?.subscription_plan || "starter";
 
                   return (
                     <tr
@@ -410,12 +334,6 @@ export default function SuperAdminDashboard() {
 
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">
                         {biz.owner_email || "-"}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <Badge className={`${planColor(plan)} border-0 text-xs`}>
-                          {String(plan).charAt(0).toUpperCase() + String(plan).slice(1)}
-                        </Badge>
                       </td>
 
                       <td className="px-4 py-3">

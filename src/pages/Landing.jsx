@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/common/Logo";
 import SiteNav from "@/components/common/SiteNav";
-import PlanCheckoutDialog from "@/components/subscription/PlanCheckoutDialog";
 import {
   ChevronRight,
   Check,
@@ -120,28 +119,11 @@ const testimonials = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   // The public site's locations are static (see src/lib/publicLocations.js),
   // independent of whatever branches exist in the operational database -
   // this section always has something to show, even before any business is
   // set up by an owner.
   const mapBusinesses = PUBLIC_LOCATIONS.filter(b => b.latitude && b.longitude);
-
-  useEffect(() => {
-    api.auth.isAuthenticated().then(setIsAuthenticated);
-  }, []);
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const planParam = urlParams.get("plan");
-    if (planParam && isAuthenticated) {
-      setSelectedPlan(planParam);
-      setCheckoutOpen(true);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, [isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -857,14 +839,6 @@ export default function Landing() {
           </div>
         </div>
       </footer>
-
-      {/* ── Checkout Dialog ─────────────────────────────────────────── */}
-      <PlanCheckoutDialog
-        plan={selectedPlan}
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        onSuccess={() => { window.location.href = createPageUrl("Dashboard"); }}
-      />
     </div>
   );
 }
