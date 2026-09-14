@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
   Phone,
   Mail,
   Search,
-  MessageCircle,
+  WhatsappLogo,
+  GoogleLogo,
 } from "@/lib/icons";
 import { motion } from "framer-motion";
 import { api } from "@/api/firebaseClient";
@@ -124,6 +125,10 @@ export default function Landing() {
   // this section always has something to show, even before any business is
   // set up by an owner.
   const mapBusinesses = PUBLIC_LOCATIONS.filter(b => b.latitude && b.longitude);
+  // Vision & Mission deliberately share two looks (bold navy / plain light)
+  // rather than one each - whichever card the cursor is over takes the bold
+  // look, the other yields to it. Defaults to Vision bold when neither is hovered.
+  const [hoveredCard, setHoveredCard] = useState("vision");
 
   return (
     <div className="min-h-screen bg-white">
@@ -146,16 +151,15 @@ export default function Landing() {
             {/* Left - headline */}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
               <div className="flex flex-wrap gap-2 mb-6">
-                <Badge className="bg-brand-orange/20 text-brand-orange border-brand-orange/30">
+                <Badge className="bg-brand-orange text-white border-0">
                   📍 Njiru, Nairobi
                 </Badge>
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                <Badge className="bg-emerald-600 text-white border-0">
                   🕐 Open 24/7
                 </Badge>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-                Professional Car Care,{" "}
-                <span className="text-brand-orange">Done Right</span>
+                Professional Car Care, Done Right
               </h1>
               <p className="text-xl text-brand-blue-pale mb-3 leading-relaxed font-medium">
                 Car Wash · Interior Cleaning · Greasing · Air Freshening
@@ -163,7 +167,7 @@ export default function Landing() {
               <p className="text-lg text-slate-300 mb-10 max-w-lg">
                 Convenient, affordable, and professional vehicle care in Njiru, Nairobi. Book a wash and let us keep your car clean, fresh, and well-maintained.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-10">
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <Button size="lg" className="bg-brand-orange hover:bg-brand-orange-hot text-white text-lg px-8 h-14 shadow-lg shadow-brand-orange/30" asChild>
                   <a href={WHATSAPP_BOOKING_URL} target="_blank" rel="noopener noreferrer">
                     Book a Wash <ChevronRight className="ml-2 h-5 w-5" />
@@ -172,24 +176,22 @@ export default function Landing() {
                 <Button size="lg" variant="outline" className="border-brand-blue-light/50 text-brand-blue-light hover:bg-brand-blue-light/10 hover:text-white text-lg px-8 h-14" asChild>
                   <a href="tel:+254757234111">Call Us</a>
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 text-lg px-8 h-14"
-                  asChild
-                >
-                  <Link to={createPageUrl("TrackCar")}>
-                    <Search className="mr-2 h-5 w-5" /> Track My Car
-                  </Link>
-                </Button>
               </div>
-              <button
-                type="button"
-                onClick={() => document.getElementById("map")?.scrollIntoView({ behavior: "smooth" })}
-                className="flex items-center gap-1.5 text-sm font-medium text-brand-blue-light hover:text-white transition-colors mb-8"
-              >
-                <MapPin className="h-4 w-4" /> Find a branch near you
-              </button>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-8">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("map")?.scrollIntoView({ behavior: "smooth" })}
+                  className="flex items-center gap-1.5 text-sm font-medium text-brand-blue-light hover:text-white transition-colors"
+                >
+                  <MapPin className="h-4 w-4" /> Find a branch near you
+                </button>
+                <Link
+                  to={createPageUrl("TrackCar")}
+                  className="flex items-center gap-1.5 text-sm font-medium text-brand-orange hover:text-white transition-colors"
+                >
+                  <Search className="h-4 w-4" /> Track my car status
+                </Link>
+              </div>
               <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-slate-300 max-w-md">
                 {["Open 24/7", "Same-day service", "Experienced staff", "Affordable pricing"].map(t => (
                   <div key={t} className="flex items-center gap-2">
@@ -358,7 +360,7 @@ export default function Landing() {
                 consistent process mean the same quality every time you visit, at any of our three
                 Nairobi branches.
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   { label: "Reliability & Professionalism" },
                   { label: "Excellent Customer Care" },
@@ -382,16 +384,26 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* Vision & Mission */}
+          {/* Vision & Mission - hover swaps which one looks "active" */}
           <div className="grid md:grid-cols-2 gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="rounded-2xl bg-brand-navy p-8"
+              onMouseEnter={() => setHoveredCard("vision")}
+              onMouseLeave={() => setHoveredCard("vision")}
+              className={`rounded-2xl p-8 transition-colors duration-300 ${
+                hoveredCard === "vision" ? "bg-brand-navy" : "bg-slate-50 border border-slate-200"
+              }`}
             >
-              <Badge className="bg-brand-orange/20 text-brand-orange border-brand-orange/30 mb-4">Our Vision</Badge>
-              <p className="text-lg text-white leading-relaxed">
+              <Badge className={`mb-4 border-0 transition-colors duration-300 ${
+                hoveredCard === "vision" ? "bg-brand-orange/20 text-brand-orange" : "bg-brand-navy/10 text-brand-navy"
+              }`}>
+                Our Vision
+              </Badge>
+              <p className={`text-lg leading-relaxed transition-colors duration-300 ${
+                hoveredCard === "vision" ? "text-white" : "text-slate-700"
+              }`}>
                 To set the benchmark for quality, reliability, and innovation in professional
                 cleaning services.
               </p>
@@ -401,10 +413,20 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="rounded-2xl bg-slate-50 border border-slate-200 p-8"
+              onMouseEnter={() => setHoveredCard("mission")}
+              onMouseLeave={() => setHoveredCard("vision")}
+              className={`rounded-2xl p-8 transition-colors duration-300 ${
+                hoveredCard === "mission" ? "bg-brand-navy" : "bg-slate-50 border border-slate-200"
+              }`}
             >
-              <Badge className="bg-brand-navy/10 text-brand-navy border-brand-navy/20 mb-4">Our Mission</Badge>
-              <p className="text-lg text-slate-700 leading-relaxed">
+              <Badge className={`mb-4 border-0 transition-colors duration-300 ${
+                hoveredCard === "mission" ? "bg-brand-orange/20 text-brand-orange" : "bg-brand-navy/10 text-brand-navy"
+              }`}>
+                Our Mission
+              </Badge>
+              <p className={`text-lg leading-relaxed transition-colors duration-300 ${
+                hoveredCard === "mission" ? "text-white" : "text-slate-700"
+              }`}>
                 To provide reliable, affordable, and professional cleaning solutions with
                 consistency, care, and respect for every customer.
               </p>
@@ -721,7 +743,7 @@ export default function Landing() {
               className="flex flex-col items-center text-center gap-3 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-lg transition-all p-6"
             >
               <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                <MessageCircle className="h-6 w-6 text-emerald-600" />
+                <WhatsappLogo weight="fill" className="h-6 w-6 text-emerald-600" />
               </div>
               <p className="font-semibold text-slate-900">WhatsApp</p>
               <p className="text-slate-500 text-sm">Chat with our team</p>
@@ -731,7 +753,7 @@ export default function Landing() {
               className="flex flex-col items-center text-center gap-3 rounded-2xl border border-slate-200 hover:border-brand-blue-mid hover:shadow-lg transition-all p-6"
             >
               <div className="h-12 w-12 rounded-full bg-brand-blue-mid/10 flex items-center justify-center">
-                <Mail className="h-6 w-6 text-brand-blue-mid" />
+                <GoogleLogo weight="bold" className="h-6 w-6 text-brand-blue-mid" />
               </div>
               <p className="font-semibold text-slate-900">Email</p>
               <p className="text-slate-500 text-sm break-all">bgoshinehubltd@gmail.com</p>
@@ -822,10 +844,20 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Button className="bg-brand-orange hover:bg-brand-orange-hot text-white w-full" asChild>
-                <a href={WHATSAPP_BOOKING_URL} target="_blank" rel="noopener noreferrer">Book on WhatsApp</a>
-              </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Closing CTA - a full-width banner rather than tucked inside one
+            column, so it doesn't unbalance its column against its siblings. */}
+        <div className="border-t border-white/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-white font-medium">Ready for a spotless ride?</p>
+            <Button className="bg-brand-orange hover:bg-brand-orange-hot text-white" asChild>
+              <a href={WHATSAPP_BOOKING_URL} target="_blank" rel="noopener noreferrer">
+                <WhatsappLogo weight="fill" className="mr-2 h-5 w-5" /> Book on WhatsApp
+              </a>
+            </Button>
           </div>
         </div>
 
@@ -835,7 +867,13 @@ export default function Landing() {
             <p className="text-slate-500 text-sm">
               © {new Date().getFullYear()} BGO Shine Hub. All rights reserved.
             </p>
-            <p className="text-slate-600 text-xs">Built for Kenya 🇰🇪</p>
+            <p className="text-slate-600 text-xs">
+              Built by{" "}
+              <a href="https://kenkiplagat.co.ke" target="_blank" rel="noopener noreferrer" className="hover:text-brand-blue-light transition-colors">
+                Ken.Tech
+              </a>{" "}
+              🇰🇪
+            </p>
           </div>
         </div>
       </footer>

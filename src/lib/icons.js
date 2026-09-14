@@ -15,6 +15,7 @@ export {
   Pause, Phone, Play, Plus, Printer, Receipt, Repeat, Shield, ShieldCheck,
   Star, Sun, Truck, Upload, User, UserCheck, UserCircle, UserPlus, Users,
   Video, Wallet, Wrench, X,
+  WhatsappLogo, GoogleLogo,
 } from "@phosphor-icons/react";
 
 // ── Aliased equivalents (no identically-named Phosphor icon) ───────────────
