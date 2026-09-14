@@ -11,7 +11,14 @@ import { createPageUrl } from "@/utils";
 const publicPages = ["Landing", "Login", "JoinBusiness", "CustomerPortal", "PrivacyPolicy", "TermsOfService", "TrackCar"];
 
 export default function Layout({ children, currentPageName }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  // Expanded by default so every label is visible at a glance, on every
+  // dashboard/role, without hovering or clicking each icon to learn it - but
+  // only on desktop. On mobile the sidebar is a full-screen overlay drawer,
+  // so starting "expanded" there would cover the whole page behind a dark
+  // backdrop the instant any page loads - it still starts closed there.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1024
+  );
   const [darkMode, setDarkMode] = useState(false);
 
   const {

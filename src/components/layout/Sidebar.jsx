@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import Logo from "../common/Logo";
 import {
   LayoutDashboard,
@@ -181,58 +182,78 @@ export default function Sidebar({
         )}
 
         {/* Navigation */}
-        <ScrollArea className="flex-1 py-3">
-          <nav className="space-y-0.5 px-2">
-            {visibleItems.map((item, idx) => {
-              const isActive = currentPage === item.page;
-              const rowClass = cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all",
-                isActive
-                  ? "bg-gradient-to-r from-brand-orange to-brand-orange-hot text-white shadow-lg shadow-brand-orange/30"
-                  : "text-brand-blue-pale hover:bg-white/10 hover:text-white"
-              );
-              const row = (
-                <div className={rowClass}>
-                  <item.icon className={cn("h-5 w-5 flex-shrink-0", collapsed && "mx-auto")} />
-                  {!collapsed && <span className="font-medium text-sm">{item.label}</span>}
-                </div>
-              );
+        <TooltipProvider delayDuration={200}>
+          <ScrollArea className="flex-1 py-3">
+            <nav className="space-y-0.5 px-2">
+              {visibleItems.map((item, idx) => {
+                const isActive = currentPage === item.page;
+                const rowClass = cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all",
+                  isActive
+                    ? "bg-gradient-to-r from-brand-orange to-brand-orange-hot text-white shadow-lg shadow-brand-orange/30"
+                    : "text-brand-blue-pale hover:bg-white/10 hover:text-white"
+                );
+                const row = (
+                  <div className={rowClass}>
+                    <item.icon className={cn("h-5 w-5 flex-shrink-0", collapsed && "mx-auto")} />
+                    {!collapsed && <span className="font-medium text-sm">{item.label}</span>}
+                  </div>
+                );
 
-              if (item.external) {
-                return (
+                const link = item.external ? (
                   <a key={`${item.label}-${idx}`} href={item.href} target="_blank" rel="noopener noreferrer">
                     {row}
                   </a>
+                ) : (
+                  <Link
+                    key={`${item.page}-${idx}`}
+                    to={createPageUrl(item.page)}
+                    onClick={() => window.innerWidth < 1024 && setCollapsed(true)}
+                  >
+                    {row}
+                  </Link>
                 );
-              }
 
-              return (
-                <Link
-                  key={`${item.page}-${idx}`}
-                  to={createPageUrl(item.page)}
-                  onClick={() => window.innerWidth < 1024 && setCollapsed(true)}
-                >
-                  {row}
-                </Link>
-              );
-            })}
-          </nav>
-        </ScrollArea>
+                // Collapsed = icon-only, so a hover tooltip is the only way to
+                // know what each icon does without expanding the sidebar.
+                if (!collapsed) return link;
+                return (
+                  <Tooltip key={`${item.page || item.label}-${idx}`}>
+                    <TooltipTrigger asChild>{link}</TooltipTrigger>
+                    <TooltipContent side="right">{item.label}</TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </nav>
+          </ScrollArea>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-white/10 flex-shrink-0">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start text-brand-blue-pale hover:text-red-300 hover:bg-red-500/10",
-              collapsed && "justify-center"
+          {/* Footer */}
+          <div className="p-3 border-t border-white/10 flex-shrink-0">
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-center text-brand-blue-pale hover:text-red-300 hover:bg-red-500/10"
+                    onClick={() => api.auth.logout()}
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Logout</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-brand-blue-pale hover:text-red-300 hover:bg-red-500/10"
+                onClick={() => api.auth.logout()}
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                Logout
+              </Button>
             )}
-            onClick={() => api.auth.logout()}
-          >
-            <LogOut className={cn("h-5 w-5", !collapsed && "mr-3")} />
-            {!collapsed && "Logout"}
-          </Button>
-        </div>
+          </div>
+        </TooltipProvider>
       </aside>
     </>
   );
