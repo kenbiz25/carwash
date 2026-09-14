@@ -16,10 +16,11 @@ import {
   Phone,
   Mail,
   Search,
+  MessageCircle,
 } from "@/lib/icons";
 import { motion } from "framer-motion";
 import { api } from "@/api/firebaseClient";
-import { WHATSAPP_BOOKING_URL } from "@/lib/constants";
+import { WHATSAPP_BOOKING_URL, WHATSAPP_CONSULTATION_URL } from "@/lib/constants";
 import { PUBLIC_LOCATIONS } from "@/lib/publicLocations";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -45,42 +46,68 @@ const orangeIcon = new L.Icon({
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
-const services = [
+// The owner's own framing: Car Wash is what customers buy often, to keep a
+// car clean and presentable day-to-day. Luxury & Care is what they buy less
+// often, to protect the investment or bring an older car back to life - two
+// different buying reasons, so they're shown as two visually distinct
+// sections below rather than one mixed grid.
+const carWashServices = [
   {
-    title: "Car Wash",
-    description: "Full body exterior wash for saloons, SUVs, vans and more - quick and thorough, every time.",
+    title: "Basic Wash",
+    description: "A thorough full-body exterior wash for saloons, SUVs, vans and more - quick and reliable, every visit.",
     photo: "/img/main-wash.jpg",
     alt: "BGO Shine Hub staff washing a car at the wash bay",
   },
   {
-    title: "Interior Cleaning",
-    description: "Vacuuming, interior steam wash, and dashboard polishing that leaves your cabin fresh and spotless.",
+    title: "Interior Vacuuming",
+    description: "A quick, thorough vacuum of seats, mats and boot space so your cabin stays fresh between deeper cleans.",
     photo: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80",
-    alt: "Clean car interior after detailing",
+    alt: "Clean car interior after vacuuming",
   },
   {
-    title: "Engine Cleaning & Greasing",
-    description: "Engine bay washing, degreasing and greasing to keep your vehicle running smoothly underneath the hood.",
-    photo: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&q=80",
-    alt: "Mechanic cleaning a car engine bay",
-  },
-  {
-    title: "Waxing & Buffing",
-    description: "Protective waxing and buffing that restores shine and guards your paintwork against the elements.",
-    photo: "/img/detailing.jpg",
-    alt: "BGO Shine Hub staff detailing a car's exterior",
-  },
-  {
-    title: "Air Freshening & Detailing",
-    description: "Air fresheners, dashboard polish and finishing touches that make every drive feel brand new.",
+    title: "Flash Wash",
+    description: "A fast exterior-only rinse and wipe-down for when you just need your car looking presentable, quickly.",
     photo: "/img/detailing-2.jpg",
-    alt: "BGO Shine Hub staff applying tyre shine",
+    alt: "BGO Shine Hub staff finishing an exterior wash",
   },
   {
     title: "Commercial & Fleet Washing",
-    description: "Matatus, buses, lorries and canters welcome - reliable wash and greasing for commercial vehicles too.",
+    description: "Matatus, buses, lorries and canters welcome - reliable, regular wash and greasing for commercial vehicles too.",
     photo: "/img/wash.jpg",
     alt: "Car wash bay with a commercial lorry in the background",
+  },
+];
+
+const luxuryServices = [
+  {
+    title: "Premium Wax & Polish",
+    description: "Protective waxing and buffing that restores shine and guards your paintwork against the elements.",
+    photo: "/img/detailing.jpg",
+    alt: "BGO Shine Hub staff buffing a car's exterior",
+  },
+  {
+    title: "Leather Care & Conditioning",
+    description: "Deep cleaning and conditioning that keeps leather seats soft and prevents cracking over time.",
+    photo: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80",
+    alt: "Car interior with leather seats",
+  },
+  {
+    title: "Dashboard Care & UV Protection",
+    description: "Polish and UV-protectant treatment that guards your dashboard against sun damage and fading.",
+    photo: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800&q=80",
+    alt: "Car dashboard being cleaned",
+  },
+  {
+    title: "Full Interior Detailing",
+    description: "A complete deep clean of every interior surface - ideal for restoring an older car or protecting a new one.",
+    photo: "/img/detailing.jpg",
+    alt: "BGO Shine Hub staff detailing a car interior",
+  },
+  {
+    title: "Car Air Fresheners",
+    description: "A range of scents to finish the job, leaving your car smelling as good as it looks.",
+    photo: "/img/detailing-2.jpg",
+    alt: "BGO Shine Hub staff applying finishing touches",
   },
 ];
 
@@ -327,6 +354,49 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── About Us ───────────────────────────────────────────────── */}
+      <section id="about" className="py-20 px-4 bg-white">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+            <Badge className="bg-brand-navy/10 text-brand-navy border-brand-navy/20 mb-4">About Us</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-5">
+              Nairobi's Trusted Name in Vehicle Care
+            </h2>
+            <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+              BGO Shine Hub exists to give every vehicle owner in Nairobi - whether you're keeping
+              a daily runabout presentable or restoring a car you're proud of - a car wash you can
+              trust with the details.
+            </p>
+            <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+              From quick everyday washes to premium protective care, our trained staff and
+              consistent process mean the same quality every time you visit, at any of our three
+              Nairobi branches.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Trained, professional staff" },
+                { label: "Consistent quality, every visit" },
+                { label: "3 convenient Nairobi branches" },
+                { label: "Open 24/7 for your schedule" },
+              ].map(item => (
+                <div key={item.label} className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-brand-orange flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-700 text-sm font-medium">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="rounded-2xl overflow-hidden shadow-xl"
+          >
+            <img src="/img/bay.jpg" alt="BGO Shine Hub wash bay" className="w-full h-80 lg:h-full object-cover" />
+          </motion.div>
+        </div>
+      </section>
+
       {/* Divider wave into features */}
       <div className="relative h-16 overflow-hidden bg-brand-navy">
         <svg viewBox="0 0 1440 64" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="absolute top-0 w-full h-full fill-white">
@@ -334,23 +404,25 @@ export default function Landing() {
         </svg>
       </div>
 
-      {/* ── Services ───────────────────────────────────────────────── */}
+      {/* ── Car Wash Services (regular maintenance) ───────────────────
+          What customers buy often, to keep a car clean and presentable. */}
       <section id="services" className="py-20 px-4 bg-brand-navy">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <Badge className="bg-brand-orange/20 text-brand-orange border-brand-orange/30 mb-4">Our Services</Badge>
+            <Badge className="bg-brand-orange/20 text-brand-orange border-brand-orange/30 mb-4">Car Wash</Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Complete Vehicle Care Services
+              Regular Car Wash Services
             </h2>
             <p className="text-xl text-brand-blue-pale max-w-2xl mx-auto">
-              From a quick wash to full detailing - professional car care in Njiru, Nairobi.
+              The everyday essentials - quick, reliable services to keep your car clean and
+              presentable, visit after visit.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {services.map((feature, i) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {carWashServices.map((feature, i) => (
               <motion.div
-                key={i}
+                key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -365,9 +437,6 @@ export default function Landing() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-transparent to-transparent" />
-                  <span className="absolute top-3 left-3 bg-brand-orange text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
                 </div>
 
                 {/* Text */}
@@ -381,9 +450,80 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── Luxury & Care Services (protection, restoration) ──────────
+          Deliberately styled apart from Car Wash above - a different
+          section on a light background with premium-styled cards, since
+          the owner buys these less often and for a different reason
+          (protecting an investment or restoring an older car). */}
+      <section id="luxury" className="py-20 px-4 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <Badge className="bg-brand-orange text-white border-0 mb-4">✨ Luxury &amp; Care</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Luxury &amp; Care Services
+            </h2>
+            <p className="text-xl text-slate-500 max-w-2xl mx-auto">
+              Deep protection and premium care - for owners protecting their investment, or
+              bringing an older car back to life.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {luxuryServices.map((feature, i) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07 }}
+                className="group rounded-2xl overflow-hidden bg-white border-2 border-brand-orange/15 hover:border-brand-orange/50 shadow-sm hover:shadow-xl transition-all duration-300"
+              >
+                {/* Photo */}
+                <div className="relative h-44 overflow-hidden">
+                  <img
+                    src={feature.photo}
+                    alt={feature.alt}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                </div>
+
+                {/* Text */}
+                <div className="p-5">
+                  <h3 className="text-base font-semibold text-slate-900 mb-1.5">{feature.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{feature.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Consultation ───────────────────────────────────────────── */}
+      <section id="consultation" className="py-20 px-4 bg-brand-navy-dark">
+        <div className="max-w-4xl mx-auto text-center">
+          <Badge className="bg-brand-blue-light/20 text-brand-blue-light border-brand-blue-light/30 mb-4">
+            Not Sure Where to Start?
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Book a Free Consultation
+          </h2>
+          <p className="text-xl text-brand-blue-pale mb-8 max-w-2xl mx-auto">
+            Restoring an older car, or just want to know which care package fits your vehicle
+            best? Talk to our team first - we'll recommend the right services for your car and
+            your budget, no obligation.
+          </p>
+          <Button size="lg" variant="outline" className="border-brand-blue-light/50 text-brand-blue-light hover:bg-brand-blue-light/10 hover:text-white text-lg px-8 h-14" asChild>
+            <a href={WHATSAPP_CONSULTATION_URL} target="_blank" rel="noopener noreferrer">
+              Book a Consultation <ChevronRight className="ml-2 h-5 w-5" />
+            </a>
+          </Button>
+        </div>
+      </section>
+
       {/* Curved wave out of features */}
       <div className="relative h-16 overflow-hidden bg-white">
-        <svg viewBox="0 0 1440 64" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="absolute bottom-0 w-full h-full fill-brand-navy">
+        <svg viewBox="0 0 1440 64" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="absolute bottom-0 w-full h-full fill-brand-navy-dark">
           <path d="M0,0 L1440,0 L1440,30 C1080,64 360,0 0,30 Z" />
         </svg>
       </div>
@@ -532,6 +672,68 @@ export default function Landing() {
               Book a Wash <ChevronRight className="ml-2 h-5 w-5" />
             </a>
           </Button>
+        </div>
+      </section>
+
+      {/* ── Contact Us ─────────────────────────────────────────────── */}
+      <section id="contact" className="py-20 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="bg-brand-navy/10 text-brand-navy border-brand-navy/20 mb-4">Contact Us</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              We'd Love to Hear From You
+            </h2>
+            <p className="text-xl text-slate-500 max-w-2xl mx-auto">
+              Questions, feedback, or a special request? Reach us any way that's convenient.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-5 mb-12">
+            <a
+              href="tel:+254757234111"
+              className="flex flex-col items-center text-center gap-3 rounded-2xl border border-slate-200 hover:border-brand-orange hover:shadow-lg transition-all p-6"
+            >
+              <div className="h-12 w-12 rounded-full bg-brand-orange/10 flex items-center justify-center">
+                <Phone className="h-6 w-6 text-brand-orange" />
+              </div>
+              <p className="font-semibold text-slate-900">Call Us</p>
+              <p className="text-slate-500 text-sm">+254 757 234 111</p>
+            </a>
+            <a
+              href="https://wa.me/254757234111"
+              target="_blank" rel="noopener noreferrer"
+              className="flex flex-col items-center text-center gap-3 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-lg transition-all p-6"
+            >
+              <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                <MessageCircle className="h-6 w-6 text-emerald-600" />
+              </div>
+              <p className="font-semibold text-slate-900">WhatsApp</p>
+              <p className="text-slate-500 text-sm">Chat with our team</p>
+            </a>
+            <a
+              href="mailto:bgoshinehubltd@gmail.com"
+              className="flex flex-col items-center text-center gap-3 rounded-2xl border border-slate-200 hover:border-brand-blue-mid hover:shadow-lg transition-all p-6"
+            >
+              <div className="h-12 w-12 rounded-full bg-brand-blue-mid/10 flex items-center justify-center">
+                <Mail className="h-6 w-6 text-brand-blue-mid" />
+              </div>
+              <p className="font-semibold text-slate-900">Email</p>
+              <p className="text-slate-500 text-sm break-all">bgoshinehubltd@gmail.com</p>
+            </a>
+          </div>
+
+          {/* Branch addresses */}
+          <div className="grid sm:grid-cols-3 gap-5">
+            {PUBLIC_LOCATIONS.map((loc) => (
+              <div key={loc.id} className="rounded-xl bg-slate-50 p-5">
+                <p className="font-semibold text-slate-900 flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-brand-orange flex-shrink-0" />{loc.name}
+                </p>
+                {loc.city && <p className="text-sm text-slate-500 mt-1">{loc.city}</p>}
+                {loc.phone && <p className="text-sm text-slate-500">{loc.phone}</p>}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

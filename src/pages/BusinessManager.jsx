@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PlaceAutocomplete from "@/components/common/PlaceAutocomplete";
 import BranchPhotoEditor from "@/components/common/BranchPhotoEditor";
-import { createTeamUser, listBusinessUsers, resetTeamUserPassword } from "@/lib/userAdminClient";
+import { createTeamUser, listBusinessUsers, resetTeamUserPassword, deleteTeamUser } from "@/lib/userAdminClient";
 import {
   Building2,
   Phone,
@@ -33,6 +33,7 @@ import {
   CheckCircle,
   AlertCircle,
   Mail,
+  Trash2,
 } from "@/lib/icons";
 import { toast } from "sonner";
 
@@ -99,6 +100,7 @@ export default function BusinessManager() {
   const [resetPasswordFor, setResetPasswordFor] = useState(null); // { uid, label } | null
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [deletingLoginUid, setDeletingLoginUid] = useState(null);
 
   // The business being edited/managed here is whichever one the Sidebar's
   // branch switcher currently shows — not an independently-resolved "primary"
@@ -264,6 +266,20 @@ export default function BusinessManager() {
       toast.error(err?.message || "Failed to reset password");
     } finally {
       setResettingPassword(false);
+    }
+  };
+
+  const handleDeleteLogin = async (u, label) => {
+    if (!confirm(`Permanently delete the login for ${label}? They will no longer be able to sign in, and this can't be undone.`)) return;
+    setDeletingLoginUid(u.uid);
+    try {
+      await deleteTeamUser(u.uid);
+      toast.success(`Login deleted for ${label}`);
+      refetchLogins();
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete login");
+    } finally {
+      setDeletingLoginUid(null);
     }
   };
 
@@ -770,6 +786,14 @@ export default function BusinessManager() {
                           className="h-7 px-2 flex items-center justify-center rounded-lg text-xs text-slate-500 hover:text-brand-blue-mid hover:bg-brand-blue-mid/10 transition-colors"
                         >
                           Reset password
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLogin(u, u.full_name || label)}
+                          disabled={deletingLoginUid === u.uid}
+                          className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          title="Delete login"
+                        >
+                          {deletingLoginUid === u.uid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                     );

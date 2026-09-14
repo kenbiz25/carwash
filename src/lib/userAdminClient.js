@@ -91,6 +91,11 @@ export function resetTeamUserPassword(uid, password) {
   });
 }
 
+/** A manager/owner/super admin permanently deletes a login (e.g. an employee who has left). */
+export function deleteTeamUser(uid) {
+  return requestJson(`/api/users/${uid}`, { method: "DELETE" });
+}
+
 /** A super admin assigns branch + role to a pending account. */
 export function assignPendingUser(uid, { business_id, role }) {
   return requestJson(`/api/users/${uid}/assign`, {

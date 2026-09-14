@@ -27,9 +27,10 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/70",
         link: "text-primary underline-offset-4 hover:underline",
         // The site-wide "primary admin action" style — Save, Create, Add —
-        // previously pasted inline as bg-gradient-to-r from-emerald-500 to-cyan-500.
+        // was emerald-to-cyan (no relation to the brand palette at all); now
+        // the brand coral, matching every other primary CTA on the public site.
         gradient:
-          "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow hover:from-emerald-600 hover:to-cyan-600 active:from-emerald-700 active:to-cyan-700",
+          "bg-gradient-to-r from-brand-orange to-brand-orange-hot text-white shadow hover:opacity-90 active:opacity-80",
         // The site-wide auth/CTA style — Sign In, Create Account — previously
         // pasted inline as bg-gradient-to-r from-brand-blue-mid to-brand-blue-light.
         brand:

@@ -9,9 +9,10 @@ import { api } from "@/api/firebaseClient";
 import { WHATSAPP_BOOKING_URL } from "@/lib/constants";
 
 const SECTION_LINKS = [
+  { hash: "#about", label: "About" },
   { hash: "#services", label: "Services" },
-  { hash: "#map", label: "Locations" },
-  { hash: "#testimonials", label: "Reviews" },
+  { hash: "#consultation", label: "Consultation" },
+  { hash: "#contact", label: "Contact" },
 ];
 
 /**
@@ -66,14 +67,14 @@ export default function SiteNav({ basePath = "" }) {
             <Link to={createPageUrl("Landing")}>
               <Logo size="default" />
             </Link>
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden lg:flex items-center gap-6">
               {SECTION_LINKS.map(({ hash, label }) => (
-                <a key={hash} href={`${basePath}${hash}`} className="text-brand-blue-pale hover:text-white transition-colors text-sm font-medium">
+                <a key={hash} href={`${basePath}${hash}`} className="text-brand-blue-pale hover:text-white transition-colors text-sm font-medium whitespace-nowrap">
                   {label}
                 </a>
               ))}
             </div>
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               {isAuthenticated ? (
                 <Link to={createPageUrl("Dashboard")}>
                   <Button className="bg-brand-orange hover:bg-brand-orange-hot text-white">
@@ -91,14 +92,14 @@ export default function SiteNav({ basePath = "" }) {
                 </>
               )}
             </div>
-            <Button variant="ghost" size="icon" className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <Button variant="ghost" size="icon" className="lg:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X /> : <Menu />}
             </Button>
           </div>
         </div>
 
         {mobileMenuOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="md:hidden bg-brand-navy border-t border-white/10 p-4">
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="lg:hidden bg-brand-navy border-t border-white/10 p-4">
             <div className="flex flex-col gap-3">
               {SECTION_LINKS.map(({ hash, label }) => (
                 <a key={hash} href={`${basePath}${hash}`} className="py-2 text-brand-blue-pale" onClick={() => setMobileMenuOpen(false)}>
