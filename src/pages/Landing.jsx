@@ -356,44 +356,78 @@ export default function Landing() {
 
       {/* ── About Us ───────────────────────────────────────────────── */}
       <section id="about" className="py-20 px-4 bg-white">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-            <Badge className="bg-brand-navy/10 text-brand-navy border-brand-navy/20 mb-4">About Us</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-5">
-              Nairobi's Trusted Name in Vehicle Care
-            </h2>
-            <p className="text-lg text-slate-600 mb-4 leading-relaxed">
-              BGO Shine Hub exists to give every vehicle owner in Nairobi - whether you're keeping
-              a daily runabout presentable or restoring a car you're proud of - a car wash you can
-              trust with the details.
-            </p>
-            <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-              From quick everyday washes to premium protective care, our trained staff and
-              consistent process mean the same quality every time you visit, at any of our three
-              Nairobi branches.
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Trained, professional staff" },
-                { label: "Consistent quality, every visit" },
-                { label: "3 convenient Nairobi branches" },
-                { label: "Open 24/7 for your schedule" },
-              ].map(item => (
-                <div key={item.label} className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-brand-orange flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-700 text-sm font-medium">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="rounded-2xl overflow-hidden shadow-xl"
-          >
-            <img src="/img/bay.jpg" alt="BGO Shine Hub wash bay" className="w-full h-80 lg:h-full object-cover" />
-          </motion.div>
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+              <Badge className="bg-brand-navy/10 text-brand-navy border-brand-navy/20 mb-4">About Us</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+                Nairobi's Trusted Name in Vehicle Care
+              </h2>
+              <p className="text-xl italic text-brand-orange font-semibold mb-5">
+                "Perfection in every Finish"
+              </p>
+              <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+                BGO Shine Hub exists to give every vehicle owner in Nairobi - whether you're keeping
+                a daily runabout presentable or restoring a car you're proud of - a car wash you can
+                trust with the details.
+              </p>
+              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+                From quick everyday washes to premium protective care, our trained staff and
+                consistent process mean the same quality every time you visit, at any of our three
+                Nairobi branches.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Reliability & Professionalism" },
+                  { label: "Excellent Customer Care" },
+                  { label: "Integrity & Accountability" },
+                  { label: "Honesty & Trustworthiness" },
+                ].map(item => (
+                  <div key={item.label} className="flex items-start gap-2">
+                    <Check className="h-5 w-5 text-brand-orange flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-700 text-sm font-medium">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="rounded-2xl overflow-hidden shadow-xl"
+            >
+              <img src="/img/bay.jpg" alt="BGO Shine Hub wash bay" className="w-full h-80 lg:h-full object-cover" />
+            </motion.div>
+          </div>
+
+          {/* Vision & Mission */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-2xl bg-brand-navy p-8"
+            >
+              <Badge className="bg-brand-orange/20 text-brand-orange border-brand-orange/30 mb-4">Our Vision</Badge>
+              <p className="text-lg text-white leading-relaxed">
+                To set the benchmark for quality, reliability, and innovation in professional
+                cleaning services.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="rounded-2xl bg-slate-50 border border-slate-200 p-8"
+            >
+              <Badge className="bg-brand-navy/10 text-brand-navy border-brand-navy/20 mb-4">Our Mission</Badge>
+              <p className="text-lg text-slate-700 leading-relaxed">
+                To provide reliable, affordable, and professional cleaning solutions with
+                consistency, care, and respect for every customer.
+              </p>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -744,9 +778,10 @@ export default function Landing() {
 
             {/* Column 1 - Brand + contact + social */}
             <div>
-              <div className="border-b-2 border-brand-orange pb-2 mb-4 inline-block">
+              <div className="border-b-2 border-brand-orange pb-2 mb-2 inline-block">
                 <Logo size="default" />
               </div>
+              <p className="text-brand-orange text-sm italic font-medium mb-4">Perfection in every Finish</p>
               <ul className="space-y-2 text-slate-400 text-sm mb-4">
                 <li className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 text-brand-orange mt-0.5 flex-shrink-0" />
