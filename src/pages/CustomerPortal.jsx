@@ -151,7 +151,7 @@ export default function CustomerPortal() {
 
   if (!verified) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50">
+      <div className="min-h-screen bg-gradient-to-br from-brand-navy-50 via-white to-brand-blue-pale/20">
         <div className="max-w-md mx-auto px-4 py-12">
           <div className="text-center mb-8">
             <Logo size="lg" />
@@ -200,7 +200,7 @@ export default function CustomerPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-brand-navy-50 via-white to-brand-blue-pale/20">
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <div className="text-center mb-6">
@@ -208,7 +208,7 @@ export default function CustomerPortal() {
         </div>
 
         {/* Customer Card */}
-        <Card className="bg-gradient-to-br from-emerald-600 to-cyan-600 text-white mb-6 shadow-xl">
+        <Card className="bg-gradient-to-br from-brand-navy to-brand-navy-mid text-white mb-6 shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -373,7 +373,7 @@ export default function CustomerPortal() {
                 </div>
                 <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-brand-orange to-brand-orange-hot rounded-full"
                     style={{ width: `${Math.min((customer.points || 0) / 100, 100)}%` }}
                   />
                 </div>

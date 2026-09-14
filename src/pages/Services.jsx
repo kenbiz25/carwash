@@ -315,7 +315,7 @@ export default function Services() {
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900/30 dark:to-cyan-900/30 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-navy-50 to-brand-blue-pale/40 dark:from-brand-navy-mid/40 dark:to-brand-blue-mid/20 flex items-center justify-center">
                           <Icon className="h-5 w-5 text-emerald-600" />
                         </div>
                         <div>

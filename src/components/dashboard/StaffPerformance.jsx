@@ -54,7 +54,7 @@ export default function StaffPerformance({ staff = [], washes = [] }) {
                 <div className="relative">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={member.photo_url} />
-                    <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white">
                       {member.name?.charAt(0) || "S"}
                     </AvatarFallback>
                   </Avatar>

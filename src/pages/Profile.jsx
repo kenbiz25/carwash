@@ -268,7 +268,7 @@ export default function Profile() {
             <div className="relative mb-4">
               <Avatar className="h-24 w-24">
                 <AvatarImage src={formData.profile_photo_url} />
-                <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white text-2xl">
+                <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white text-2xl">
                   {user?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>

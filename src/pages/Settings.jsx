@@ -733,7 +733,7 @@ export default function Settings() {
                           className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors"
                         >
                           {/* Avatar initial */}
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-navy to-brand-blue-mid flex items-center justify-center flex-shrink-0">
                             <span className="text-xs font-bold text-white">
                               {member.email[0].toUpperCase()}
                             </span>

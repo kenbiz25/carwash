@@ -148,7 +148,7 @@ export default function StaffSchedule({ businessId, staff = [], schedules = [], 
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={staffMember.photo_url} />
-                        <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white text-xs">
+                        <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white text-xs">
                           {staffMember.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>

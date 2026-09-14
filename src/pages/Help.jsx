@@ -11,7 +11,7 @@ import {
   CreditCard,
   HelpCircle,
   KeyRound,
-  MessageCircle,
+  WhatsappLogo,
   Mail,
   Phone,
   ArrowLeft,
@@ -209,8 +209,8 @@ export default function Help() {
               onClick={() => setSelectedCategory(category)}
             >
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900/30 dark:to-cyan-900/30 flex items-center justify-center">
-                  <category.icon className="h-6 w-6 text-emerald-600" />
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-brand-navy-50 to-brand-blue-pale/40 dark:from-brand-navy-mid/40 dark:to-brand-blue-mid/20 flex items-center justify-center">
+                  <category.icon className="h-6 w-6 text-brand-blue-mid dark:text-brand-blue-light" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-slate-900 dark:text-white">
@@ -240,8 +240,8 @@ export default function Help() {
           </Button>
 
           <div className="flex items-center gap-4 mb-6">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-100 to-cyan-100 flex items-center justify-center">
-              <selectedCategory.icon className="h-6 w-6 text-emerald-600" />
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-brand-navy-50 to-brand-blue-pale/40 flex items-center justify-center">
+              <selectedCategory.icon className="h-6 w-6 text-brand-blue-mid dark:text-brand-blue-light" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
               {selectedCategory.title}
@@ -266,27 +266,27 @@ export default function Help() {
       )}
 
       {/* Contact Section */}
-      <Card className="p-8 bg-gradient-to-r from-emerald-500 to-cyan-500 border-0 text-white">
+      <Card className="p-8 bg-gradient-to-r from-brand-orange to-brand-orange-hot border-0 text-white">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Still need help?</h2>
-          <p className="text-emerald-100 mb-6">
+          <p className="text-orange-100 mb-6">
             Reach the owner/admin team directly
           </p>
           <div className="flex flex-col md:flex-row justify-center gap-4">
             <a href="https://wa.me/254757234111" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary" className="bg-white text-emerald-600 hover:bg-emerald-50 w-full">
-                <MessageCircle className="h-4 w-4 mr-2" />
+              <Button variant="secondary" className="bg-white text-brand-orange hover:bg-brand-orange-50 w-full">
+                <WhatsappLogo weight="fill" className="h-4 w-4 mr-2" />
                 WhatsApp: 0757 234 111
               </Button>
             </a>
             <a href="mailto:bgoshinehubltd@gmail.com">
-              <Button variant="secondary" className="bg-white text-emerald-600 hover:bg-emerald-50 w-full">
+              <Button variant="secondary" className="bg-white text-brand-orange hover:bg-brand-orange-50 w-full">
                 <Mail className="h-4 w-4 mr-2" />
                 bgoshinehubltd@gmail.com
               </Button>
             </a>
             <a href="tel:+254757234111">
-              <Button variant="secondary" className="bg-white text-emerald-600 hover:bg-emerald-50 w-full">
+              <Button variant="secondary" className="bg-white text-brand-orange hover:bg-brand-orange-50 w-full">
                 <Phone className="h-4 w-4 mr-2" />
                 Call +254 757 234 111
               </Button>

@@ -125,7 +125,7 @@ export default function JobOrders() {
               activeTab === tab.key
                 ? tab.key === "overdue"
                   ? "bg-red-500 text-white border-red-500 shadow-md"
-                  : "bg-gradient-to-br from-emerald-500 to-cyan-500 text-white border-transparent shadow-md"
+                  : "bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white border-transparent shadow-md"
                 : tab.key === "overdue" && counts.overdue > 0
                   ? "border-red-200 bg-red-50 text-red-600"
                   : "border-slate-200 bg-white dark:bg-slate-800 text-slate-600 hover:border-slate-300"

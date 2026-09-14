@@ -54,7 +54,7 @@ export default function LiveCCTVPreview({ feeds = [] }) {
 
     // Placeholder for RTSP (would need server-side transcoding)
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-brand-navy-dark to-brand-navy">
         <Camera className="h-8 w-8 text-emerald-500 mb-2 animate-pulse" />
         <span className="text-xs text-slate-300">{feed.name}</span>
         <span className="text-xs text-slate-500">Live Feed</span>

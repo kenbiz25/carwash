@@ -114,8 +114,8 @@ export default function CCTV() {
 
     // Placeholder for RTSP/HLS
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-        <Camera className="h-16 w-16 text-emerald-500 mb-4 animate-pulse" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-brand-navy-dark to-brand-navy">
+        <Camera className="h-16 w-16 text-brand-blue-light mb-4 animate-pulse" />
         <span className="text-white font-medium text-lg">{feed.name}</span>
         <span className="text-slate-400 text-sm mt-1">{feed.location || "Live Feed"}</span>
         <span className="text-emerald-400 text-xs mt-2 flex items-center gap-1">
@@ -344,7 +344,7 @@ export default function CCTV() {
 
       {/* Setup Guide */}
       {activeFeeds.length > 0 && activeFeeds.length < 4 && (
-        <Card className="p-6 bg-gradient-to-r from-slate-50 to-emerald-50 dark:from-slate-800 dark:to-emerald-900/20 border-0">
+        <Card className="p-6 bg-gradient-to-r from-slate-50 to-brand-blue-pale/30 dark:from-slate-800 dark:to-brand-blue-mid/10 border-0">
           <h3 className="font-semibold text-slate-900 dark:text-white mb-2">📹 Camera Setup Tips</h3>
           <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
             <li>• For Hikvision/Dahua cameras, use the RTSP URL from your camera's settings</li>

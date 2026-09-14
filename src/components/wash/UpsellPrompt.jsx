@@ -71,11 +71,11 @@ export default function UpsellPrompt({ selectedServices = [], allServices = [], 
   };
 
   return (
-    <Card className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800">
+    <Card className="p-4 bg-gradient-to-r from-brand-orange-50 to-brand-orange-100/60 dark:from-brand-orange/10 dark:to-brand-orange/5 border-brand-orange/20 dark:border-brand-orange/20">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-amber-600" />
-          <span className="font-semibold text-amber-800 dark:text-amber-200">Recommended Add-Ons</span>
+          <Sparkles className="h-5 w-5 text-brand-orange" />
+          <span className="font-semibold text-brand-orange-hot dark:text-brand-orange">Recommended Add-Ons</span>
         </div>
         {onDismiss && (
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onDismiss}>

@@ -236,7 +236,7 @@ export default function Staff() {
                   <div className="flex items-start gap-4">
                     <Avatar className="h-14 w-14">
                       <AvatarImage src={member.photo_url} />
-                      <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white text-lg">
+                      <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white text-lg">
                         {member.name?.charAt(0) || "S"}
                       </AvatarFallback>
                     </Avatar>

@@ -212,7 +212,7 @@ export default function TopBar({
             <Button variant="ghost" className="gap-2 px-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.profile_photo_url} />
-                <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-cyan-500 text-white">
+                <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white">
                   {user?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>

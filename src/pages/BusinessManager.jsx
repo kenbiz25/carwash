@@ -57,8 +57,8 @@ function normalizeMembersFromBusiness(biz) {
 function StatCard({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900/30 dark:to-cyan-900/30 flex items-center justify-center flex-shrink-0">
-        <Icon className="h-5 w-5 text-emerald-600" />
+      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-navy-50 to-brand-blue-pale/40 dark:from-brand-navy-mid/40 dark:to-brand-blue-mid/20 flex items-center justify-center flex-shrink-0">
+        <Icon className="h-5 w-5 text-brand-blue-mid dark:text-brand-blue-light" />
       </div>
       <div>
         <p className="text-xs text-slate-500">{label}</p>
@@ -632,7 +632,7 @@ export default function BusinessManager() {
                     const isCurrentUser = member.email === user?.email;
                     return (
                       <div key={member.email} className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800">
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white">
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-brand-navy to-brand-blue-mid flex items-center justify-center flex-shrink-0 text-xs font-bold text-white">
                           {member.email[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">

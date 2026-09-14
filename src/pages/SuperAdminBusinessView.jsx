@@ -148,7 +148,7 @@ export default function SuperAdminBusinessView() {
             <ArrowLeft className="h-4 w-4" /> All Businesses
           </Button>
         </Link>
-        <Badge className="bg-purple-100 text-purple-700 border-0 text-sm px-3 py-1">
+        <Badge className="bg-brand-navy text-white border-0 text-sm px-3 py-1">
           Super Admin View
         </Badge>
       </div>
@@ -157,7 +157,7 @@ export default function SuperAdminBusinessView() {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-emerald-600" />
+            <Building2 className="h-5 w-5 text-brand-blue-mid" />
             {loadingBiz ? "Loading…" : business?.name || "Business Details"}
           </CardTitle>
         </CardHeader>
@@ -240,7 +240,7 @@ export default function SuperAdminBusinessView() {
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Car className="h-4 w-4 text-emerald-600" />
+            <Car className="h-4 w-4 text-brand-orange" />
             Recent Washes
           </CardTitle>
         </CardHeader>
@@ -306,7 +306,7 @@ export default function SuperAdminBusinessView() {
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
               {business.members.map((m) => (
                 <div key={m.email} className="flex items-center gap-3 px-4 py-3">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-navy to-brand-blue-mid flex items-center justify-center flex-shrink-0">
                     <span className="text-xs font-bold text-white">
                       {m.email?.[0]?.toUpperCase()}
                     </span>

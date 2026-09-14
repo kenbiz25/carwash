@@ -252,7 +252,7 @@ export default function Memberships() {
             <div className="grid md:grid-cols-3 gap-4">
               {memberships.map((plan) => (
                 <Card key={plan.id} className="bg-white dark:bg-slate-800 border-0 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-cyan-500" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-orange to-brand-orange-hot" />
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>

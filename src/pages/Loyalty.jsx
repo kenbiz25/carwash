@@ -216,7 +216,7 @@ export default function Loyalty() {
               >
                 <div className="flex items-start gap-4">
                   <Avatar className="h-14 w-14">
-                    <AvatarFallback className="bg-gradient-to-br from-pink-500 to-purple-500 text-white text-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-brand-navy to-brand-blue-mid text-white text-lg">
                       {customer.name?.charAt(0) || customer.phone?.slice(-2)}
                     </AvatarFallback>
                   </Avatar>

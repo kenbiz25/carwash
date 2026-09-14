@@ -391,7 +391,7 @@ export default function DriveInWizard({ order, services, staff, onSave, onClose 
                 <Button type="button" variant="outline" disabled={saving} onClick={handleSaveDraft}>
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Save Progress
                 </Button>
-                <Button type="button" onClick={goNext} className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+                <Button type="button" onClick={goNext} className="bg-gradient-to-r from-brand-blue-mid to-brand-blue-bright text-white">
                   Mark Ready <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
