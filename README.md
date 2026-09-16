@@ -29,18 +29,19 @@ freshening - **open 24 hours a day, 7 days a week**. Production domain:
 One frontend, one shared database, four small standalone backends - each
 its own folder with its own `package.json`, `.env`, and `README.md`:
 
-| Backend             | What it's for                                                | Gitignored |
-| -------------------- | ------------------------------------------------------------ | :--------: |
-| `app-data-server/`   | Every business record - the real MySQL database              | ✅ |
-| `user-admin-server/` | Creating staff logins, resetting passwords, assigning roles   | ✅ |
-| `mpesa-server/`      | M-Pesa STK Push payments                                      | ✅ |
-| `whatsapp-server/`   | Customer WhatsApp notifications                               | ✅ |
+| Backend              | What it's for                                               |
+| -------------------- | ----------------------------------------------------------- |
+| `app-data-server/`   | Every business record - the real MySQL database             |
+| `user-admin-server/` | Creating staff logins, resetting passwords, assigning roles |
+| `mpesa-server/`      | M-Pesa STK Push payments                                    |
+| `whatsapp-server/`   | Customer WhatsApp notifications                             |
 
-They're gitignored because each ends up holding a real secret once
-configured (a database password, a Firebase service account key, payment
-provider credentials, or a Meta access token) that must never reach the
-browser or a public repo. The frontend talks to all four over plain HTTP,
-each pointed at by its own `VITE_*_API_URL` in `.env`.
+Their source is tracked in this repo, but each one's `.env` is gitignored,
+since that's where its real secret ends up once configured (a database
+password, a Firebase service account key, payment provider credentials, or a
+Meta access token) - those must never reach the browser or a public repo. The
+frontend talks to all four over plain HTTP, each pointed at by its own
+`VITE_*_API_URL` in `.env`.
 
 ## Getting started
 

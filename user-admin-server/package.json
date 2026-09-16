@@ -1,0 +1,18 @@
+{
+  "name": "bgo-user-admin-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone backend for BGO Shine Hub that lets owners/managers/super admins create staff logins (username + password), reset passwords, and assign branch/role to a Google sign-in - using the Firebase Admin SDK, which the browser can never hold safely.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.6.0"
+  }
+}

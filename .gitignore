@@ -2,20 +2,17 @@
 .env
 .env.*
 
-# Claude Code local session/config state — not meant to be shared
+# Firebase service account keys downloaded as JSON (real credentials) -
+# should live in a server's .env instead, but excluded here too in case one
+# ends up dropped straight into a backend folder
+*firebase-adminsdk*.json
+
+# Demo/QA seed dataset for app-data-server - not needed to run the app for
+# real, and shouldn't ship in the repo
+app-data-server/seed-data.json
+
+# Claude Code local session/config state - not meant to be shared
 .claude/
-
-# Standalone M-Pesa backend — kept out of this repo (has its own .env with
-# real payment-provider secrets once configured; see its own README locally)
-mpesa-server/
-
-# Standalone user-admin backend — holds a Firebase service account key once
-# configured (see its own README locally); same reasoning as mpesa-server/
-user-admin-server/
-
-# Standalone app-data backend — holds real MySQL database credentials once
-# configured (see its own README locally); same reasoning as mpesa-server/
-app-data-server/
 
 # Logs
 logs
