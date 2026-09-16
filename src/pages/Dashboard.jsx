@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [revenueView, setRevenueView] = useState("week");
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Single source of truth for "which business" — the same one the Sidebar's
+  // Single source of truth for "which business" - the same one the Sidebar's
   // branch switcher reads and writes. Dashboard used to keep its own separate
   // selectedBusinessId (persisted to localStorage) via a different business
   // list (useUserBusinesses), which could silently drift from what the

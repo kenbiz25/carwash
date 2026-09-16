@@ -66,7 +66,7 @@ export default function CustomerPortal() {
     // Clean phone number
     const cleanPhone = phoneNumber.replace(/\s/g, "").replace(/^0/, "+254");
 
-    // Find customer by phone — a phone can have a separate LoyaltyCustomer record
+    // Find customer by phone - a phone can have a separate LoyaltyCustomer record
     // at each branch it's visited, so this isn't guaranteed to be one row. Pick
     // the most recently active one (rather than array order, which is arbitrary
     // IndexedDB storage order and would otherwise route requests to a random

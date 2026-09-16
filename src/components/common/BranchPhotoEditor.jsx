@@ -3,7 +3,7 @@ import { api } from "@/api/firebaseClient";
 import { Camera, X, Loader2 } from "@/lib/icons";
 
 // Works on a flat array of image URLs (matches business.photos' existing
-// shape — the branch page just does photos.map(src => <img src={src} />)),
+// shape - the branch page just does photos.map(src => <img src={src} />)),
 // unlike PhotoUploadGrid's { url, label } objects used for job-order photos.
 export default function BranchPhotoEditor({ photos = [], onChange, max = 8 }) {
   const [uploading, setUploading] = useState(false);

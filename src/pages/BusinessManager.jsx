@@ -93,7 +93,7 @@ export default function BusinessManager() {
   const [newManagerEmail, setNewManagerEmail] = useState("");
 
   // Direct staff logins (username + password, created here rather than via
-  // an email invite link) — backed by user-admin-server / Firebase custom
+  // an email invite link) - backed by user-admin-server / Firebase custom
   // claims, so they work the moment that person signs in on any device.
   const [newLogin, setNewLogin] = useState({ full_name: "", loginMethod: "username", identifier: "", password: "", role: "staff" });
   const [creatingLogin, setCreatingLogin] = useState(false);
@@ -103,7 +103,7 @@ export default function BusinessManager() {
   const [deletingLoginUid, setDeletingLoginUid] = useState(null);
 
   // The business being edited/managed here is whichever one the Sidebar's
-  // branch switcher currently shows — not an independently-resolved "primary"
+  // branch switcher currently shows - not an independently-resolved "primary"
   // business. Using a different resolution here (this used to fall back to
   // user.business_id, or an arbitrary created_by match) meant an owner could
   // send a team invite while looking at "Kayole" in the switcher and have it
@@ -211,7 +211,7 @@ export default function BusinessManager() {
         email_sent: false,
       });
       const inviteUrl = `${window.location.origin}/JoinBusiness?token=${token}`;
-      // No email backend while running locally — copy the invite link so it can be shared manually.
+      // No email backend while running locally - copy the invite link so it can be shared manually.
       await navigator.clipboard?.writeText(inviteUrl).catch(() => {});
       toast.success(`Invite link for ${memberEmail} copied to clipboard`, {
         description: inviteUrl,

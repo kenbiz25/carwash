@@ -22,7 +22,7 @@ const DRIVE_IN_SERVICES = [
   { name: "Headlight Restoration", price_key: "price_kes" },
 ];
 
-// Picks the catalogue price for the selected vehicle type — mirrors EnhancedCheckIn.jsx
+// Picks the catalogue price for the selected vehicle type - mirrors EnhancedCheckIn.jsx
 // so drive-in and quick check-in always charge the same, owner-configured price.
 // Only a vehicle-tiered service actually means "SUV/Van price" by price_suv/
 // price_van - for per-unit or variant pricing those fields mean something

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 // Every variant defines hover AND active (pressed) states explicitly, plus a
 // shared active:scale-[0.98] so clicking any button gives the same tactile
-// feedback everywhere — before this, active/pressed states existed on none
+// feedback everywhere - before this, active/pressed states existed on none
 // of the base variants, and the two gradient styles used site-wide
 // ("gradient" for primary admin actions, "brand" for auth/CTA pages) were
 // copy-pasted as raw className strings in ~35 places with inconsistent
@@ -26,12 +26,11 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:bg-secondary/70",
         ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/70",
         link: "text-primary underline-offset-4 hover:underline",
-        // The site-wide "primary admin action" style — Save, Create, Add —
-        // was emerald-to-cyan (no relation to the brand palette at all); now
+        // The site-wide "primary admin action" style - Save, Create, Add -         // was emerald-to-cyan (no relation to the brand palette at all); now
         // the brand coral, matching every other primary CTA on the public site.
         gradient:
           "bg-gradient-to-r from-brand-orange to-brand-orange-hot text-white shadow hover:opacity-90 active:opacity-80",
-        // The site-wide auth/CTA style — Sign In, Create Account — previously
+        // The site-wide auth/CTA style - Sign In, Create Account - previously
         // pasted inline as bg-gradient-to-r from-brand-blue-mid to-brand-blue-light.
         brand:
           "bg-gradient-to-r from-brand-blue-mid to-brand-blue-light text-white shadow hover:from-brand-blue-bright hover:to-brand-blue-light active:from-brand-blue-mid active:to-brand-blue-mid",

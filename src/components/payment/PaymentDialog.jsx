@@ -67,7 +67,7 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
     setMpesaStatus("pending");
 
     try {
-      // Real request to mpesa-server (see mpesa-server/README.md) — it calls
+      // Real request to mpesa-server (see mpesa-server/README.md) - it calls
       // Safaricom (or, in mock mode, simulates the same shape of response)
       // and gives us back an id to poll while the customer completes the
       // prompt on their phone.
@@ -90,7 +90,7 @@ export default function PaymentDialog({ wash, open, onOpenChange, businessId, on
 
       setMpesaStatus("success");
 
-      // Create payment record — amount/receipt come from the confirmed
+      // Create payment record - amount/receipt come from the confirmed
       // transaction (Safaricom's callback in real mode), not from what we
       // asked for, so this reflects what the customer actually paid.
       const payment = await api.entities.Payment.create({

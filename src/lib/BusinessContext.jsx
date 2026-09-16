@@ -22,7 +22,7 @@ export function BusinessProvider({ children }) {
   const { user: authUser, isAuthenticated } = useAuth();
   const [selectedBusinessId, setSelectedBusinessIdRaw] = useState(null);
 
-  // Persist every selection — otherwise a hard refresh silently drops back to
+  // Persist every selection - otherwise a hard refresh silently drops back to
   // the default (oldest) branch with no warning, which for an owner mid-task
   // on a different branch means their next entry could land on the wrong one.
   const setSelectedBusinessId = (id) => {
@@ -39,7 +39,7 @@ export function BusinessProvider({ children }) {
   });
 
   // Fetch all businesses this user owns OR is a member of OR is explicitly
-  // assigned to via a legacy user.business_id/business_ids field — this last
+  // assigned to via a legacy user.business_id/business_ids field - this last
   // fallback exists because some invite-acceptance paths only set that field
   // without also updating the business's member_emails, and a user in that
   // state must still see their business here (this is the single resolver
@@ -71,7 +71,7 @@ export function BusinessProvider({ children }) {
         }
       }
 
-      // Oldest branch first — IndexedDB key order isn't insertion order, and the
+      // Oldest branch first - IndexedDB key order isn't insertion order, and the
       // longest-running branch is the sensible default when nothing is selected yet.
       merged.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
       return merged;

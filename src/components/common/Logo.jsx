@@ -15,10 +15,9 @@ const padding = {
 };
 
 export default function Logo({ size = "default", showText = true }) {
-  // showText prop kept for backwards-compat but ignored — text is part of the image
+  // showText prop kept for backwards-compat but ignored - text is part of the image
   // White backing plate: the logo's linework is navy-on-transparent, and every
-  // place this component is used (nav, sidebar, footer) has a navy background —
-  // without it, only the red accent would be visible.
+  // place this component is used (nav, sidebar, footer) has a navy background -   // without it, only the red accent would be visible.
   return (
     <span className={`inline-flex items-center bg-white rounded-lg shadow-sm ${padding[size]}`}>
       <img

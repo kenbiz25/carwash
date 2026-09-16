@@ -4,7 +4,7 @@ import { MapPin, Loader2 } from "@/lib/icons";
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-// Singleton loader — script is only injected once
+// Singleton loader - script is only injected once
 let mapsReady = false;
 let mapsLoading = false;
 const pendingCallbacks = [];
@@ -32,7 +32,7 @@ function loadMapsScript(cb) {
  *
  * `onChange(address)` fires on every keystroke, same as before. The optional
  * `onPlaceSelect({ address, lat, lng })` fires only when the user actually
- * picks a suggestion — typing alone can't give you coordinates, only a
+ * picks a suggestion - typing alone can't give you coordinates, only a
  * confirmed place from Google can.
  */
 export default function PlaceAutocomplete({ value, onChange, onPlaceSelect, placeholder, className }) {
@@ -44,7 +44,7 @@ export default function PlaceAutocomplete({ value, onChange, onPlaceSelect, plac
   const onPlaceSelectRef = useRef(onPlaceSelect);
   const [ready, setReady] = useState(mapsReady);
 
-  // Sync the refs every render — no stale closures
+  // Sync the refs every render - no stale closures
   useEffect(() => { onChangeRef.current = onChange; });
   useEffect(() => { onPlaceSelectRef.current = onPlaceSelect; });
 

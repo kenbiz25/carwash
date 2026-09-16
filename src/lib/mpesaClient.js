@@ -1,5 +1,5 @@
 // Talks to the standalone mpesa-server backend (see mpesa-server/README.md).
-// That server is what actually calls Safaricom — the browser never sees the
+// That server is what actually calls Safaricom - the browser never sees the
 // consumer key/secret or passkey.
 
 const BASE_URL = import.meta.env.VITE_MPESA_API_URL || "http://localhost:4021";

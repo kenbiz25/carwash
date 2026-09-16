@@ -5,7 +5,7 @@ import { updateMessageStatus } from "../messageStore.js";
 const router = Router();
 
 // Meta's one-time verification handshake when you set the webhook URL in
-// the App Dashboard — must echo back hub.challenge if the verify token matches.
+// the App Dashboard - must echo back hub.challenge if the verify token matches.
 router.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -36,7 +36,7 @@ router.post("/webhook", (req, res) => {
         }
 
         for (const msg of value.messages || []) {
-          // Incoming customer message — no reply flow built yet, just logged
+          // Incoming customer message - no reply flow built yet, just logged
           // so nothing silently disappears once a customer starts replying.
           console.log(`[whatsapp-server] incoming message from ${msg.from}: ${msg.text?.body || `[${msg.type}]`}`);
         }

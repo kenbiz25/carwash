@@ -121,7 +121,7 @@ export default function TopBar({
   setDarkMode,
 }) {
   const firstName = (user?.full_name || user?.email || "User").trim().split(/\s+/)[0];
-  // Only owners run multiple locations — managers/staff/cashiers are scoped to one carwash.
+  // Only owners run multiple locations - managers/staff/cashiers are scoped to one carwash.
   const showBizSwitcher = role === "owner" && businesses.length > 1;
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-6">

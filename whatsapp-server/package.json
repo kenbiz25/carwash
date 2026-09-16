@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Standalone WhatsApp (Meta Cloud API) notification backend for BGO Shine Hub — keeps the access token off the browser, and gives Meta a webhook to call.",
+  "description": "Standalone WhatsApp (Meta Cloud API) notification backend for BGO Shine Hub - keeps the access token off the browser, and gives Meta a webhook to call.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       // React Query's ['currentUser']/['userBusinesses']/etc. caches are keyed
-      // by query name, not by uid — signing in as a different account without
+      // by query name, not by uid - signing in as a different account without
       // a full page reload (Login.jsx navigates client-side) would otherwise
       // keep serving the previous account's cached name, role and businesses
       // until something happened to touch those exact query keys. Wipe the

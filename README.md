@@ -1,24 +1,24 @@
 # BGO Shine Hub
 
-A React + Vite web app for managing BGO Shine Hub's car wash operations —
-job orders, staff, inventory, services, memberships, loyalty, payments, and
-reporting — plus a public site and customer portal for booking and checking
+A React + Vite web app for managing BGO Shine Hub's car wash operations - job
+orders, staff, inventory, services, memberships, loyalty, payments, and
+reporting - plus a public site and customer portal for booking and checking
 wash history.
 
 **Business**: BGO Shine Hub, Njiru, Nairobi (plus Kayole and Utawala
 branches). Professional car wash, interior cleaning, engine greasing and air
-freshening — **open 24 hours a day, 7 days a week**. Production domain:
+freshening - **open 24 hours a day, 7 days a week**. Production domain:
 **bgoshinehub.co.ke**.
 
 ## Tech stack
 
 - React 18 + Vite 6, Tailwind CSS + Radix UI, React Router, React Query
 - Leaflet / React-Leaflet for the branch-locations map
-- Firebase Auth for sign-in — email/password, Google, and admin-issued
+- Firebase Auth for sign-in - email/password, Google, and admin-issued
   username/phone logins (see "Staff logins & sign-in methods" below)
 - A real MySQL database for every business record (businesses, washes,
   payments, staff, services, inventory, and the rest), reached through a
-  small backend, `app-data-server/` — not Firestore, not browser storage.
+  small backend, `app-data-server/` - not Firestore, not browser storage.
   `src/lib/localDb.js` is the frontend client for it; the name and interface
   are kept from an earlier browser-only IndexedDB version on purpose, so
   every page that already used it needed zero changes when the storage
@@ -26,12 +26,12 @@ freshening — **open 24 hours a day, 7 days a week**. Production domain:
 
 ## Architecture at a glance
 
-One frontend, one shared database, four small standalone backends — each
+One frontend, one shared database, four small standalone backends - each
 its own folder with its own `package.json`, `.env`, and `README.md`:
 
 | Backend             | What it's for                                                | Gitignored |
 | -------------------- | ------------------------------------------------------------ | :--------: |
-| `app-data-server/`   | Every business record — the real MySQL database              | ✅ |
+| `app-data-server/`   | Every business record - the real MySQL database              | ✅ |
 | `user-admin-server/` | Creating staff logins, resetting passwords, assigning roles   | ✅ |
 | `mpesa-server/`      | M-Pesa STK Push payments                                      | ✅ |
 | `whatsapp-server/`   | Customer WhatsApp notifications                               | ✅ |
@@ -52,7 +52,7 @@ npm run dev
 The dev server runs at the URL Vite prints (default `http://localhost:5173`,
 often reassigned to another port if that one's busy). On its own this shows
 the UI, but **no data will load** until `app-data-server` is also running
-against a real database — there's no more browser-storage fallback:
+against a real database - there's no more browser-storage fallback:
 
 ```bash
 cd app-data-server && npm install && cp env.example .env
@@ -94,7 +94,7 @@ password.
 
 These only resolve to their role once the matching Firebase custom claim is
 set (see `scripts/create-super-admin.mjs` and "Staff logins & sign-in
-methods" below) — a fresh, unseeded database on its own doesn't grant any
+methods" below) - a fresh, unseeded database on its own doesn't grant any
 role to any account.
 
 To add a new staff login, use **My Business → Team → Staff Logins** as an
@@ -113,20 +113,20 @@ node scripts/create-super-admin.mjs
 
 Creates the Firebase Auth account if it doesn't already exist (or signs
 into it, if it does) and grants it the platform-wide `admin` role via a
-Firebase custom claim — no business/branch, since a super admin isn't
+Firebase custom claim - no business/branch, since a super admin isn't
 scoped to one. Sign out and back in for the role to take effect.
 
 ## Scripts
 
-- `npm run dev` — start the Vite dev server
-- `npm run build` — production build to `dist/`
-- `npm run preview` — preview the production build locally
-- `npm run lint` / `npm run lint:fix` — ESLint
-- `npm run typecheck` — type-check with `tsc` against `jsconfig.json`
-- `node scripts/create-super-admin.mjs` — see above
+- `npm run dev` - start the Vite dev server
+- `npm run build` - production build to `dist/`
+- `npm run preview` - preview the production build locally
+- `npm run lint` / `npm run lint:fix` - ESLint
+- `npm run typecheck` - type-check with `tsc` against `jsconfig.json`
+- `node scripts/create-super-admin.mjs` - see above
 
 `scripts/` also has other one-off Node tools used to seed/export demo data
-during development — not part of the running app.
+during development - not part of the running app.
 
 ## Project structure
 
@@ -134,15 +134,15 @@ during development — not part of the running app.
 src/
   pages/       route-level views (Dashboard, JobOrders, Staff, Inventory, ...)
   components/  shared UI components
-  api/         data access layer (firebaseClient.js — same interface, backed by localDb)
+  api/         data access layer (firebaseClient.js - same interface, backed by localDb)
   hooks/       shared React hooks
   lib/         localDb (app-data-server client), Firebase Auth, utilities
-public/img/    logo assets — main.png (full logo) and meta.png (icon mark, used for
+public/img/    logo assets - main.png (full logo) and meta.png (icon mark, used for
                favicon and social/meta previews)
-app-data-server/    MySQL-backed data API — see its own README
-user-admin-server/  staff logins, password resets, role assignment — see its own README
-mpesa-server/       M-Pesa STK Push — see its own README
-whatsapp-server/    WhatsApp notifications — see its own README
+app-data-server/    MySQL-backed data API - see its own README
+user-admin-server/  staff logins, password resets, role assignment - see its own README
+mpesa-server/       M-Pesa STK Push - see its own README
+whatsapp-server/    WhatsApp notifications - see its own README
 ```
 
 ## Roles
@@ -150,7 +150,7 @@ whatsapp-server/    WhatsApp notifications — see its own README
 Five roles: `superadmin` (platform-wide, not tied to any one business) and,
 per business, `owner`, `manager`, `cashier`, `staff` (resolved from that
 business's `members[]` array, or from a Firebase custom claim for accounts
-created via Staff Logins — see below). An owner can belong to several
+created via Staff Logins - see below). An owner can belong to several
 businesses/branches at once and switches between them with the branch
 picker in the sidebar or top bar; every other role belongs to exactly one
 branch.
@@ -158,13 +158,13 @@ branch.
 ### What each role can do
 
 Enforcement today is at the navigation level (a role that can't see a link
-in the sidebar has no in-app way to reach that page) — see "Multi-branch &
+in the sidebar has no in-app way to reach that page) - see "Multi-branch &
 data isolation" below for how records themselves stay scoped to one branch
 regardless of who's looking.
 
 | Area                         | Superadmin | Owner | Manager | Cashier | Staff |
 | ---------------------------- | :--------: | :---: | :-----: | :-----: | :---: |
-| Dashboard (own branch)       |     —¹     |  ✅   |   ✅    |   ✅    |  ✅   |
+| Dashboard (own branch)       |     -¹     |  ✅   |   ✅    |   ✅    |  ✅   |
 | Super Admin dashboard (all businesses, platform revenue/MRR) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Create a new branch          |     ✅     |  ✅   |   ❌    |   ❌    |  ❌   |
 | Edit branch info / manage team, invites | ❌ |  ✅   |   ✅    |   ❌    |  ❌   |
@@ -182,7 +182,7 @@ regardless of who's looking.
 | Subscriptions / membership plans | ❌      |  ✅   |   ❌    |   ❌    |  ❌   |
 | Settings & Users              |     ❌     |  ✅   |   ❌    |   ❌    |  ❌   |
 
-¹ Superadmin lands on the Super Admin dashboard, not a branch dashboard — a
+¹ Superadmin lands on the Super Admin dashboard, not a branch dashboard - a
 superadmin has no branch membership of their own to show one for.
 
 Staff get a restricted dashboard focused on their own assigned jobs and
@@ -190,7 +190,7 @@ today's washes rather than branch-wide figures; cashiers get a
 collections-focused view. Everyone gets the public pages regardless of
 role: the marketing homepage, each branch's own page (see below), and the
 customer portal. **Help & Support** (`/Help`) is the one exception that
-flipped the other way — it used to be public and is now staff-only, behind
+flipped the other way - it used to be public and is now staff-only, behind
 login, since its content is written for staff, not customers.
 
 ## Staff logins & sign-in methods
@@ -198,20 +198,20 @@ login, since its content is written for staff, not customers.
 Login accepts four things in one field: a real email, a Google account, a
 manager-issued **username**, or a manager-issued **phone number**.
 
-- **Owners** self-serve as before — sign up (email or Google) and set up
+- **Owners** self-serve as before - sign up (email or Google) and set up
   their own business from Settings.
 - **Staff** either sign in with the username or phone number their
   manager/owner/super admin gave them (created from **My Business → Team →
-  Staff Logins**, which also resets anyone's password directly — there's no
+  Staff Logins**, which also resets anyone's password directly - there's no
   self-service reset for these, since there's no real inbox behind a
-  username or phone login), or sign in with Google directly — a first-time
+  username or phone login), or sign in with Google directly - a first-time
   Google sign-in with no invite pending lands in a "pending" state until a
   **super admin** assigns their branch and role from the Super Admin
   dashboard's "Pending Sign-ups" panel.
 
 The role and branch travel as a Firebase custom claim on the account
 itself, so they apply the moment that person signs in **on any device**,
-not just the one they were created on — this is powered by
+not just the one they were created on - this is powered by
 `user-admin-server/`, which holds the Firebase service account key these
 privileged actions need. Unlike the other backends, there's no mock mode
 for it: the accounts it creates must be real Firebase Auth accounts for
@@ -220,8 +220,8 @@ that person to actually log in.
 ## Multi-branch & data isolation
 
 Each branch (Njiru, Kayole, Utawala, or any new one) is its own `business`
-record with its own `id`. Every operational record — washes, payments,
-staff, services, job orders, loyalty customers — carries a `business_id`
+record with its own `id`. Every operational record - washes, payments,
+staff, services, job orders, loyalty customers - carries a `business_id`
 tying it to exactly one branch, and every page resolves "which branch am I
 looking at" through a single hook, `useBusiness()`
 (`src/lib/BusinessContext.jsx`). There's no page that reads a different,
@@ -231,11 +231,11 @@ An owner who belongs to more than one branch gets a branch switcher in both
 the sidebar and the top bar; everyone else belongs to exactly one branch and
 never sees it. Switching branches persists across a refresh (scoped per
 account, so it's safe on a shared machine) and immediately refetches every
-branch-scoped query — nothing from the previous branch lingers on screen.
+branch-scoped query - nothing from the previous branch lingers on screen.
 
 **Branch pages**: each branch also has its own lightweight public page at
-`/<slug>` (e.g. `/njiru`, `/kayole`, `/utawala`) — photos, phone, address, a
-WhatsApp booking link and directions — separate from the main marketing
+`/<slug>` (e.g. `/njiru`, `/kayole`, `/utawala`) - photos, phone, address, a
+WhatsApp booking link and directions - separate from the main marketing
 homepage. New branches get a slug and default photo set automatically when
 created; see `src/pages/BranchPage.jsx`.
 
@@ -244,30 +244,30 @@ created; see `src/pages/BranchPage.jsx`.
 Check-in → Start Washing → Mark Done → Process Payment. Once a wash has
 started, pausing it or deleting it both require a reason and are
 owner/manager-only (staff can't unilaterally abandon or erase a job they
-started) — see `src/pages/WashDetails.jsx` / `src/pages/Washes.jsx`. A
+started) - see `src/pages/WashDetails.jsx` / `src/pages/Washes.jsx`. A
 paused wash stays visible in every active-work list until resumed; a
-deleted (cancelled) wash is a soft delete — it stays on record for audit,
+deleted (cancelled) wash is a soft delete - it stays on record for audit,
 but is excluded from wash-count and revenue totals everywhere in the app.
 
 ## M-Pesa
 
 Real M-Pesa payments (STK Push / Lipa Na M-Pesa Online) need a server that
 holds Safaricom's consumer secret and passkey and that Safaricom can call
-back — a browser-only app can't do either safely. That backend lives in its
+back - a browser-only app can't do either safely. That backend lives in its
 own folder, `mpesa-server/` (see its own README for full setup, including
 how to get real sandbox/production credentials and how to expose the
 callback URL with a tunnel).
 
-It currently runs in **mock mode** — no real Safaricom credentials are set
+It currently runs in **mock mode** - no real Safaricom credentials are set
 yet, so `MPESA_ENV=mock` in `mpesa-server/.env` simulates the whole flow
 (STK push accepted → auto-"completes" a few seconds later with a fake
 receipt) without needing any. Flipping to real payments later is a matter of
 filling in `mpesa-server/.env` with real credentials and setting
-`MPESA_ENV=sandbox` (then `production`) — no frontend code changes needed.
+`MPESA_ENV=sandbox` (then `production`) - no frontend code changes needed.
 
 From `Payments → Process Payment → M-Pesa`, the flow is: the dialog asks
-`mpesa-server` to start an STK push, polls it for the result, and — once
-confirmed — writes the payment and marks the wash paid in the app's own
+`mpesa-server` to start an STK push, polls it for the result, and - once
+confirmed - writes the payment and marks the wash paid in the app's own
 database. That last step is what makes a completed payment show up on the
 Dashboard/Payments page immediately, with no manual refresh.
 
@@ -276,15 +276,15 @@ Dashboard/Payments page immediately, with no manual refresh.
 Customer notifications (payment confirmed, car ready for pickup) go out over
 WhatsApp rather than SMS. Same reasoning as M-Pesa: sending needs a real
 access token that can't sit in the browser, and Meta needs a public webhook
-to call back with delivery status — so this is its own folder,
+to call back with delivery status - so this is its own folder,
 `whatsapp-server/` (see its own README for full setup, including getting
 real credentials from Meta and exposing the webhook with a tunnel).
 
-It currently runs in **mock mode** — no real Meta credentials are set yet,
+It currently runs in **mock mode** - no real Meta credentials are set yet,
 so a "send" is logged and marked sent instantly, no external call made.
 Flipping to real sends later is a matter of filling in
-`whatsapp-server/.env` with real credentials and setting `WHATSAPP_ENV=live`
-— no frontend code changes needed. Note that WhatsApp only allows free-form
+`whatsapp-server/.env` with real credentials and setting `WHATSAPP_ENV=live` -
+no frontend code changes needed. Note that WhatsApp only allows free-form
 text within 24 hours of the customer's last message; these are all
 business-initiated notifications, so going live means sending pre-approved
 message **templates**, not plain text (see `whatsapp-server/README.md`).
@@ -294,23 +294,23 @@ Washes messages the customer their car is ready, and confirming a payment
 sends a receipt. Both go through
 `src/components/notifications/NotificationService.jsx`, which also has
 templates defined for loyalty updates, low-stock alerts and shift
-reminders — those exist but aren't wired to a trigger yet.
+reminders - those exist but aren't wired to a trigger yet.
 
 ## SEO
 
 `public/robots.txt` and `public/sitemap.xml` are set up for the production
-domain — the sitemap lists the marketing homepage and each branch's public
+domain - the sitemap lists the marketing homepage and each branch's public
 page; everything behind login (Dashboard, Help, Settings, and the rest) is
 disallowed. Update both if branches or public routes change.
 
 ## Hosting
 
 The frontend build (`dist/`) and the four standalone backends are all meant
-to run under cPanel — each backend already reads its port from
+to run under cPanel - each backend already reads its port from
 `process.env`, matching cPanel's Node.js App Manager (Phusion Passenger),
 which assigns the port itself and expects an `index.js` entry point.
 
-Suggested layout — one subdomain per backend, each set up as its own cPanel
+Suggested layout - one subdomain per backend, each set up as its own cPanel
 Node.js App pointed at that folder's `index.js`:
 
 | App                 | Suggested (sub)domain        |
@@ -322,13 +322,13 @@ Node.js App pointed at that folder's `index.js`:
 | `app-data-server`    | `data.bgoshinehub.co.ke`     |
 
 `.env.production` at the repo root already points the frontend's
-`VITE_*_API_URL` vars at these — update it if you use different
+`VITE_*_API_URL` vars at these - update it if you use different
 subdomains/paths. Each backend's own `.env` (not `env.example`) needs
 `CORS_ORIGIN=https://bgoshinehub.co.ke` in production.
 
 For `app-data-server` specifically: create the MySQL database and a user
 via cPanel's MySQL Database Wizard first (see its README for the exact
-steps) — a fresh database starts genuinely empty by default (no demo data
+steps) - a fresh database starts genuinely empty by default (no demo data
 loaded), so real production data can never get mixed up with test data. The
 demo Njiru/Kayole/Utawala dataset only loads if you explicitly ask for it
 (`SEED_DEMO_DATA=true` or `npm run seed` inside that folder), for a

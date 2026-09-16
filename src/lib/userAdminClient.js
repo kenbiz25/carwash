@@ -1,6 +1,6 @@
 // Talks to the standalone user-admin-server backend (see
 // user-admin-server/README.md). That server is what actually holds the
-// Firebase service account — creating a login, resetting a password, or
+// Firebase service account - creating a login, resetting a password, or
 // assigning a branch/role are all privileged Admin SDK actions the browser
 // can never be trusted to do directly.
 import { auth } from "@/lib/firebase";
@@ -11,7 +11,7 @@ export const SYNTHETIC_PHONE_DOMAIN = "phone.bgoshinehub.internal";
 
 // Kenyan MSISDN normalization so "0757234111", "+254757234111" and
 // "254 757 234 111" all resolve to the same account. Must match
-// user-admin-server/src/routes/users.js's copy exactly — sign-in computes
+// user-admin-server/src/routes/users.js's copy exactly - sign-in computes
 // this same synthetic email client-side without ever calling that server.
 function normalizePhoneKe(input) {
   let digits = String(input || "").replace(/[^\d+]/g, "");
@@ -22,7 +22,7 @@ function normalizePhoneKe(input) {
 }
 
 // A bare number (mostly digits, allowing spaces/dashes/a leading +) reads as
-// a phone number rather than a username — real usernames created here are
+// a phone number rather than a username - real usernames created here are
 // always at least partly alphabetic, so this shouldn't misfire in practice.
 function looksLikePhone(value) {
   return /^\+?[\d\s-]{7,}$/.test(value);
@@ -31,7 +31,7 @@ function looksLikePhone(value) {
 // A manager/owner/super admin sets a plain username OR phone number for
 // staff; Firebase Auth itself only understands email/password, so either
 // one (no "@") is transparently mapped to a fake address under a fixed
-// internal domain before every sign-in — nobody sends mail there, it's
+// internal domain before every sign-in - nobody sends mail there, it's
 // never dereferenced. Real email addresses pass through unchanged.
 export function toLoginIdentifier(emailOrUsernameOrPhone) {
   const value = (emailOrUsernameOrPhone || "").trim();
@@ -54,7 +54,7 @@ async function requestJson(path, options = {}) {
     });
   } catch {
     // A thrown fetch (not a non-2xx response) means the server never
-    // answered at all — say so plainly instead of surfacing "Failed to
+    // answered at all - say so plainly instead of surfacing "Failed to
     // fetch", which tells a manager nothing about what to do next.
     throw new Error(
       `Couldn't reach the login server at ${BASE_URL} - make sure user-admin-server is running, then try again.`

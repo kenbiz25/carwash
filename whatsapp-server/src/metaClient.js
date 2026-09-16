@@ -13,7 +13,7 @@ export function normalizeMsisdn(phone) {
 /**
  * Sends a free-form text message. Only deliverable if the customer messaged
  * this business's WhatsApp number in the last 24 hours (Meta's "customer
- * service window") — outside that window, Meta will reject it and you need
+ * service window") - outside that window, Meta will reject it and you need
  * sendTemplateMessage instead.
  */
 export async function sendTextMessage({ to, body }) {
@@ -34,7 +34,7 @@ export async function sendTextMessage({ to, body }) {
 }
 
 /**
- * Sends a pre-approved message template — the only way to reach a customer
+ * Sends a pre-approved message template - the only way to reach a customer
  * proactively (payment confirmations, wash-ready alerts, etc.) outside the
  * 24-hour window, which is the normal case for this app's notifications.
  * The template itself (name, language, variable count) must already be

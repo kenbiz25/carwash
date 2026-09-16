@@ -1,7 +1,7 @@
 import React from "react";
 
 /**
- * A row of photo cards fanned out in perspective — each one rotated and
+ * A row of photo cards fanned out in perspective - each one rotated and
  * dropped slightly further from center the further out it sits, like a hand
  * of cards. Purely presentational (no interactivity), sized to gracefully
  * scroll horizontally on narrow screens rather than crushing together.

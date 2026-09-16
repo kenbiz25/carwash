@@ -21,7 +21,7 @@ const COLLECTION_MAP = {
   Invitation: 'invitations',
 };
 
-// Firestore rejected undefined values — keep the same normalization so
+// Firestore rejected undefined values - keep the same normalization so
 // existing data written under Firestore behaves identically here.
 function stripUndefined(obj) {
   return JSON.parse(JSON.stringify(obj, (_, v) => (v === undefined ? null : v)));
@@ -34,7 +34,7 @@ function newId() {
 function entityMethods(store) {
   return {
     async filter(whereObj = {}, orderByStr = null, limitNum = null) {
-      // Single id lookup — mirrors the old direct getDoc shortcut.
+      // Single id lookup - mirrors the old direct getDoc shortcut.
       if (whereObj.id && Object.keys(whereObj).length === 1) {
         const record = await localDb.get(store, whereObj.id);
         return record ? [record] : [];
@@ -92,7 +92,7 @@ const authModule = {
 
     // Accounts created by a manager/owner/super admin (or assigned branch +
     // role by a super admin after a first Google sign-in) carry that as a
-    // Firebase custom claim — set server-side by user-admin-server, and
+    // Firebase custom claim - set server-side by user-admin-server, and
     // readable on any device the moment this account gets a fresh token.
     // That makes it the source of truth over the local `users` profile
     // below, which is per-browser and only ever reflects this one device.
@@ -157,7 +157,7 @@ const authModule = {
 };
 
 // ─── File storage ─────────────────────────────────────────────────────────────
-// Replaces Firebase Storage — files are kept as base64 data URLs in the local
+// Replaces Firebase Storage - files are kept as base64 data URLs in the local
 // `files` store, so the returned URL is a plain string usable directly as an
 // <img src> or link, same as a Storage download URL was.
 

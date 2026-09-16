@@ -14,8 +14,7 @@ export default function DashboardEmptyState() {
 
   const firstName = (user?.full_name || user?.email || "").trim().split(/\s+/)[0]?.split("@")[0] || "there";
 
-  // In this app, signing in with Google means "join an existing operation" —
-  // a real staff member — not "register a new business"; that path is the
+  // In this app, signing in with Google means "join an existing operation" -   // a real staff member - not "register a new business"; that path is the
   // deliberate email/password Create Account flow on Login. So a Google
   // account with no business yet isn't missing a step, it's waiting on a
   // super admin, and shouldn't be nudged toward "Set Up My Business".

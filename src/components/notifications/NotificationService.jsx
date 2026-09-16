@@ -1,7 +1,7 @@
 import { api } from "@/api/firebaseClient";
 import { sendWhatsappText } from "@/lib/whatsappClient";
 
-// WhatsApp templates — one per point in the wash lifecycle a customer would
+// WhatsApp templates - one per point in the wash lifecycle a customer would
 // want to hear about.
 const templates = {
   checked_in: (data) => ({
@@ -22,7 +22,7 @@ const templates = {
   })
 };
 
-// In-app notifications — hand-offs between roles within the tool itself
+// In-app notifications - hand-offs between roles within the tool itself
 // (e.g. "a wash is ready for payment", "you've been assigned a job").
 // These are separate from the customer-facing WhatsApp templates above.
 export async function notifyInApp({ businessId, recipientEmails, title, message, referenceType, referenceId }) {
@@ -55,7 +55,7 @@ function itemLabel(wash) {
 }
 
 // Renders a template, records a Notification, and sends it over WhatsApp via
-// whatsapp-server (see whatsapp-server/README.md) — that server calls Meta's
+// whatsapp-server (see whatsapp-server/README.md) - that server calls Meta's
 // WhatsApp Cloud API; while it's running in mock mode (no credentials yet)
 // this still exercises the full path and marks the notification "sent"
 // without an actual Meta call.

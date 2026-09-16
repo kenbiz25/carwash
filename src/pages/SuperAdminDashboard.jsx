@@ -58,7 +58,7 @@ export default function SuperAdminDashboard() {
     enabled: isSuperAdmin,
   });
 
-  // Accounts with no role/branch assigned yet — first-time Google sign-ins
+  // Accounts with no role/branch assigned yet - first-time Google sign-ins
   // land here until a super admin picks a business + role for them.
   const { data: pendingUsers = [], refetch: refetchPending, isError: pendingErrored, error: pendingError } = useQuery({
     queryKey: ["pending-users"],
@@ -91,8 +91,8 @@ export default function SuperAdminDashboard() {
   // ─────────────────────────────────────────────────────────────
   // ✅ Precompute for performance (avoid filtering in every row)
   //
-  // Every hook in this component must run on every render — including while
-  // loadingUser is true or the user turns out not to be a superadmin — so the
+  // Every hook in this component must run on every render - including while
+  // loadingUser is true or the user turns out not to be a superadmin - so the
   // early-return JSX for those cases lives below, after all hooks. Returning
   // early any sooner (as this used to) skips the useMemo calls below on some
   // renders and not others, which crashes React with "Rendered more hooks

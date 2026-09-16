@@ -71,7 +71,7 @@ export default function Login() {
     try {
       const isSignUp = mode === 'signup';
       // Staff logins created by a manager/owner/super admin are plain
-      // usernames under the hood, not real emails — map one to the fixed
+      // usernames under the hood, not real emails - map one to the fixed
       // internal address Firebase Auth actually stores. Sign-up always uses
       // a real email (that's a new business owner registering).
       const cred = isSignUp
@@ -111,7 +111,7 @@ export default function Login() {
       const cred = await signInWithPopup(auth, new GoogleAuthProvider());
       await ensureUserProfile(cred.user);
       // Only a first-time Google sign-in should behave like sign-up (checking
-      // for a pending invite) — same rule the email path applies via `isSignUp`.
+      // for a pending invite) - same rule the email path applies via `isSignUp`.
       if (getAdditionalUserInfo(cred)?.isNewUser) {
         const token = await findPendingInviteToken(cred.user.email);
         if (token) {
@@ -141,7 +141,7 @@ export default function Login() {
       toast.error('Enter your email address first');
       return;
     }
-    // Self-service reset only makes sense for a real email account — usernames
+    // Self-service reset only makes sense for a real email account - usernames
     // and phone numbers are set up by an admin and don't have an inbox behind
     // them (the panel shown for that case never reaches this handler at all,
     // but guard here too in case someone types one straight into this field).
@@ -196,7 +196,7 @@ export default function Login() {
               <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-1">Reset Password</h2>
 
               {email.trim() && !email.includes('@') ? (
-                // Carried over a username/phone from the sign-in field — that
+                // Carried over a username/phone from the sign-in field - that
                 // kind of login is set up and managed by an admin, so there's
                 // no inbox to send a reset link to.
                 <div className="flex flex-col items-center gap-3 py-4 text-center">

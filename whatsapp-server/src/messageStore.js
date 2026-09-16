@@ -1,4 +1,4 @@
-// In-memory only — fine for a single dev/staging process. Restarting this
+// In-memory only - fine for a single dev/staging process. Restarting this
 // server drops message history; a real deploy should swap this for a small
 // database table, but the interface below is all the rest of the server
 // touches, so that swap stays contained here.

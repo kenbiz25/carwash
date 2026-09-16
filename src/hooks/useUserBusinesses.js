@@ -43,7 +43,7 @@ export function useUserBusinesses(user) {
         })
       );
 
-      // Merge unique — a business owner is normally also in their own member_emails,
+      // Merge unique - a business owner is normally also in their own member_emails,
       // so ownedBusinesses/memberBusinesses commonly overlap; dedupe by id.
       const all = [...ownedBusinesses];
       const seen = new Set(all.map((b) => b.id));
@@ -53,7 +53,7 @@ export function useUserBusinesses(user) {
           all.push(biz);
         }
       }
-      // Oldest branch first — IndexedDB key order isn't insertion order, and the
+      // Oldest branch first - IndexedDB key order isn't insertion order, and the
       // longest-running branch is the sensible default when nothing is selected yet.
       all.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
       return all;

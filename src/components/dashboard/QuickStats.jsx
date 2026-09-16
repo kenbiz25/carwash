@@ -16,7 +16,7 @@ export default function QuickStats({ washes = [], payments = [], staff = [], inv
     .reduce((sum, p) => sum + (p.amount || 0), 0);
   
   // Share of today's confirmed payments taken via M-Pesa (not "of today's
-  // paid washes" — that divided by a count that's routinely 0 before a wash
+  // paid washes" - that divided by a count that's routinely 0 before a wash
   // is marked paid, which produced a literal "Infinity%" whenever an M-Pesa
   // payment landed before any wash had that status yet).
   const todayConfirmedPayments = payments

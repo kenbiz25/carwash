@@ -34,7 +34,7 @@ const CAT_COLORS = {
   package: "bg-pink-100 text-pink-700",
 };
 
-// Purely a labeling concern — price_kes/price_suv/price_van stay the same
+// Purely a labeling concern - price_kes/price_suv/price_van stay the same
 // three numeric fields no matter which kind is picked, so DriveInWizard and
 // EnhancedCheckIn's price-picking logic never has to know this exists. This
 // only controls what the catalogue calls those fields: most of the pricelist

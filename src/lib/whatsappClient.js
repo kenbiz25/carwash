@@ -1,5 +1,5 @@
 // Talks to the standalone whatsapp-server backend (see whatsapp-server/README.md).
-// That server is what actually calls Meta's WhatsApp Cloud API — the browser
+// That server is what actually calls Meta's WhatsApp Cloud API - the browser
 // never sees the access token.
 
 const BASE_URL = import.meta.env.VITE_WHATSAPP_API_URL || "http://localhost:4031";

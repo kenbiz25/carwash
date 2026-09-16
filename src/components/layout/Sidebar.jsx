@@ -37,7 +37,7 @@ const SETUP_MENU_ITEMS = [
   { icon: HelpCircle,      label: "Help & Support", page: "Help",     roles: ["superadmin", "owner", "manager", "staff", "cashier"] },
 ];
 
-// Full menu — shown once a business exists
+// Full menu - shown once a business exists
 const ALL_MENU_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard",            page: "Dashboard",           roles: ["superadmin", "owner", "manager", "staff", "cashier"] },
   { icon: Building2,       label: "My Business",          page: "BusinessManager",     roles: ["owner", "manager"] },
@@ -84,14 +84,14 @@ export default function Sidebar({
   const menuItems = (hasBusiness || userRole === "superadmin") ? ALL_MENU_ITEMS : SETUP_MENU_ITEMS;
   const visibleItems = menuItems.filter(item => item.roles.includes(userRole));
   // Before a business exists, "role" defaults to a literal "staff" purely so
-  // nav-visibility checks above have something to filter on — it doesn't
+  // nav-visibility checks above have something to filter on - it doesn't
   // reflect an actual assigned role, so don't present it as one.
   const roleInfo = (!hasBusiness && userRole !== "superadmin")
     ? { label: "Getting Started", color: "bg-slate-100 text-slate-500" }
     : (ROLE_LABELS[userRole] || ROLE_LABELS.staff);
 
   const currentBusiness = businesses.find(b => b.id === selectedBusinessId) || businesses[0];
-  // Only owners run multiple locations — managers/staff/cashiers are scoped to one carwash.
+  // Only owners run multiple locations - managers/staff/cashiers are scoped to one carwash.
   const showBizSwitcher = !collapsed && userRole === "owner" && businesses.length > 1;
 
   return (

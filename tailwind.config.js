@@ -13,7 +13,7 @@ module.exports = {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
-  			// BGO Shine Hub brand palette — navy (#0B2241) + coral-red (#F8344C).
+  			// BGO Shine Hub brand palette - navy (#0B2241) + coral-red (#F8344C).
   			// Token names kept as brand-orange/-hot for backwards-compatibility with
   			// existing class usage; they now render the red/coral accent, not orange.
   			brand: {

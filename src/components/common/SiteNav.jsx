@@ -16,13 +16,13 @@ const SECTION_LINKS = [
 ];
 
 /**
- * The public site's top trust bar + main nav + mobile menu — used on Landing
+ * The public site's top trust bar + main nav + mobile menu - used on Landing
  * and on every branch page so a visitor who lands directly on e.g. /kayole
  * (a shared link, a QR code, a Google listing) still gets full site
  * navigation, not just a dead end back to "All Locations".
  *
  * `basePath` prefixes the in-page section links (#services, #map,
- * #testimonials) — those ids only exist on the Landing page itself, so any
+ * #testimonials) - those ids only exist on the Landing page itself, so any
  * page other than Landing must pass basePath="/Landing" to link back to it
  * instead of trying (and failing) to scroll within its own page.
  */

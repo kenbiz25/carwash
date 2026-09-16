@@ -92,7 +92,7 @@ function normalizeMembersFromBusiness(biz) {
 // basic email validation
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-// Generate a token client-side (ok for “invite link” UX) — backend should still validate
+// Generate a token client-side (ok for “invite link” UX) - backend should still validate
 function makeInviteToken() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   // fallback
