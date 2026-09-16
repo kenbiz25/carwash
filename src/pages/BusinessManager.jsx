@@ -119,8 +119,11 @@ export default function BusinessManager() {
 
   // Creating a brand-new business is a super-admin-only action now (see
   // CreateBusiness.jsx) - an owner/manager here can still edit an existing
-  // location's own info and manage its team.
-  const isSuperAdmin = user?.role === "admin" || user?.user_role === "admin";
+  // location's own info and manage its team. Owners also carry full
+  // super-admin rights platform-wide, not just for their own branch.
+  const isSuperAdmin =
+    user?.role === "admin" || user?.user_role === "admin" ||
+    user?.role === "owner" || user?.user_role === "owner";
   const isOwner = allLocations.some(loc => loc.owner_email === user?.email)
     || business?.owner_email === user?.email
     || (business?.members || []).some(m => m.email === user?.email && m.role === "owner");
@@ -290,7 +293,7 @@ export default function BusinessManager() {
 
     setSaving(true);
     try {
-      const ownerEmails = form.members.filter(m => m.role === "owner").map(m => m.email);
+      const ownerEmails = form.members.filter(m => m.role === "owner").map(m => m.email.toLowerCase());
       const adminEmails = form.members.filter(m => m.role === "manager").map(m => m.email);
 
       await api.entities.Business.update(business.id, {

@@ -53,7 +53,7 @@ export function BusinessProvider({ children }) {
       const email = user.email.toLowerCase();
       const all = await localDb.getAll('businesses');
 
-      const owned = all.filter((b) => b.owner_email === user.email);
+      const owned = all.filter((b) => b.owner_email?.toLowerCase() === email);
       const member = all.filter((b) => Array.isArray(b.member_emails) && b.member_emails.includes(email));
 
       const seen = new Set(owned.map(b => b.id));

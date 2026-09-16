@@ -6,6 +6,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, Building2, BookOpen, ClipboardList, Car, Banknote, TrendingUp, Loader2, CalendarDays, Users } from "@/lib/icons";
 import { useCumulativeStats } from "@/hooks/useCumulativeStats";
+import { defaultDateRange, isWithinDateRange } from "@/lib/dateRange";
+import DateRangeFilter from "@/components/common/DateRangeFilter";
 
 import QuickStats from "@/components/dashboard/QuickStats";
 import RecentWashes from "@/components/dashboard/RecentWashes";
@@ -17,38 +19,6 @@ import PeakHoursHeatmap from "@/components/dashboard/PeakHoursHeatmap";
 import AdvancedStats from "@/components/dashboard/AdvancedStats";
 import BayRevenueChart from "@/components/dashboard/BayRevenueChart";
 import EnhancedCheckIn from "@/components/wash/EnhancedCheckIn";
-
-const DATE_FILTERS = [
-  { value: "today", label: "Today" },
-  { value: "week", label: "This Week" },
-  { value: "month", label: "This Month" },
-  { value: "last30", label: "Last 30 Days" },
-  { value: "all", label: "All Time" },
-];
-
-function getDateRange(filter) {
-  const now = new Date();
-  const start = new Date();
-  switch (filter) {
-    case "today":
-      start.setHours(0, 0, 0, 0);
-      return { start, end: now };
-    case "week":
-      start.setDate(now.getDate() - 6);
-      start.setHours(0, 0, 0, 0);
-      return { start, end: now };
-    case "month":
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-      return { start, end: now };
-    case "last30":
-      start.setDate(now.getDate() - 29);
-      start.setHours(0, 0, 0, 0);
-      return { start, end: now };
-    default:
-      return null;
-  }
-}
 
 export default function DashboardOwnerManagerView({
   userRole,
@@ -72,25 +42,17 @@ export default function DashboardOwnerManagerView({
   user,
 }) {
   const cumulative = useCumulativeStats(businesses);
-  const [dateFilter, setDateFilter] = useState("today");
+  const [{ startDate, endDate }, setRange] = useState(() => defaultDateRange(7));
+  const setStartDate = (value) => setRange((r) => ({ ...r, startDate: value }));
+  const setEndDate = (value) => setRange((r) => ({ ...r, endDate: value }));
 
   const filteredWashes = useMemo(() => {
-    const range = getDateRange(dateFilter);
-    if (!range) return washes || [];
-    return (washes || []).filter(w => {
-      const d = new Date(w.entry_time || w.created_date);
-      return d >= range.start && d <= range.end;
-    });
-  }, [washes, dateFilter]);
+    return (washes || []).filter(w => isWithinDateRange(w.entry_time || w.created_date, startDate, endDate));
+  }, [washes, startDate, endDate]);
 
   const filteredPayments = useMemo(() => {
-    const range = getDateRange(dateFilter);
-    if (!range) return payments || [];
-    return (payments || []).filter(p => {
-      const d = new Date(p.created_date);
-      return d >= range.start && d <= range.end;
-    });
-  }, [payments, dateFilter]);
+    return (payments || []).filter(p => isWithinDateRange(p.created_date, startDate, endDate));
+  }, [payments, startDate, endDate]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -146,19 +108,13 @@ export default function DashboardOwnerManagerView({
       {/* Date Filter Bar */}
       <div className="flex items-center gap-2 flex-wrap">
         <CalendarDays className="h-4 w-4 text-slate-400 flex-shrink-0" />
-        {DATE_FILTERS.map(f => (
-          <button
-            key={f.value}
-            onClick={() => setDateFilter(f.value)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              dateFilter === f.value
-                ? "bg-brand-orange text-white shadow-sm shadow-brand-orange/30"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        <DateRangeFilter
+          idPrefix="dashboard"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+        />
         <span className="text-xs text-slate-400 ml-1">
           {filteredWashes.length} washes · KES {filteredPayments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}
         </span>
@@ -256,12 +212,12 @@ export default function DashboardOwnerManagerView({
                 <RevenueChart payments={filteredPayments} viewType={revenueView} />
               </div>
               <div>
-                <StaffPerformance staff={staff} washes={filteredWashes} />
+                <StaffPerformance staff={staff} washes={filteredWashes} services={services} standards={currentBusiness?.commission_standards} />
               </div>
             </div>
           )}
           {userRole === "manager" && (
-            <StaffPerformance staff={staff} washes={filteredWashes} />
+            <StaffPerformance staff={staff} washes={filteredWashes} services={services} standards={currentBusiness?.commission_standards} />
           )}
         </TabsContent>
 
@@ -279,7 +235,7 @@ export default function DashboardOwnerManagerView({
 
           <div className="grid lg:grid-cols-2 gap-6">
             <RevenueChart payments={filteredPayments} viewType="month" />
-            <StaffPerformance staff={staff} washes={filteredWashes} />
+            <StaffPerformance staff={staff} washes={filteredWashes} services={services} standards={currentBusiness?.commission_standards} />
           </div>
 
           <MonthlyProductStats washes={filteredWashes} services={services} />

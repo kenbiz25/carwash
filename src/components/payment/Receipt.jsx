@@ -29,11 +29,20 @@ export default function Receipt({ wash, payment, businessId, open, onOpenChange 
       <DialogContent className="sm:max-w-sm print:shadow-none print:border-0">
         <style>{`
           @media print {
+            /* Matches the shop's 80mm thermal receipt printer (72mm
+               printable width, continuous roll) - most browsers pick this
+               up as the default "size" in the print dialog automatically,
+               but this makes sure the receipt itself is laid out for that
+               width rather than a leftover A4 page. Printing to a different
+               printer/paper still works - just override "Paper size" in
+               the print dialog (or "More settings" > Margins) for that job. */
+            @page { size: 72mm auto; margin: 0; }
             body * { visibility: hidden; }
             #receipt-printable, #receipt-printable * { visibility: visible; }
             #receipt-printable {
-              position: fixed; inset: 0; padding: 16px;
-              width: 100%; max-width: 340px; margin: 0 auto;
+              position: absolute; top: 0; left: 0;
+              width: 72mm; margin: 0; padding: 3mm 4mm;
+              font-size: 11px;
             }
           }
         `}</style>

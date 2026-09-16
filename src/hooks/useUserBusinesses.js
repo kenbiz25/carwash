@@ -20,7 +20,7 @@ export function useUserBusinesses(user) {
       // 1) Businesses the user owns
       // 2) Businesses where this user is in the member_emails array
       const allBusinesses = await localDb.getAll("businesses");
-      const ownedBusinesses = allBusinesses.filter((b) => b.owner_email === user.email);
+      const ownedBusinesses = allBusinesses.filter((b) => b.owner_email?.toLowerCase() === email);
       const memberBusinesses = allBusinesses.filter((b) => Array.isArray(b.member_emails) && b.member_emails.includes(email));
 
       // 3) Explicitly assigned via profile ids (legacy support)

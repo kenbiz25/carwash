@@ -12,7 +12,7 @@ export {
   ArrowLeft, ArrowRight, Bell, BookOpen, Bus, Calendar, Camera, Car, Check,
   CheckCircle, Circle, Clock, CreditCard, Crown, Download, Eye, FileText,
   Gift, Heart, Image, Infinity, Key, Lock, MapPin, Minus, Moon, Package,
-  Pause, Phone, Play, Plus, Printer, Receipt, Repeat, Shield, ShieldCheck,
+  Pause, Percent, Phone, Play, Plus, Printer, Receipt, Repeat, Shield, ShieldCheck,
   Star, Sun, Truck, Upload, User, UserCheck, UserCircle, UserPlus, Users,
   Video, Wallet, Wrench, X,
   WhatsappLogo, GoogleLogo,

@@ -3,8 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/firebaseClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   BarChart,
   Bar,
@@ -23,14 +31,24 @@ import {
   TrendingUp,
   Car,
   Banknote,
-  Users
+  Users,
+  Search,
+  X
 } from "@/lib/icons";
 import moment from "moment";
 import StatCard from "@/components/common/StatCard";
+import DateRangeFilter from "@/components/common/DateRangeFilter";
 import { useBusiness } from "@/lib/BusinessContext";
+import { commissionForWash, toServicesById } from "@/lib/commissions";
+import { defaultDateRange, isWithinDateRange, daysInRange } from "@/lib/dateRange";
 
 export default function Reports() {
-  const [dateRange, setDateRange] = useState("week");
+  const [{ startDate, endDate }, setRange] = useState(() => defaultDateRange(7));
+  const setStartDate = (value) => setRange((r) => ({ ...r, startDate: value }));
+  const setEndDate = (value) => setRange((r) => ({ ...r, endDate: value }));
+  const [logStaffFilter, setLogStaffFilter] = useState("all");
+  const [logVehicleTypeFilter, setLogVehicleTypeFilter] = useState("all");
+  const [logPlateSearch, setLogPlateSearch] = useState("");
 
   const { currentBusiness: business } = useBusiness();
 
@@ -52,26 +70,16 @@ export default function Reports() {
     enabled: !!business?.id,
   });
 
-  // Filter data by date range
-  const filterByDateRange = (items) => {
-    const now = moment();
-    return items.filter(item => {
-      const itemDate = moment(item.created_date);
-      switch (dateRange) {
-        case "today":
-          return itemDate.isSame(now, "day");
-        case "week":
-          return itemDate.isSame(now, "week");
-        case "month":
-          return itemDate.isSame(now, "month");
-        default:
-          return true;
-      }
-    });
-  };
+  const { data: services = [] } = useQuery({
+    queryKey: ["services", business?.id],
+    queryFn: () => api.entities.Service.filter({ business_id: business?.id }),
+    enabled: !!business?.id,
+  });
+  const servicesById = useMemo(() => toServicesById(services), [services]);
 
-  const filteredWashes = filterByDateRange(washes);
-  const filteredPayments = filterByDateRange(payments);
+  // Filter data by date range (inclusive of both endpoints)
+  const filteredWashes = washes.filter(w => isWithinDateRange(w.created_date, startDate, endDate));
+  const filteredPayments = payments.filter(p => isWithinDateRange(p.created_date, startDate, endDate));
   const confirmedPayments = filteredPayments.filter(p => p.status === "confirmed");
 
   // Calculate stats
@@ -81,30 +89,23 @@ export default function Reports() {
     const cashRevenue = confirmedPayments.filter(p => p.method === "cash").reduce((sum, p) => sum + (p.amount || 0), 0);
     const totalWashes = filteredWashes.length;
     const completedWashes = filteredWashes.filter(w => ['done', 'paid'].includes(w.status)).length;
+    const cancelledWashes = filteredWashes.filter(w => w.status === 'cancelled').length;
     const avgWashValue = completedWashes > 0 ? Math.round(totalRevenue / completedWashes) : 0;
 
-    return { totalRevenue, mpesaRevenue, cashRevenue, totalWashes, completedWashes, avgWashValue };
+    return { totalRevenue, mpesaRevenue, cashRevenue, totalWashes, completedWashes, cancelledWashes, avgWashValue };
   }, [confirmedPayments, filteredWashes]);
 
   // Revenue by day chart data
   const revenueByDay = useMemo(() => {
-    const days = dateRange === "today" ? 1 : dateRange === "week" ? 7 : 30;
-    const data = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const date = moment().subtract(i, "days");
-      const dayPayments = confirmedPayments.filter(p => 
-        moment(p.created_date).format("YYYY-MM-DD") === date.format("YYYY-MM-DD")
-      );
-      data.push({
-        date: date.format("MMM D"),
+    return daysInRange(startDate, endDate).map((day) => {
+      const dayPayments = confirmedPayments.filter(p => moment(p.created_date).format("YYYY-MM-DD") === day);
+      return {
+        date: moment(day).format("MMM D"),
         revenue: dayPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
-        washes: filteredWashes.filter(w => 
-          moment(w.created_date).format("YYYY-MM-DD") === date.format("YYYY-MM-DD")
-        ).length
-      });
-    }
-    return data;
-  }, [confirmedPayments, filteredWashes, dateRange]);
+        washes: filteredWashes.filter(w => moment(w.created_date).format("YYYY-MM-DD") === day).length
+      };
+    });
+  }, [confirmedPayments, filteredWashes, startDate, endDate]);
 
   // Payment method breakdown
   const paymentMethodData = useMemo(() => {
@@ -121,12 +122,16 @@ export default function Reports() {
 
   // Staff performance data
   const staffPerformance = useMemo(() => {
+    const standards = business?.commission_standards;
     return staff.map(s => {
       const staffWashes = filteredWashes.filter(w => w.assigned_staff_id === s.id);
       const completedWashes = staffWashes.filter(w => ['done', 'paid'].includes(w.status));
       const revenue = completedWashes.reduce((sum, w) => sum + (w.amount_due || 0), 0);
-      const commission = revenue * ((s.commission_rate || 10) / 100);
-      
+      const commission = completedWashes.reduce(
+        (sum, w) => sum + commissionForWash(w, { staff: s, servicesById, standards }),
+        0
+      );
+
       return {
         name: s.name,
         washes: completedWashes.length,
@@ -134,7 +139,7 @@ export default function Reports() {
         commission: Math.round(commission)
       };
     }).sort((a, b) => b.washes - a.washes);
-  }, [staff, filteredWashes]);
+  }, [staff, filteredWashes, servicesById, business?.commission_standards]);
 
   // Service popularity
   const servicePopularity = useMemo(() => {
@@ -155,11 +160,81 @@ export default function Reports() {
       .slice(0, 5);
   }, [filteredWashes]);
 
-  const dateRangeLabels = {
-    today: "Today",
-    week: "This Week",
-    month: "This Month"
+  // What was actually collected per wash, and by what method - a wash can
+  // have more than one Payment attempt (a failed STK push retried as cash),
+  // so a confirmed payment always wins over an earlier failed/pending one.
+  const paymentByWashId = useMemo(() => {
+    const map = {};
+    payments.forEach((p) => {
+      if (!p.wash_id) return;
+      const existing = map[p.wash_id];
+      if (existing?.status === "confirmed" && p.status !== "confirmed") return;
+      if (p.status === "confirmed" && existing?.status === "confirmed") {
+        existing.amount += p.amount || 0;
+        return;
+      }
+      map[p.wash_id] = { amount: p.amount || 0, method: p.method, status: p.status };
+    });
+    return map;
+  }, [payments]);
+
+  const vehicleTypeOptions = useMemo(() => {
+    return Array.from(new Set(washes.map((w) => w.vehicle_type).filter(Boolean))).sort();
+  }, [washes]);
+
+  // One row per wash, for the filterable "what happened" log below - joins
+  // in whatever was actually paid, so an owner/manager checking in from a
+  // phone can answer "who washed this plate and what did we collect" without
+  // opening each wash individually.
+  const washLog = useMemo(() => {
+    return filteredWashes
+      .filter((w) => logStaffFilter === "all" || w.assigned_staff_id === logStaffFilter)
+      .filter((w) => logVehicleTypeFilter === "all" || w.vehicle_type === logVehicleTypeFilter)
+      .filter((w) => !logPlateSearch || w.plate_number?.toLowerCase().includes(logPlateSearch.toLowerCase()))
+      .map((w) => {
+        const pay = paymentByWashId[w.id];
+        return {
+          id: w.id,
+          date: w.created_date,
+          plate: w.plate_number || "-",
+          vehicleType: w.vehicle_type || "-",
+          staffName: w.assigned_staff_name || "-",
+          servicesLabel: (w.services || []).map((s) => s.name).filter(Boolean).join(", ") || "-",
+          amountPaid: pay?.status === "confirmed" ? pay.amount : (w.status === "paid" ? (w.amount_due || 0) : 0),
+          method: pay?.method || null,
+          status: w.status,
+        };
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [filteredWashes, logStaffFilter, logVehicleTypeFilter, logPlateSearch, paymentByWashId]);
+
+  const washLogTotal = useMemo(() => washLog.reduce((sum, r) => sum + r.amountPaid, 0), [washLog]);
+
+  const handleExportCsv = () => {
+    const header = ["Date", "Plate", "Vehicle Type", "Employee", "Services", "Amount Paid (KES)", "Method", "Status"];
+    const rows = washLog.map((r) => [
+      moment(r.date).format("YYYY-MM-DD HH:mm"),
+      r.plate,
+      r.vehicleType,
+      r.staffName,
+      r.servicesLabel,
+      r.amountPaid,
+      r.method || "",
+      r.status,
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `wash-report-${moment().format("YYYY-MM-DD")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
+
+  const rangeLabel = `${moment(startDate).format("MMM D")} - ${moment(endDate).format("MMM D")}`;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -172,14 +247,14 @@ export default function Reports() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Tabs value={dateRange} onValueChange={setDateRange}>
-            <TabsList>
-              <TabsTrigger value="today">Today</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
-              <TabsTrigger value="month">Month</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button variant="outline">
+          <DateRangeFilter
+            idPrefix="reports"
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+          />
+          <Button variant="outline" onClick={handleExportCsv} disabled={washLog.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -187,9 +262,9 @@ export default function Reports() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title={`Revenue (${dateRangeLabels[dateRange]})`}
+          title={`Revenue (${rangeLabel})`}
           value={`KES ${stats.totalRevenue.toLocaleString()}`}
           icon={Banknote}
           iconColor="text-brand-orange"
@@ -202,6 +277,13 @@ export default function Reports() {
           iconColor="text-brand-navy dark:text-brand-blue-light"
           iconBg="bg-brand-navy-50 dark:bg-brand-navy-mid/40"
           subtitle={`${stats.totalWashes} total`}
+        />
+        <StatCard
+          title="Cancelled Washes"
+          value={stats.cancelledWashes}
+          icon={X}
+          iconColor="text-red-500"
+          iconBg="bg-red-50 dark:bg-red-500/10"
         />
         <StatCard
           title="Avg Wash Value"
@@ -369,6 +451,101 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Wash Log - filterable, exportable one-view of business activity */}
+      <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+        <CardHeader>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-brand-blue-mid" />
+                Wash Log
+              </CardTitle>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {washLog.length} record{washLog.length === 1 ? "" : "s"} · KES {washLogTotal.toLocaleString()} collected
+              </p>
+            </div>
+            <div className="grid grid-cols-2 lg:flex lg:items-center gap-2">
+              <div className="relative col-span-2 lg:w-48">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search plate number..."
+                  value={logPlateSearch}
+                  onChange={(e) => setLogPlateSearch(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Select value={logStaffFilter} onValueChange={setLogStaffFilter}>
+                <SelectTrigger className="h-9 lg:w-44">
+                  <SelectValue placeholder="Employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {staff.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={logVehicleTypeFilter} onValueChange={setLogVehicleTypeFilter}>
+                <SelectTrigger className="h-9 lg:w-44">
+                  <SelectValue placeholder="Vehicle Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vehicle Types</SelectItem>
+                  {vehicleTypeOptions.map((v) => (
+                    <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Plate</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Amount Paid</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {washLog.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-slate-500">
+                      No matching washes
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  washLog.slice(0, 200).map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="whitespace-nowrap text-sm text-slate-500">
+                        {moment(r.date).format("MMM D, h:mm A")}
+                      </TableCell>
+                      <TableCell className="font-mono font-medium">{r.plate}</TableCell>
+                      <TableCell className="capitalize">{r.vehicleType}</TableCell>
+                      <TableCell>{r.staffName}</TableCell>
+                      <TableCell className="font-medium">KES {r.amountPaid.toLocaleString()}</TableCell>
+                      <TableCell>{r.method ? <StatusBadge status={r.method} /> : "-"}</TableCell>
+                      <TableCell><StatusBadge status={r.status} /></TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {washLog.length > 200 && (
+            <p className="text-xs text-slate-400 mt-3 text-center">
+              Showing the first 200 of {washLog.length} - narrow the filters or date range to see more, or use Export for the full list.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

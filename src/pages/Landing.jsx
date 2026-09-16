@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/common/Logo";
 import SiteNav from "@/components/common/SiteNav";
+import FacebookIcon from "@/components/common/FacebookIcon";
 import {
   ChevronRight,
   Check,
@@ -800,6 +801,15 @@ export default function Landing() {
                   bgoshinehubltd@gmail.com
                 </li>
               </ul>
+              <a
+                href="https://www.facebook.com/profile.php?id=61594333501720"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="BGO Shine Hub on Facebook"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <FacebookIcon className="h-5 w-5" />
+              </a>
             </div>
 
             {/* Column 2 - Quick Links */}

@@ -14,7 +14,10 @@ export default defineConfig({
   },
 
   // Fix SPA 404s when running `npm run dev`
+  // Port pinned to 5183 to match CORS_ORIGIN in mpesa-server/whatsapp-server/app-data-server .env files.
   server: {
+    port: 5183,
+    strictPort: true,
     historyApiFallback: true,
   },
 

@@ -49,7 +49,9 @@ const SuperAdminRoute = ({ children }) => {
   if (isLoadingAuth) return <FullScreenLoader />;
 
   const role = user?.role || user?.user_role;
-  const isAdmin = role === "admin";
+  // Owners get full super-admin rights too (platform-wide, not just their
+  // own branch) - not just a super admin.
+  const isAdmin = role === "admin" || role === "owner";
 
   if (!isAdmin) return <Navigate to="/Dashboard" replace />;
 

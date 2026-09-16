@@ -411,7 +411,7 @@ export default function Settings() {
       // Derive backward-compat fields from members
       const ownerEmails = businessForm.members
         .filter((m) => m.role === "owner")
-        .map((m) => m.email);
+        .map((m) => m.email.toLowerCase());
 
       const adminEmails = businessForm.members
         .filter((m) => m.role === "manager")

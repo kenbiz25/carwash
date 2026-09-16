@@ -27,6 +27,7 @@ import {
   Building2,
   Check,
   Plus,
+  Percent,
 } from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
 
@@ -43,15 +44,16 @@ const ALL_MENU_ITEMS = [
   { icon: Car,             label: "Active Washes",        page: "Washes",              roles: ["owner", "manager", "staff", "cashier"] },
   { icon: ClipboardList,   label: "Job Orders",           page: "JobOrders",           roles: ["owner", "manager", "staff", "cashier"] },
   { icon: Banknote,        label: "Payments",             page: "Payments",            roles: ["owner", "manager", "cashier"] },
-  { icon: Users,           label: "Staff & Commissions",  page: "Staff",               roles: ["owner", "manager"] },
+  { icon: Users,           label: "Staff",                page: "Staff",               roles: ["owner", "manager"] },
   { icon: BookOpen,        label: "Services & Catalogue", page: "ProductCatalogue",    roles: ["owner", "manager"] },
+  { icon: Percent,         label: "Commissions",          page: "Commissions",         roles: ["owner", "manager"] },
   { icon: Package,         label: "Inventory",            page: "Inventory",           roles: ["owner", "manager"] },
   { icon: Heart,           label: "Loyalty & Members",    page: "Loyalty",             roles: ["owner", "manager", "cashier"] },
   { icon: FileText,        label: "Reports & Analytics",  page: "Reports",             roles: ["owner", "manager", "cashier"] },
   { icon: Crown,           label: "Subscriptions",        page: "Memberships",         roles: ["owner"] },
   { icon: Settings,        label: "Settings & Users",     page: "Settings",            roles: ["owner"] },
-  { icon: ShieldCheck,     label: "Super Admin",          page: "SuperAdminDashboard", roles: ["superadmin"] },
-  { icon: Plus,            label: "Create Business",      page: "CreateBusiness",      roles: ["superadmin"] },
+  { icon: ShieldCheck,     label: "Super Admin",          page: "SuperAdminDashboard", roles: ["superadmin", "owner"] },
+  { icon: Plus,            label: "Create Business",      page: "CreateBusiness",      roles: ["superadmin", "owner"] },
   { icon: HelpCircle,      label: "Help & Support",       page: "Help",                roles: ["superadmin", "owner", "manager", "staff", "cashier"] },
 ];
 

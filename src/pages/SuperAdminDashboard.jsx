@@ -34,8 +34,11 @@ export default function SuperAdminDashboard() {
     queryFn: () => api.auth.me(),
   });
 
-  // ✅ Support both shapes across your app
-  const isSuperAdmin = user?.role === "admin" || user?.user_role === "admin";
+  // ✅ Support both shapes across your app - owners carry full super-admin
+  // rights platform-wide too, not just a dedicated super admin.
+  const isSuperAdmin =
+    user?.role === "admin" || user?.user_role === "admin" ||
+    user?.role === "owner" || user?.user_role === "owner";
 
   const { data: allBusinesses = [], isLoading: loadingBusinesses } = useQuery({
     queryKey: ["all-businesses"],

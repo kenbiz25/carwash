@@ -26,6 +26,7 @@ import {
   Layers
 } from "@/lib/icons";
 import { toast } from "sonner";
+import { categoryStandard } from "@/lib/commissions";
 
 const categories = [
   { value: "exterior_wash", label: "Exterior Wash", icon: Droplets, description: "Basic to premium exterior cleaning" },
@@ -114,7 +115,7 @@ export default function Services() {
     price_suv: "",
     price_van: "",
     duration_minutes: "",
-    commission_percent: 10,
+    commission_override: "",
     requires_photo_proof: false,
     is_active: true
   });
@@ -151,7 +152,7 @@ export default function Services() {
         price_suv: service.price_suv || "",
         price_van: service.price_van || "",
         duration_minutes: service.duration_minutes || "",
-        commission_percent: service.commission_percent || 10,
+        commission_override: service.commission_override ?? "",
         requires_photo_proof: service.requires_photo_proof || false,
         is_active: service.is_active !== false
       });
@@ -159,7 +160,7 @@ export default function Services() {
       setEditingService(null);
       setFormData({
         name: "", category: "exterior_wash", description: "", price_kes: "",
-        price_suv: "", price_van: "", duration_minutes: "", commission_percent: 10,
+        price_suv: "", price_van: "", duration_minutes: "", commission_override: "",
         requires_photo_proof: false, is_active: true
       });
     }
@@ -174,7 +175,6 @@ export default function Services() {
       description: suggested.description || "",
       price_kes: suggested.price,
       duration_minutes: suggested.duration,
-      commission_percent: 10,
       is_package: suggested.isPackage || false,
       is_active: true
     });
@@ -196,7 +196,7 @@ export default function Services() {
       price_suv: formData.price_suv ? parseFloat(formData.price_suv) : null,
       price_van: formData.price_van ? parseFloat(formData.price_van) : null,
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-      commission_percent: parseFloat(formData.commission_percent)
+      commission_override: formData.commission_override === "" ? null : parseFloat(formData.commission_override)
     };
 
     if (editingService) {
@@ -367,7 +367,11 @@ export default function Services() {
                           {service.duration_minutes} min
                         </span>
                       )}
-                      <span>{service.commission_percent || 10}% commission</span>
+                      <span>
+                        {service.commission_override != null
+                          ? `${service.commission_override}% commission`
+                          : `${categoryStandard(service.category, business?.commission_standards)}% commission (standard)`}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2 mt-4">
@@ -535,11 +539,12 @@ export default function Services() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Commission (%)</Label>
+                <Label>Commission Override (%)</Label>
                 <Input
                   type="number"
-                  value={formData.commission_percent}
-                  onChange={(e) => setFormData({ ...formData, commission_percent: e.target.value })}
+                  placeholder={`Standard (${categoryStandard(formData.category, business?.commission_standards)}%)`}
+                  value={formData.commission_override}
+                  onChange={(e) => setFormData({ ...formData, commission_override: e.target.value })}
                 />
               </div>
             </div>

@@ -3,22 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, Award } from "@/lib/icons";
+import { commissionForWash, toServicesById } from "@/lib/commissions";
 
-export default function StaffPerformance({ staff = [], washes = [] }) {
+export default function StaffPerformance({ staff = [], washes = [], services = [], standards }) {
   const today = new Date().toDateString();
-  
+  const servicesById = toServicesById(services);
+
   // Calculate today's performance for each staff
   const staffPerformance = staff
     .filter(s => s.is_active !== false)
     .map(s => {
-      const todayWashes = washes.filter(w => 
-        w.assigned_staff_id === s.id && 
+      const todayWashes = washes.filter(w =>
+        w.assigned_staff_id === s.id &&
         new Date(w.created_date).toDateString() === today
       );
       const completedWashes = todayWashes.filter(w => ['done', 'paid'].includes(w.status));
       const earnings = completedWashes.reduce((sum, w) => {
-        const commission = (w.amount_due || 0) * ((s.commission_rate || 10) / 100);
-        return sum + commission;
+        return sum + commissionForWash(w, { staff: s, servicesById, standards });
       }, 0);
       
       return {

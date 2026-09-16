@@ -162,6 +162,7 @@ export default function Washes() {
     paused: washes.filter(w => w.status === "paused").length,
     done: washes.filter(w => w.status === "done").length,
     paid: washes.filter(w => w.status === "paid").length,
+    cancelled: washes.filter(w => w.status === "cancelled").length,
   };
 
   return (
@@ -204,7 +205,7 @@ export default function Washes() {
           </div>
           
           <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
-            <TabsList className="w-full md:w-auto grid grid-cols-3 sm:grid-cols-6">
+            <TabsList className="w-full md:w-auto grid grid-cols-3 sm:grid-cols-7">
               <TabsTrigger value="all" className="text-xs">
                 All ({statusCounts.all})
               </TabsTrigger>
@@ -222,6 +223,9 @@ export default function Washes() {
               </TabsTrigger>
               <TabsTrigger value="paid" className="text-xs">
                 Paid ({statusCounts.paid})
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" className="text-xs">
+                Cancelled ({statusCounts.cancelled})
               </TabsTrigger>
             </TabsList>
           </Tabs>

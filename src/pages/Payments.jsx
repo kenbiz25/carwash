@@ -17,13 +17,17 @@ import {
 } from "@/lib/icons";
 import StatusBadge from "@/components/common/StatusBadge";
 import StatCard from "@/components/common/StatCard";
+import DateRangeFilter from "@/components/common/DateRangeFilter";
 import moment from "moment";
 import { useBusiness } from "@/lib/BusinessContext";
+import { defaultDateRange, isWithinDateRange } from "@/lib/dateRange";
 
 export default function Payments() {
   const [methodFilter, setMethodFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateRange, setDateRange] = useState("today");
+  const [{ startDate, endDate }, setRange] = useState(() => defaultDateRange(7));
+  const setStartDate = (value) => setRange((r) => ({ ...r, startDate: value }));
+  const setEndDate = (value) => setRange((r) => ({ ...r, endDate: value }));
 
   const { currentBusiness: business } = useBusiness();
 
@@ -45,25 +49,8 @@ export default function Payments() {
     return { ...payment, wash };
   });
 
-  // Filter by date range
-  const getDateFilteredPayments = () => {
-    const now = moment();
-    return paymentsWithWash.filter(p => {
-      const paymentDate = moment(p.created_date);
-      switch (dateRange) {
-        case "today":
-          return paymentDate.isSame(now, "day");
-        case "week":
-          return paymentDate.isSame(now, "week");
-        case "month":
-          return paymentDate.isSame(now, "month");
-        default:
-          return true;
-      }
-    });
-  };
-
-  const dateFilteredPayments = getDateFilteredPayments();
+  // Filter by date range (inclusive of both endpoints)
+  const dateFilteredPayments = paymentsWithWash.filter(p => isWithinDateRange(p.created_date, startDate, endDate));
 
   // Filter by method and search
   const filteredPayments = dateFilteredPayments.filter(payment => {
@@ -82,12 +69,7 @@ export default function Payments() {
   const cashTotal = confirmedPayments.filter(p => p.method === "cash").reduce((sum, p) => sum + (p.amount || 0), 0);
   const cardTotal = confirmedPayments.filter(p => p.method === "card").reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const dateRangeLabels = {
-    today: "Today",
-    week: "This Week",
-    month: "This Month",
-    all: "All Time"
-  };
+  const rangeLabel = `${moment(startDate).format("MMM D")} - ${moment(endDate).format("MMM D")}`;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -100,14 +82,13 @@ export default function Payments() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Tabs value={dateRange} onValueChange={setDateRange}>
-            <TabsList>
-              <TabsTrigger value="today">Today</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
-              <TabsTrigger value="month">Month</TabsTrigger>
-              <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <DateRangeFilter
+            idPrefix="payments"
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+          />
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -118,7 +99,7 @@ export default function Payments() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title={`Total (${dateRangeLabels[dateRange]})`}
+          title={`Total (${rangeLabel})`}
           value={`KES ${totalRevenue.toLocaleString()}`}
           icon={TrendingUp}
           iconColor="text-brand-orange"

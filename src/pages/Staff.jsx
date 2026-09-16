@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import StaffSchedule from "@/components/schedule/StaffSchedule";
 import { useBusiness } from "@/lib/BusinessContext";
 import { listBusinessUsers } from "@/lib/userAdminClient";
+import { commissionForWash, toServicesById } from "@/lib/commissions";
 
 export default function Staff() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,7 +37,7 @@ export default function Staff() {
     phone: "",
     user_email: "",
     role: "washer",
-    commission_rate: 10,
+    commission_override: "",
     skills: []
   });
   const [saving, setSaving] = useState(false);
@@ -68,6 +69,13 @@ export default function Staff() {
     enabled: !!business?.id,
   });
 
+  const { data: services = [] } = useQuery({
+    queryKey: ["services", business?.id],
+    queryFn: () => api.entities.Service.filter({ business_id: business?.id }),
+    enabled: !!business?.id,
+  });
+  const servicesById = toServicesById(services);
+
   const { data: schedules = [], refetch: refetchSchedules } = useQuery({
     queryKey: ["schedules", business?.id],
     queryFn: () => api.entities.Schedule.filter({ business_id: business?.id }, "-date", 100),
@@ -75,12 +83,16 @@ export default function Staff() {
   });
 
   // Calculate staff performance
+  const standards = business?.commission_standards;
   const staffWithStats = staff.map(member => {
     const memberWashes = washes.filter(w => w.assigned_staff_id === member.id);
     const completedWashes = memberWashes.filter(w => ['done', 'paid'].includes(w.status));
     const totalRevenue = completedWashes.reduce((sum, w) => sum + (w.amount_due || 0), 0);
-    const totalCommission = totalRevenue * ((member.commission_rate || 10) / 100);
-    
+    const totalCommission = completedWashes.reduce(
+      (sum, w) => sum + commissionForWash(w, { staff: member, servicesById, standards }),
+      0
+    );
+
     return {
       ...member,
       washesCompleted: completedWashes.length,
@@ -102,12 +114,12 @@ export default function Staff() {
         phone: member.phone,
         user_email: member.user_email || "",
         role: member.role,
-        commission_rate: member.commission_rate || 10,
+        commission_override: member.commission_override ?? "",
         skills: member.skills || []
       });
     } else {
       setEditingStaff(null);
-      setFormData({ name: "", phone: "", user_email: "", role: "washer", commission_rate: 10, skills: [] });
+      setFormData({ name: "", phone: "", user_email: "", role: "washer", commission_override: "", skills: [] });
     }
     setDialogOpen(true);
   };
@@ -119,13 +131,18 @@ export default function Staff() {
     }
 
     setSaving(true);
-    
+
+    const payload = {
+      ...formData,
+      commission_override: formData.commission_override === "" ? null : Number(formData.commission_override),
+    };
+
     if (editingStaff) {
-      await api.entities.Staff.update(editingStaff.id, formData);
+      await api.entities.Staff.update(editingStaff.id, payload);
       toast.success("Staff member updated");
     } else {
       await api.entities.Staff.create({
-        ...formData,
+        ...payload,
         business_id: business.id,
         is_active: true,
         total_washes: 0,
@@ -165,10 +182,12 @@ export default function Staff() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff & Commissions</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff</h1>
           <p className="text-slate-500 dark:text-slate-400">
-            Track who does the washing, their schedule, and their commission - not the same as who
-            can sign in (that's My Business → Team).
+            Track who does the washing, their schedule, and what they've earned - not the same as
+            who can sign in (that's My Business → Team). Standard commission rates and per-service
+            overrides live on the Commissions page; set a per-employee override below only when this
+            person's rate should differ from that.
           </p>
         </div>
         <Button 
@@ -277,7 +296,7 @@ export default function Staff() {
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-emerald-600">
-                        {member.commission_rate || 10}%
+                        {member.commission_override != null ? `${member.commission_override}%` : "Standard"}
                       </p>
                       <p className="text-xs text-slate-500">Commission</p>
                     </div>
@@ -399,14 +418,18 @@ export default function Staff() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Commission Rate (%)</Label>
+                <Label>Commission Override (%)</Label>
                 <Input
                   type="number"
                   min="0"
                   max="100"
-                  value={formData.commission_rate}
-                  onChange={(e) => setFormData({ ...formData, commission_rate: parseInt(e.target.value) || 0 })}
+                  placeholder="Standard rate"
+                  value={formData.commission_override}
+                  onChange={(e) => setFormData({ ...formData, commission_override: e.target.value })}
                 />
+                <p className="text-xs text-slate-500">
+                  Leave blank to use the standard/per-service rates set on the Commissions page.
+                </p>
               </div>
             </div>
             <Button 
