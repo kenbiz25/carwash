@@ -1,13 +1,46 @@
-# BGO WhatsApp Server
+# BGO Combined Server
 
-A small standalone backend that sends customer notifications over WhatsApp
-via Meta's WhatsApp Cloud API - separate from the main app because it holds
-a real access token that must never reach the browser, and because Meta
-needs a public webhook to call with delivery statuses and incoming replies.
+Originally just the WhatsApp notification backend - now also runs what used
+to be `user-admin-server` (staff login admin, via `/api/users`) and
+`app-data-server` (the shared MySQL data store, via `/api/data`,
+`/api/vision`, `/api/public`), merged into this one process.
 
-The main app (`NotificationService.jsx`, via `src/lib/whatsappClient.js`)
-calls this server; this server calls Meta; Meta calls this server back on
-the webhook with delivery status.
+## Why one process
+
+cPanel's Node.js App Manager (Phusion Passenger) counts each app against the
+account's overall process limit. Running four separate apps
+(`mpesa-server`, `whatsapp-server`, `user-admin-server`, `app-data-server`)
+maxed that limit out with plenty of headroom left on memory/disk/bandwidth -
+the process count was the actual bottleneck, not resources money would fix.
+`mpesa-server` stays separate since it handles time-sensitive Safaricom
+payment callbacks and shouldn't share fate with the others; the other three
+were merged here, cutting 4 cPanel Node apps down to 2.
+
+Each half keeps its own code and route prefix exactly as it had before the
+merge - `src/userAdmin/` and `src/appData/` mirror the old
+`user-admin-server/src/` and `app-data-server/src/` folders almost file for
+file. The only real change is a single shared `src/firebaseAdmin.js` (both
+halves used to call `admin.initializeApp()` independently, which throws
+"default app already exists" the moment they're loaded into the same
+process) and one combined `index.js` mounting all the route sets.
+
+## What it does
+
+- **WhatsApp** (`/api/whatsapp/*`) - sends customer notifications over
+  Meta's WhatsApp Cloud API. Holds a real access token that must never reach
+  the browser, and Meta needs a public webhook here for delivery statuses
+  and incoming replies.
+- **Staff login admin** (`/api/users/*`) - lets owners/managers/super admins
+  create staff logins, reset passwords, and assign branch/role, using the
+  Firebase Admin SDK (also never safe in the browser).
+- **App data** (`/api/data`, `/api/vision`, `/api/public`) - every business
+  record (washes, payments, staff, services, inventory) in a real shared
+  MySQL database, plus the "scan vehicle photo" vision endpoint and the
+  public wash-tracking page.
+
+The main app calls all three route groups directly; this server calls Meta,
+Firebase, MySQL, and OpenAI in turn; Meta calls this server back on the
+webhook with delivery status.
 
 ## Running it
 
@@ -18,9 +51,10 @@ npm run dev      # or: npm start
 ```
 
 Runs on `http://localhost:4031` by default (see `.env` → `PORT`). The main
-app's `.env` has `VITE_WHATSAPP_API_URL` pointing at it - keep those in sync
-if you change the port. Both the Vite dev server and this one need to be
-running for WhatsApp notifications to actually send.
+app's `.env` has `VITE_WHATSAPP_API_URL`, `VITE_USER_ADMIN_API_URL`, and
+`VITE_APP_DATA_API_URL` all pointing at it now - keep those in sync if you
+change the port. Both the Vite dev server and this one need to be running
+for WhatsApp notifications, staff login admin, and app data to work.
 
 ## Modes (`WHATSAPP_ENV` in `.env`)
 
@@ -76,15 +110,26 @@ Create and get templates approved in Meta's WhatsApp Manager, then call
 - `GET /api/whatsapp/status/:id` - status of one sent message.
 - `GET /api/whatsapp/messages` - recent sends, for debugging.
 - `GET`/`POST /api/whatsapp/webhook` - Meta calls this, not the frontend.
-- `GET /health` - `{ ok: true, whatsappEnv }`.
+- `POST /api/users/*` - staff login create/reset/assign (see
+  `src/userAdmin/routes/users.js`). Needs `Authorization: Bearer <idToken>`.
+- `GET`/`POST`/`PUT`/`DELETE /api/data/*` - shared business records (see
+  `src/appData/routes/data.js`). Needs `Authorization: Bearer <idToken>`.
+- `POST /api/vision/*` - "scan vehicle photo" auto-fill.
+- `GET /api/public/*` - public wash-tracking page, no auth (rate-limited per IP).
+- `GET /health` - `{ ok, whatsappEnv, adminConfigured, dbConfigured }`.
 
 ## Notes / limitations
 
-- Messages are kept in memory (`src/messageStore.js`) - restarting this
-  server drops history. Swap for a real table if this needs to survive
-  restarts reliably.
-- No auth on these endpoints yet - same caveat as `mpesa-server`: fine
+- WhatsApp messages are kept in memory (`src/messageStore.js`) - restarting
+  this server drops that history. Swap for a real table if this needs to
+  survive restarts reliably. App data (`/api/data`) is in real MySQL and
+  survives restarts fine.
+- No auth on `/api/whatsapp/*` yet - same caveat as `mpesa-server`: fine
   behind a private network / talking only to this one frontend, add an API
-  key before exposing it publicly.
+  key before exposing it publicly. `/api/users/*` and `/api/data/*` already
+  require a valid Firebase sign-in token.
 - Incoming customer replies are logged, not acted on - there's no reply/chat
   UI built on top of this yet.
+- `user-admin-server/` and `app-data-server/` still exist in the repo as of
+  this merge but are no longer deployed - kept only until the combined
+  server here is verified working in production, then safe to delete.

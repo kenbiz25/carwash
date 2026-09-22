@@ -3,15 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Standalone WhatsApp (Meta Cloud API) notification backend for BGO Shine Hub - keeps the access token off the browser, and gives Meta a webhook to call.",
+  "description": "Combined backend for BGO Shine Hub - WhatsApp (Meta Cloud API) notifications, staff login admin (Firebase Admin SDK), and the shared MySQL app data store. Merged from three separate servers into one process to stay within cPanel's process-count limit; see README.md.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "seed": "node seed-cli.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "firebase-admin": "^12.6.0",
+    "mysql2": "^3.11.3"
   }
 }

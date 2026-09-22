@@ -1,9 +1,10 @@
 # BGO Shine Hub
 
-A React + Vite web app for managing BGO Shine Hub's car wash operations - job
-orders, staff, inventory, services, memberships, loyalty, payments, and
-reporting - plus a public site and customer portal for booking and checking
-wash history.
+A React + Vite web app for managing BGO Shine Hub's car wash operations -
+active washes (including a per-m² carpet-cleaning workflow), staff,
+inventory, services, memberships, loyalty, payments, expenses, and reporting
+- plus a public site and customer portal for booking and checking wash
+history.
 
 **Business**: BGO Shine Hub, Njiru, Nairobi (plus Kayole and Utawala
 branches). Professional car wash, interior cleaning, engine greasing and air
@@ -26,22 +27,27 @@ freshening - **open 24 hours a day, 7 days a week**. Production domain:
 
 ## Architecture at a glance
 
-One frontend, one shared database, four small standalone backends - each
-its own folder with its own `package.json`, `.env`, and `README.md`:
+One frontend, one shared database, two small standalone backends - each its
+own folder with its own `package.json`, `.env`, and `README.md`:
 
-| Backend              | What it's for                                               |
-| -------------------- | ----------------------------------------------------------- |
-| `app-data-server/`   | Every business record - the real MySQL database             |
-| `user-admin-server/` | Creating staff logins, resetting passwords, assigning roles |
-| `mpesa-server/`      | M-Pesa STK Push payments                                    |
-| `whatsapp-server/`   | Customer WhatsApp notifications                             |
+| Backend            | What it's for                                                                                                                                                                                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mpesa-server/`    | M-Pesa STK Push payments - kept separate since it handles time-sensitive Safaricom callbacks                                                                                                                                                        |
+| `whatsapp-server/` | Combined server: customer WhatsApp notifications, staff login admin (was `user-admin-server`), and every business record in the real MySQL database (was `app-data-server`) - merged into one process to stay within cPanel's Node.js App process limit without paying for more resources; see `whatsapp-server/README.md` → "Why one process" |
+
+`user-admin-server/` and `app-data-server/` still exist as folders in this
+repo but are no longer deployed - their code now lives under
+`whatsapp-server/src/userAdmin/` and `whatsapp-server/src/appData/`
+respectively.
 
 Their source is tracked in this repo, but each one's `.env` is gitignored,
 since that's where its real secret ends up once configured (a database
 password, a Firebase service account key, payment provider credentials, or a
 Meta access token) - those must never reach the browser or a public repo. The
-frontend talks to all four over plain HTTP, each pointed at by its own
-`VITE_*_API_URL` in `.env`.
+frontend talks to both over plain HTTP, each pointed at by its own
+`VITE_*_API_URL` in `.env` (all three of `VITE_WHATSAPP_API_URL`,
+`VITE_USER_ADMIN_API_URL`, and `VITE_APP_DATA_API_URL` now point at the same
+`whatsapp-server` host).
 
 ## Getting started
 
@@ -52,22 +58,21 @@ npm run dev
 
 The dev server runs at the URL Vite prints (default `http://localhost:5173`,
 often reassigned to another port if that one's busy). On its own this shows
-the UI, but **no data will load** until `app-data-server` is also running
+the UI, but **no data will load** until `whatsapp-server` is also running
 against a real database - there's no more browser-storage fallback:
 
 ```bash
-cd app-data-server && npm install && cp env.example .env
-# fill in .env with your MySQL credentials, then:
+cd whatsapp-server && npm install && cp env.example .env
+# fill in .env with your MySQL credentials (and WhatsApp/Firebase ones, as needed), then:
 npm run dev
 ```
 
-To create staff logins / manage roles, take M-Pesa payments, or send
-WhatsApp notifications, also run those backends the same way:
+This one process now also handles staff logins/roles and WhatsApp
+notifications (see its README's "Why one process"). To take M-Pesa
+payments, also run that backend the same way:
 
 ```bash
-cd user-admin-server && npm install && cp env.example .env && npm run dev
-cd mpesa-server        && npm install && cp env.example .env && npm run dev
-cd whatsapp-server      && npm install && cp env.example .env && npm run dev
+cd mpesa-server && npm install && cp env.example .env && npm run dev
 ```
 
 Each has its own README with full setup details.
@@ -75,9 +80,9 @@ Each has its own README with full setup details.
 ### Environment
 
 Copy `.env` and fill in the Google Maps API key used for location
-autocomplete in Settings / Business Manager, and each backend's
-`VITE_*_API_URL` if you've changed its port. Firebase Auth config is inline
-in `src/lib/firebase.js` (project: `njiru-carwash`).
+autocomplete in Settings & Users, and each backend's `VITE_*_API_URL` if
+you've changed its port. Firebase Auth config is inline in
+`src/lib/firebase.js` (project: `njiru-carwash`).
 
 ### Test / demo accounts
 
@@ -98,8 +103,8 @@ set (see `scripts/create-super-admin.mjs` and "Staff logins & sign-in
 methods" below) - a fresh, unseeded database on its own doesn't grant any
 role to any account.
 
-To add a new staff login, use **My Business → Team → Staff Logins** as an
-owner/manager/super admin. To grant a brand new super admin (there's no
+To add a new staff login, use **Settings & Users → Team → Staff Logins** as
+an owner/manager/super admin. To grant a brand new super admin (there's no
 in-app way to create the first one), see the next section.
 
 ### Creating a super admin
@@ -107,7 +112,7 @@ in-app way to create the first one), see the next section.
 ```bash
 SUPER_ADMIN_EMAIL=you@example.com \
 SUPER_ADMIN_PASSWORD='...' \
-FIREBASE_SERVICE_ACCOUNT_JSON='<same value as user-admin-server/.env>' \
+FIREBASE_SERVICE_ACCOUNT_JSON='<same value as whatsapp-server/.env>' \
 VITE_FIREBASE_API_KEY=<from the repo root .env> \
 node scripts/create-super-admin.mjs
 ```
@@ -133,17 +138,20 @@ during development - not part of the running app.
 
 ```text
 src/
-  pages/       route-level views (Dashboard, JobOrders, Staff, Inventory, ...)
+  pages/       route-level views (Dashboard, Washes, Expenses, Staff, Inventory, ...)
   components/  shared UI components
   api/         data access layer (firebaseClient.js - same interface, backed by localDb)
   hooks/       shared React hooks
   lib/         localDb (app-data-server client), Firebase Auth, utilities
 public/img/    logo assets - main.png (full logo) and meta.png (icon mark, used for
                favicon and social/meta previews)
-app-data-server/    MySQL-backed data API - see its own README
-user-admin-server/  staff logins, password resets, role assignment - see its own README
 mpesa-server/       M-Pesa STK Push - see its own README
-whatsapp-server/    WhatsApp notifications - see its own README
+whatsapp-server/    Combined server - WhatsApp, staff login admin, and the
+                    MySQL-backed data API - see its own README
+app-data-server/    No longer deployed - code now lives under
+                    whatsapp-server/src/appData/, kept here until verified
+user-admin-server/  No longer deployed - code now lives under
+                    whatsapp-server/src/userAdmin/, kept here until verified
 ```
 
 ## Roles
@@ -158,10 +166,13 @@ branch.
 
 ### What each role can do
 
-Enforcement today is at the navigation level (a role that can't see a link
-in the sidebar has no in-app way to reach that page) - see "Multi-branch &
-data isolation" below for how records themselves stay scoped to one branch
-regardless of who's looking.
+Enforcement is mostly at the navigation level (a role that can't see a link
+in the sidebar has no in-app way to reach that page), but a few
+higher-stakes actions are also gated in the page itself so they can't be
+reached by URL either - starting a wash, adjusting a price, and the whole
+Expenses page all check `canManageBusiness()` (`src/lib/permissions.js`)
+directly. See "Multi-branch & data isolation" below for how records
+themselves stay scoped to one branch regardless of who's looking.
 
 | Area                         | Superadmin | Owner | Manager | Cashier | Staff |
 | ---------------------------- | :--------: | :---: | :-----: | :-----: | :---: |
@@ -170,21 +181,29 @@ regardless of who's looking.
 | Create a new branch          |     ✅     |  ✅   |   ❌    |   ❌    |  ❌   |
 | Edit branch info / manage team, invites | ❌ |  ✅   |   ✅    |   ❌    |  ❌   |
 | Create/manage staff logins    |     ✅     |  ✅   |   ✅    |   ❌    |  ❌   |
-| Active Washes / Job Orders (view + check in vehicles) | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Active Washes board (view + check in vehicles) | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Start a wash (waiting -> washing) | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Pause or delete a started wash (with a reason) | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Adjust a wash/carpet-item price (with a reason) | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Assign staff to a job         |     ❌     |  ✅   |   ✅    |   ✅    |  ❌   |
 | Record a payment              |     ❌     |  ✅   |   ✅    |   ✅    |  ❌   |
 | View payments ledger          |     ❌     |  ✅   |   ✅    |   ✅    |  ❌   |
 | Staff & Commissions (add/edit/pay staff) | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Services & Catalogue (edit prices) | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Expenses (record + report, PDF/Excel export) | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Inventory                     |     ❌     |  ✅   |   ✅    |   ❌    |  ❌   |
 | Loyalty & Members             |     ❌     |  ✅   |   ✅    |   ✅    |  ❌   |
 | Reports & Analytics           |     ❌     |  ✅   |   ✅    |   ✅    |  ❌   |
 | Subscriptions / membership plans | ❌      |  ✅   |   ❌    |   ❌    |  ❌   |
-| Settings & Users              |     ❌     |  ✅   |   ❌    |   ❌    |  ❌   |
+| Settings & Users (business info, team, M-Pesa till, notifications, locations) | ❌ | ✅ | ✅ | ❌ | ❌ |
 
 ¹ Superadmin lands on the Super Admin dashboard, not a branch dashboard - a
 superadmin has no branch membership of their own to show one for.
+
+Staff (washers) can check vehicles in and mark a wash done once it's
+started, but starting the wash itself, pausing/deleting it, and adjusting
+its price are all manager+ actions - deliberate, see "Wash workflow" below,
+not a gap to fix.
 
 Staff get a restricted dashboard focused on their own assigned jobs and
 today's washes rather than branch-wide figures; cashiers get a
@@ -200,10 +219,10 @@ Login accepts four things in one field: a real email, a Google account, a
 manager-issued **username**, or a manager-issued **phone number**.
 
 - **Owners** self-serve as before - sign up (email or Google) and set up
-  their own business from Settings.
+  their own business from Settings & Users.
 - **Staff** either sign in with the username or phone number their
-  manager/owner/super admin gave them (created from **My Business → Team →
-  Staff Logins**, which also resets anyone's password directly - there's no
+  manager/owner/super admin gave them (created from **Settings & Users →
+  Team → Staff Logins**, which also resets anyone's password directly - there's no
   self-service reset for these, since there's no real inbox behind a
   username or phone login), or sign in with Google directly - a first-time
   Google sign-in with no invite pending lands in a "pending" state until a
@@ -213,8 +232,9 @@ manager-issued **username**, or a manager-issued **phone number**.
 The role and branch travel as a Firebase custom claim on the account
 itself, so they apply the moment that person signs in **on any device**,
 not just the one they were created on - this is powered by
-`user-admin-server/`, which holds the Firebase service account key these
-privileged actions need. Unlike the other backends, there's no mock mode
+`whatsapp-server/src/userAdmin/` (formerly the standalone
+`user-admin-server/`), which holds the Firebase service account key these
+privileged actions need. Unlike the other route groups, there's no mock mode
 for it: the accounts it creates must be real Firebase Auth accounts for
 that person to actually log in.
 
@@ -222,7 +242,7 @@ that person to actually log in.
 
 Each branch (Njiru, Kayole, Utawala, or any new one) is its own `business`
 record with its own `id`. Every operational record - washes, payments,
-staff, services, job orders, loyalty customers - carries a `business_id`
+staff, services, expenses, loyalty customers - carries a `business_id`
 tying it to exactly one branch, and every page resolves "which branch am I
 looking at" through a single hook, `useBusiness()`
 (`src/lib/BusinessContext.jsx`). There's no page that reads a different,
@@ -242,13 +262,43 @@ created; see `src/pages/BranchPage.jsx`.
 
 ## Wash workflow
 
-Check-in → Start Washing → Mark Done → Process Payment. Once a wash has
-started, pausing it or deleting it both require a reason and are
-owner/manager-only (staff can't unilaterally abandon or erase a job they
-started) - see `src/pages/WashDetails.jsx` / `src/pages/Washes.jsx`. A
-paused wash stays visible in every active-work list until resumed; a
-deleted (cancelled) wash is a soft delete - it stays on record for audit,
-but is excluded from wash-count and revenue totals everywhere in the app.
+Check-in -> Start Washing -> Mark Done -> Process Payment. Staff (washers)
+can check a vehicle in and mark it done once it's underway, but **starting**
+a wash is owner/manager-only - keeps a washer from jumping the queue or
+starting work that was never actually assigned. Once a wash has started,
+pausing or deleting it also both require a reason and are owner/manager-only
+(staff can't unilaterally abandon or erase a job they started) - see
+`src/pages/WashDetails.jsx` / `src/pages/Washes.jsx` /
+`src/components/wash/WashCard.jsx`. A paused wash stays visible in every
+active-work list until resumed; a deleted (cancelled) wash is a soft delete
+- it stays on record for audit, but is excluded from wash-count and revenue
+totals everywhere in the app.
+
+**Active Washes board** (`src/pages/Washes.jsx`) is a Kanban layout - one
+column per status (Waiting, Washing, Paused, Done, Paid, Cancelled), each
+sized to its own content so a quiet column doesn't reserve empty space. It
+defaults to showing today's washes only (a date picker switches to any
+other day, or "All dates").
+
+**Carpet / rug cleaning** is a second check-in type alongside vehicles
+(`src/components/wash/EnhancedCheckIn.jsx`), priced by area rather than a
+flat rate: staff add one row per carpet with its length and width in
+metres, pick a material (a catalogue service with `category: "carpet_wash"`
+and `pricing_kind: "unit"`), and the price is area x that material's
+per-m² rate, snapshotted onto the wash at check-in time so a later catalogue
+rate change doesn't retroactively alter historical jobs. A manager can still
+override a computed line price with a reason, same as a vehicle service.
+
+## Expenses
+
+`src/pages/Expenses.jsx` (owner/manager only) records petty-cash-style
+business expenses - date, amount, category, note, and which till/account it
+came out of - separately from sales. Its report shares the same
+Today/Week/Month/custom date-range pattern as Payments and Reports, and
+shows Sales, Expenses, and Net side by side for the selected range, plus a
+by-category breakdown and the full expense log. Exports to PDF
+(`jspdf`/`html2canvas`, same page-slicing approach as Reports' full-page
+export) and to Excel (`xlsx`, added specifically for this).
 
 ## M-Pesa
 
@@ -306,34 +356,38 @@ disallowed. Update both if branches or public routes change.
 
 ## Hosting
 
-The frontend build (`dist/`) and the four standalone backends are all meant
+The frontend build (`dist/`) and the two standalone backends are all meant
 to run under cPanel - each backend already reads its port from
 `process.env`, matching cPanel's Node.js App Manager (Phusion Passenger),
 which assigns the port itself and expects an `index.js` entry point.
 
-Suggested layout - one subdomain per backend, each set up as its own cPanel
-Node.js App pointed at that folder's `index.js`:
+Layout - one subdomain per backend, each set up as its own cPanel Node.js
+App pointed at that folder's `index.js`:
 
-| App                 | Suggested (sub)domain        |
-| -------------------- | ----------------------------- |
-| Frontend (`dist/`)   | `bgoshinehub.co.ke`          |
-| `mpesa-server`       | `mpesa.bgoshinehub.co.ke`    |
-| `whatsapp-server`    | `whatsapp.bgoshinehub.co.ke` |
-| `user-admin-server`  | `users.bgoshinehub.co.ke`    |
-| `app-data-server`    | `data.bgoshinehub.co.ke`     |
+| App                | Suggested (sub)domain        |
+| ------------------ | ----------------------------- |
+| Frontend (`dist/`) | `bgoshinehub.co.ke`          |
+| `mpesa-server`     | `mpesa.bgoshinehub.co.ke`    |
+| `whatsapp-server`  | `whatsapp.bgoshinehub.co.ke` (combined - also serves what used to be `users.` and `data.`) |
+
+`user-admin-server` and `app-data-server` used to each get their own
+subdomain (`users.bgoshinehub.co.ke`, `data.bgoshinehub.co.ke`) - both were
+merged into `whatsapp-server` (see its README's "Why one process") to stay
+within cPanel's Node.js App process limit, so those two subdomains/cPanel
+apps can be decommissioned once the combined app is verified working.
 
 `.env.production` at the repo root already points the frontend's
 `VITE_*_API_URL` vars at these - update it if you use different
-subdomains/paths. Each backend's own `.env` (not `env.example`) needs
+subdomains/paths. The backend's own `.env` (not `env.example`) needs
 `CORS_ORIGIN=https://bgoshinehub.co.ke` in production.
 
-For `app-data-server` specifically: create the MySQL database and a user
-via cPanel's MySQL Database Wizard first (see its README for the exact
-steps) - a fresh database starts genuinely empty by default (no demo data
-loaded), so real production data can never get mixed up with test data. The
-demo Njiru/Kayole/Utawala dataset only loads if you explicitly ask for it
-(`SEED_DEMO_DATA=true` or `npm run seed` inside that folder), for a
-throwaway QA/staging database.
+For the MySQL side specifically: create the database and a user via
+cPanel's MySQL Database Wizard first (see `whatsapp-server/README.md` for
+the exact steps) - a fresh database starts genuinely empty by default (no
+demo data loaded), so real production data can never get mixed up with test
+data. The demo Njiru/Kayole/Utawala dataset only loads if you explicitly ask
+for it (`SEED_DEMO_DATA=true` or `npm run seed` inside `whatsapp-server/`),
+for a throwaway QA/staging database.
 
 One more manual step for Google sign-in to work on the live domain: Firebase
 Console → Authentication → Settings → **Authorized domains** → add

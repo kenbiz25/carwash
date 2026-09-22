@@ -15,7 +15,7 @@ function receiptNumber(payment) {
   return `RCP-${(payment?.id || "").replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
-export default function Receipt({ wash, payment, businessId, open, onOpenChange }) {
+export default function Receipt({ wash, payment, businessId, open, onOpenChange, title = "Payment Successful" }) {
   const { data: business } = useQuery({
     queryKey: ["business", businessId],
     queryFn: async () => (await api.entities.Business.filter({ id: businessId }))[0],
@@ -26,7 +26,7 @@ export default function Receipt({ wash, payment, businessId, open, onOpenChange 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm print:shadow-none print:border-0">
+      <DialogContent className="sm:max-w-sm print:shadow-none print:border-0 print:static print:left-0 print:top-0 print:translate-x-0 print:translate-y-0 print:m-0 print:p-0 print:w-auto print:max-w-none">
         <style>{`
           @media print {
             /* Matches the shop's 80mm thermal receipt printer (72mm
@@ -39,10 +39,30 @@ export default function Receipt({ wash, payment, businessId, open, onOpenChange 
             @page { size: 72mm auto; margin: 0; }
             body * { visibility: hidden; }
             #receipt-printable, #receipt-printable * { visibility: visible; }
+            /*
+              The dialog itself is position: fixed plus a centering
+              transform (see DialogContent in ui/dialog.jsx), which makes
+              it the containing block for any position: absolute
+              descendant. Without the print:static/left-0/top-0/translate-0
+              overrides on the DialogContent className above,
+              #receipt-printable below ends up positioned relative to that
+              centered dialog box instead of the page - which is why the
+              printout used to start partway down the page instead of at
+              the top.
+            */
             #receipt-printable {
               position: absolute; top: 0; left: 0;
               width: 72mm; margin: 0; padding: 3mm 4mm;
-              font-size: 11px;
+              font-size: 12px;
+              font-family: "Times New Roman", Times, serif;
+            }
+            /* Thermal printers often drop light/thin strokes entirely, so
+               force every line to bold black text regardless of the
+               Tailwind color/weight utilities used for screen display. */
+            #receipt-printable * {
+              font-family: "Times New Roman", Times, serif !important;
+              font-weight: 700 !important;
+              color: #000 !important;
             }
           }
         `}</style>
@@ -50,7 +70,7 @@ export default function Receipt({ wash, payment, businessId, open, onOpenChange 
         <DialogHeader className="print:hidden">
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-emerald-600" />
-            Payment Successful
+            {title}
           </DialogTitle>
         </DialogHeader>
 
@@ -71,6 +91,14 @@ export default function Receipt({ wash, payment, businessId, open, onOpenChange 
           </div>
 
           <div className="border-t border-dashed border-slate-300 pt-2 space-y-1">
+            {wash.type === "carpet" && (wash.carpet_items || []).map((item, i) => (
+              <div key={item.id || `carpet-${i}`} className="flex justify-between">
+                <span className="truncate pr-2">
+                  {item.material_name || "Carpet"} ({item.area_sqm} m²)
+                </span>
+                <span className="flex-shrink-0">{(item.price || 0).toLocaleString()}</span>
+              </div>
+            ))}
             {(wash.services || []).map((s, i) => (
               <div key={i} className="flex justify-between">
                 <span className="truncate pr-2">{s.name}</span>

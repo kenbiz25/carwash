@@ -88,7 +88,7 @@ export default function DashboardEmptyState() {
       <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md">
         Set up your car wash business to start tracking washes, managing staff, and collecting payments.
       </p>
-      <Link to={createPageUrl("Settings")}>
+      <Link to={createPageUrl("BusinessManager")}>
         <Button variant="gradient">
           <Plus className="h-4 w-4 mr-2" />
           Set Up My Business

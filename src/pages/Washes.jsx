@@ -1,25 +1,41 @@
 ﻿import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import moment from "moment";
 import { api } from "@/api/firebaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, RefreshCw, Car, Loader2 } from "@/lib/icons";
+import { Search, RefreshCw, Car, Loader2, Calendar } from "@/lib/icons";
 import WashCard from "@/components/wash/WashCard";
 import QuickCheckIn from "@/components/wash/QuickCheckIn";
 import PaymentDialog from "@/components/payment/PaymentDialog";
 import { notifyInApp, sendWashReadyNotification, sendWashingStartedNotification } from "@/components/notifications/NotificationService";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
+import { canManageBusiness } from "@/lib/permissions";
+
+// Kanban columns, left to right in workflow order - Paid/Cancelled are
+// terminal states so they're visually de-emphasized rather than removed
+// (still useful to glance at without leaving the board).
+const KANBAN_COLUMNS = [
+  { key: "waiting", label: "Waiting", accent: "border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-900/10" },
+  { key: "washing", label: "Washing", accent: "border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-900/10" },
+  { key: "paused", label: "Paused", accent: "border-orange-200 dark:border-orange-900/50 bg-orange-50/60 dark:bg-orange-900/10" },
+  { key: "done", label: "Done", accent: "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-900/10" },
+  { key: "paid", label: "Paid", accent: "border-green-200 dark:border-green-900/50 bg-green-50/40 dark:bg-green-900/10" },
+  { key: "cancelled", label: "Cancelled", accent: "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40" },
+];
 
 export default function Washes() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  // Defaults to today so the board opens on what's actually happening right
+  // now - "" means "all dates", for pulling up a past day's jobs.
+  const [dateFilter, setDateFilter] = useState(moment().format("YYYY-MM-DD"));
   const [selectedWash, setSelectedWash] = useState(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [finishingWash, setFinishingWash] = useState(null);
@@ -32,13 +48,7 @@ export default function Washes() {
 
   // Once a job has left "waiting", pausing or deleting it (with a reason) is
   // a manager-level call - see WashDetails.jsx for the full rationale.
-  const email = user?.email?.toLowerCase();
-  const memberRole = business?.members?.find((m) => m.email?.toLowerCase() === email)?.role;
-  const canManageWashes =
-    business?.owner_email?.toLowerCase() === email ||
-    ["owner", "manager"].includes(memberRole) ||
-    business?.admin_emails?.some((e) => e?.toLowerCase() === email) ||
-    user?.role === "admin";
+  const canManageWashes = canManageBusiness(user, business);
 
   const { data: washes = [], refetch } = useQuery({
     queryKey: ["washes", business?.id],
@@ -148,22 +158,18 @@ export default function Washes() {
   };
 
   const filteredWashes = washes.filter((wash) => {
-    const matchesStatus = statusFilter === "all" || wash.status === statusFilter;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       wash.plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       wash.customer_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+    const matchesDate = !dateFilter ||
+      moment(wash.entry_time || wash.created_date).format("YYYY-MM-DD") === dateFilter;
+    return matchesSearch && matchesDate;
   });
 
-  const statusCounts = {
-    all: washes.length,
-    waiting: washes.filter(w => w.status === "waiting").length,
-    washing: washes.filter(w => w.status === "washing").length,
-    paused: washes.filter(w => w.status === "paused").length,
-    done: washes.filter(w => w.status === "done").length,
-    paid: washes.filter(w => w.status === "paid").length,
-    cancelled: washes.filter(w => w.status === "cancelled").length,
-  };
+  const columns = KANBAN_COLUMNS.map((col) => ({
+    ...col,
+    washes: filteredWashes.filter((w) => w.status === col.key),
+  }));
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -203,75 +209,88 @@ export default function Washes() {
               className="pl-9"
             />
           </div>
-          
-          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full md:w-auto">
-            <TabsList className="w-full md:w-auto grid grid-cols-3 sm:grid-cols-7">
-              <TabsTrigger value="all" className="text-xs">
-                All ({statusCounts.all})
-              </TabsTrigger>
-              <TabsTrigger value="waiting" className="text-xs">
-                Waiting ({statusCounts.waiting})
-              </TabsTrigger>
-              <TabsTrigger value="washing" className="text-xs">
-                Washing ({statusCounts.washing})
-              </TabsTrigger>
-              <TabsTrigger value="paused" className="text-xs">
-                Paused ({statusCounts.paused})
-              </TabsTrigger>
-              <TabsTrigger value="done" className="text-xs">
-                Done ({statusCounts.done})
-              </TabsTrigger>
-              <TabsTrigger value="paid" className="text-xs">
-                Paid ({statusCounts.paid})
-              </TabsTrigger>
-              <TabsTrigger value="cancelled" className="text-xs">
-                Cancelled ({statusCounts.cancelled})
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-slate-400 flex-shrink-0" />
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-auto"
+            />
+            {dateFilter && (
+              <Button variant="ghost" size="sm" onClick={() => setDateFilter("")}>
+                All dates
+              </Button>
+            )}
+            {!dateFilter && (
+              <Button variant="ghost" size="sm" onClick={() => setDateFilter(moment().format("YYYY-MM-DD"))}>
+                Today
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
 
-      {/* Washes List */}
-      <div className="space-y-3">
-        {filteredWashes.length === 0 ? (
-          <Card className="p-12 text-center bg-white dark:bg-slate-800 border-0 shadow-sm">
-            <Car className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-              No washes found
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 mb-4">
-              {searchQuery || statusFilter !== "all" 
-                ? "Try adjusting your filters" 
-                : "Check in your first vehicle to get started"}
-            </p>
-            {!searchQuery && statusFilter === "all" && (
-              <QuickCheckIn
-                businessId={business?.id}
-                services={services}
-                staff={staff}
-                user={user}
-                business={business}
-                onSuccess={refetch}
-              />
-            )}
-          </Card>
-        ) : (
-          filteredWashes.map((wash) => (
-            <WashCard
-              key={wash.id}
-              wash={wash}
-              onStatusChange={handleStatusChange}
-              onPayment={handlePayment}
-              canManageWashes={canManageWashes}
-              onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
-              onResume={handleResume}
-              onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
-              onFinishEntry={handleFinishEntry}
+      {/* Kanban board - one column per status, sized to its own content so
+          a quiet queue (e.g. nothing washing right now) doesn't leave a
+          tall empty box the way a fixed-height column would. */}
+      {filteredWashes.length === 0 ? (
+        <Card className="p-8 text-center bg-white dark:bg-slate-800 border-0 shadow-sm">
+          <Car className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            No washes found
+          </h3>
+          <p className="text-slate-500 dark:text-slate-400 mb-4">
+            {washes.length === 0
+              ? "Check in your first vehicle to get started"
+              : "Try adjusting your filters"}
+          </p>
+          {washes.length === 0 && (
+            <QuickCheckIn
+              businessId={business?.id}
+              services={services}
+              staff={staff}
+              user={user}
+              business={business}
+              onSuccess={refetch}
             />
-          ))
-        )}
-      </div>
+          )}
+        </Card>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-2 items-start">
+          {columns.map((col) => (
+            <div
+              key={col.key}
+              className={`flex-shrink-0 w-[19rem] rounded-xl border ${col.accent} p-3`}
+            >
+              <div className="flex items-center justify-between mb-3 px-1">
+                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">{col.label}</h3>
+                <Badge variant="outline" className="bg-white/70 dark:bg-slate-900/40">{col.washes.length}</Badge>
+              </div>
+              {col.washes.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-3">Empty</p>
+              ) : (
+                <div className="space-y-3">
+                  {col.washes.map((wash) => (
+                    <WashCard
+                      key={wash.id}
+                      wash={wash}
+                      onStatusChange={handleStatusChange}
+                      onPayment={handlePayment}
+                      canManageWashes={canManageWashes}
+                      onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
+                      onResume={handleResume}
+                      onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
+                      onFinishEntry={handleFinishEntry}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Finish a pending entry someone else started */}
       <QuickCheckIn

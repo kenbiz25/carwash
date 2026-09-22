@@ -84,7 +84,7 @@ export default function LiveCCTVPreview({ feeds = [] }) {
           <div className="text-center py-8 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
             <Camera className="h-12 w-12 mx-auto mb-3 text-slate-300" />
             <p className="text-slate-500 dark:text-slate-400 mb-3">No cameras configured</p>
-            <Link to={createPageUrl("Settings")}>
+            <Link to={createPageUrl("CCTV")}>
               <Button variant="outline" size="sm">
                 Add Camera
               </Button>

@@ -1,7 +1,6 @@
 ﻿import React from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Sparkles, Plus, X } from "@/lib/icons";
 
 export default function UpsellPrompt({ selectedServices = [], allServices = [], vehicleType = "saloon", onAddService, onDismiss }) {
@@ -66,7 +65,7 @@ export default function UpsellPrompt({ selectedServices = [], allServices = [], 
 
   const getPrice = (service) => {
     if (vehicleType === "suv" && service.price_suv) return service.price_suv;
-    if (["van", "truck", "bus"].includes(vehicleType) && service.price_van) return service.price_van;
+    if (["van", "truck", "tipper", "bus"].includes(vehicleType) && service.price_van) return service.price_van;
     return service.price_kes;
   };
 

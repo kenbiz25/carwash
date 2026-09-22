@@ -10,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus, Car, Camera, X, Loader2, Upload, AlertTriangle, UserCheck,
-  Layers, Truck, MapPin, Mail, Home, Check, Sparkles
+  Layers, Truck, MapPin, Mail, Home, Check, Sparkles, Edit
 } from "@/lib/icons";
 import { api } from "@/api/firebaseClient";
 import { toast } from "sonner";
 import UpsellPrompt from "./UpsellPrompt";
 import { notifyInApp, sendCheckInConfirmation } from "@/components/notifications/NotificationService";
 import { scanVehiclePhoto } from "@/lib/visionClient";
+import { canManageBusiness } from "@/lib/permissions";
 import VehicleIcon from "../common/VehicleIcon";
 
 const vehicleTypes = [
@@ -26,6 +27,7 @@ const vehicleTypes = [
   { value: "pickup", label: "Pickup" },
   { value: "motorcycle", label: "Motorcycle" },
   { value: "truck", label: "Truck" },
+  { value: "tipper", label: "Tipper" },
   { value: "bus", label: "Bus" },
   { value: "other", label: "Other" },
 ];
@@ -56,7 +58,7 @@ const getServicePrice = (service, vehicleType) => {
   if (kind !== "vehicle") return service.price_kes;
   let price = service.price_kes;
   if (vehicleType === "suv" && service.price_suv) price = service.price_suv;
-  if (["van", "truck", "bus"].includes(vehicleType) && service.price_van) price = service.price_van;
+  if (["van", "truck", "tipper", "bus"].includes(vehicleType) && service.price_van) price = service.price_van;
   return price;
 };
 
@@ -67,19 +69,27 @@ const getServicePrice = (service, vehicleType) => {
 const appliesToVehicle = (service, vehicleType) =>
   !service.vehicle_types?.length || service.vehicle_types.includes(vehicleType);
 
-const carpetSizes = [
-  { value: "small", label: "Small", sublabel: "Car mat / floor mat", color: "border-sky-300 bg-sky-50 text-sky-700" },
-  { value: "medium", label: "Medium", sublabel: "Bedroom carpet", color: "border-violet-300 bg-violet-50 text-violet-700" },
-  { value: "large", label: "Large", sublabel: "Living room carpet", color: "border-amber-300 bg-amber-50 text-amber-700" },
-  { value: "extra_large", label: "Extra Large", sublabel: "Hall / custom size", color: "border-rose-300 bg-rose-50 text-rose-700" },
-];
-
 const generateCarpetRef = () => {
   const d = new Date();
   const datePart = d.toISOString().slice(2, 10).replace(/-/g, "");
   const random = Math.random().toString(36).substr(2, 4).toUpperCase();
   return `CARP-${datePart}-${random}`;
 };
+
+// One row in the carpet check-in's item list - price is derived (area x the
+// material's per-m² rate) every time length/width/material change, see
+// updateCarpetItem below, until a manager overrides it via the price-adjust
+// dialog.
+const newCarpetItem = () => ({
+  id: crypto.randomUUID(),
+  length_m: "",
+  width_m: "",
+  area_sqm: 0,
+  material_service_id: "",
+  material_name: "",
+  unit_price: 0,
+  price: 0,
+});
 
 const emptyForm = {
   // vehicle fields
@@ -90,8 +100,7 @@ const emptyForm = {
   vehicle_color: "",
   // carpet fields
   carpet_reference: "",
-  carpet_count: 1,
-  carpet_size: "medium",
+  carpet_items: [],
   item_description: "",
   // delivery/collection
   delivery_type: "walkin",   // "walkin" | "delivery"
@@ -150,7 +159,16 @@ export default function EnhancedCheckIn({
   useEffect(() => {
     if (!open || !editingWash) return;
     setCheckInType(editingWash.type || "vehicle");
-    setFormData({ ...emptyForm, ...editingWash });
+    setFormData({
+      ...emptyForm,
+      ...editingWash,
+      // A draft saved before per-carpet dimensions existed (or a pending
+      // entry with no items yet) gets one blank row instead of an empty
+      // list, so the form doesn't open to a dead end.
+      carpet_items: editingWash.carpet_items?.length
+        ? editingWash.carpet_items
+        : (editingWash.type === "carpet" ? [newCarpetItem()] : []),
+    });
     setActiveTab(editingWash.services?.length ? "assign" : "services");
   }, [open, editingWash?.id]);
 
@@ -160,6 +178,7 @@ export default function EnhancedCheckIn({
       ...prev,
       services: [],
       carpet_reference: type === "carpet" && !prev.carpet_reference ? generateCarpetRef() : prev.carpet_reference,
+      carpet_items: type === "carpet" && prev.carpet_items.length === 0 ? [newCarpetItem()] : prev.carpet_items,
     }));
     setActiveTab("details");
   };
@@ -209,14 +228,14 @@ export default function EnhancedCheckIn({
       ...prev,
       customer_name: prevWash.customer_name || prev.customer_name,
       customer_phone: prevWash.customer_phone || prev.customer_phone,
-      ...(checkInType === "vehicle" ? {
+      // Carpet dimensions are per drop-off, not per customer, so there's
+      // nothing carpet-specific to carry over here - just the shared fields
+      // above.
+      ...(checkInType === "vehicle" && {
         vehicle_type: prevWash.vehicle_type || prev.vehicle_type,
         vehicle_make: prevWash.vehicle_make || prev.vehicle_make,
         vehicle_model: prevWash.vehicle_model || prev.vehicle_model,
         vehicle_color: prevWash.vehicle_color || prev.vehicle_color,
-      } : {
-        carpet_size: prevWash.carpet_size || prev.carpet_size,
-        carpet_count: prevWash.carpet_count || prev.carpet_count,
       }),
     }));
     setShowAutofill(false);
@@ -243,6 +262,135 @@ export default function EnhancedCheckIn({
     });
   };
 
+  // Manager+ only (see canAdjustPrice below) - lets a special customer
+  // request (e.g. a one-off discount, or extra work folded into one
+  // service's price instead of adding a separate line item) override a
+  // service's catalogue price for this wash only. The catalogue itself, and
+  // every other wash, is untouched; the override plus who/why is kept on
+  // the service line for the record.
+  const [priceAdjustDialog, setPriceAdjustDialog] = useState(null); // { service_id, name, currentPrice } | null
+  const [adjustedPrice, setAdjustedPrice] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [savingPriceAdjust, setSavingPriceAdjust] = useState(false);
+
+  const openPriceAdjust = (serviceEntry) => {
+    setPriceAdjustDialog(serviceEntry);
+    setAdjustedPrice(String(serviceEntry.price ?? ""));
+    setAdjustReason("");
+  };
+
+  const handleSavePriceAdjust = () => {
+    const newPrice = Number(adjustedPrice);
+    if (!Number.isFinite(newPrice) || newPrice < 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    if (!adjustReason.trim()) {
+      toast.error("Enter a reason for the price change");
+      return;
+    }
+    setSavingPriceAdjust(true);
+    setFormData(prev => ({
+      ...prev,
+      services: prev.services.map(s => s.service_id === priceAdjustDialog.service_id
+        ? {
+            ...s,
+            price: newPrice,
+            original_price: s.original_price ?? s.price,
+            price_adjusted: true,
+            price_adjustment_reason: adjustReason.trim(),
+            price_adjusted_by: user?.email || "",
+            price_adjusted_at: new Date().toISOString(),
+          }
+        : s),
+    }));
+    setSavingPriceAdjust(false);
+    setPriceAdjustDialog(null);
+    toast.success("Price updated for this wash");
+  };
+
+  // Carpet items - each row's price is area (length x width) times its
+  // material's per-m² catalogue rate, recomputed on every edit. A manager
+  // can then override the computed price via the dialog below (same
+  // reason-required pattern as the per-service adjust dialog above); editing
+  // the row's dimensions/material afterwards clears that override, since the
+  // base it was computed from has changed.
+  const carpetMaterials = services.filter(s => s.category === "carpet_wash" && s.is_active !== false);
+
+  const addCarpetItem = () => {
+    setFormData(prev => ({ ...prev, carpet_items: [...prev.carpet_items, newCarpetItem()] }));
+  };
+
+  const removeCarpetItem = (id) => {
+    setFormData(prev => ({ ...prev, carpet_items: prev.carpet_items.filter(i => i.id !== id) }));
+  };
+
+  const updateCarpetItem = (id, patch) => {
+    setFormData(prev => ({
+      ...prev,
+      carpet_items: prev.carpet_items.map(item => {
+        if (item.id !== id) return item;
+        const merged = { ...item, ...patch };
+        const material = carpetMaterials.find(m => m.id === merged.material_service_id);
+        const length = Number(merged.length_m) || 0;
+        const width = Number(merged.width_m) || 0;
+        const area = Math.round(length * width * 100) / 100;
+        const unitPrice = material?.price_kes || 0;
+        return {
+          ...merged,
+          area_sqm: area,
+          unit_price: unitPrice,
+          material_name: material?.name || "",
+          price: Math.round(area * unitPrice * 100) / 100,
+          price_adjusted: false,
+          original_price: undefined,
+          price_adjustment_reason: undefined,
+        };
+      }),
+    }));
+  };
+
+  const [carpetPriceAdjustDialog, setCarpetPriceAdjustDialog] = useState(null); // carpet item | null
+  const [carpetAdjustedPrice, setCarpetAdjustedPrice] = useState("");
+  const [carpetAdjustReason, setCarpetAdjustReason] = useState("");
+  const [savingCarpetPriceAdjust, setSavingCarpetPriceAdjust] = useState(false);
+
+  const openCarpetPriceAdjust = (item) => {
+    setCarpetPriceAdjustDialog(item);
+    setCarpetAdjustedPrice(String(item.price ?? ""));
+    setCarpetAdjustReason("");
+  };
+
+  const handleSaveCarpetPriceAdjust = () => {
+    const newPrice = Number(carpetAdjustedPrice);
+    if (!Number.isFinite(newPrice) || newPrice < 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    if (!carpetAdjustReason.trim()) {
+      toast.error("Enter a reason for the price change");
+      return;
+    }
+    setSavingCarpetPriceAdjust(true);
+    setFormData(prev => ({
+      ...prev,
+      carpet_items: prev.carpet_items.map(i => i.id === carpetPriceAdjustDialog.id
+        ? {
+            ...i,
+            price: newPrice,
+            original_price: i.original_price ?? i.price,
+            price_adjusted: true,
+            price_adjustment_reason: carpetAdjustReason.trim(),
+            price_adjusted_by: user?.email || "",
+            price_adjusted_at: new Date().toISOString(),
+          }
+        : i),
+    }));
+    setSavingCarpetPriceAdjust(false);
+    setCarpetPriceAdjustDialog(null);
+    toast.success("Price updated for this item");
+  };
+
   // Switching vehicle type can make an already-picked service disappear from
   // the list (e.g. an SUV-only wash after switching to saloon) - drop it from
   // the total too, rather than silently keep charging for something that no
@@ -258,7 +406,13 @@ export default function EnhancedCheckIn({
     });
   }, [formData.vehicle_type]);
 
-  const totalAmount = formData.services.reduce((sum, s) => sum + (s.price || 0), 0);
+  // Carpet mode's total is its per-item carpet prices plus any selected
+  // add-ons (e.g. deodorizing) - vehicle mode is unaffected, still just its
+  // selected services.
+  const servicesTotal = formData.services.reduce((sum, s) => sum + (s.price || 0), 0);
+  const carpetItemsTotal = formData.carpet_items.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+  const totalAmount = checkInType === "carpet" ? carpetItemsTotal + servicesTotal : servicesTotal;
+  const canAdjustPrice = canManageBusiness(user, business);
 
   const handlePhotoUpload = async (e, type = "before") => {
     const files = Array.from(e.target.files);
@@ -399,10 +553,22 @@ export default function EnhancedCheckIn({
       setActiveTab("details");
       return;
     }
-    if (formData.services.length === 0) {
+    if (checkInType === "vehicle" && formData.services.length === 0) {
       toast.error("Please select at least one service");
       setActiveTab("services");
       return;
+    }
+    if (checkInType === "carpet") {
+      if (formData.carpet_items.length === 0) {
+        toast.error("Please add at least one carpet");
+        setActiveTab("details");
+        return;
+      }
+      if (formData.carpet_items.some(i => !i.material_service_id || !(Number(i.length_m) > 0) || !(Number(i.width_m) > 0))) {
+        toast.error("Each carpet needs a length, width, and material");
+        setActiveTab("details");
+        return;
+      }
     }
 
     setLoading(true);
@@ -421,8 +587,7 @@ export default function EnhancedCheckIn({
         vehicle_color: formData.vehicle_color,
       }),
       ...(checkInType === "carpet" && {
-        carpet_count: formData.carpet_count,
-        carpet_size: formData.carpet_size,
+        carpet_items: formData.carpet_items,
         item_description: formData.item_description,
         delivery_type: formData.delivery_type,
         ...(formData.delivery_type === "delivery" && {
@@ -493,12 +658,14 @@ export default function EnhancedCheckIn({
     onSuccess?.();
   };
 
-  // Group services by category; for carpet mode show only carpet_wash + add_on
+  // Group services by category; carpet mode only offers add-ons here since
+  // carpet_wash-category services are now picked per-carpet-item (as a
+  // material with a per-m² rate) in the Details tab instead of toggled flat.
   const groupedServices = services.reduce((acc, service) => {
     if (service.is_active === false) return acc;
     if (checkInType === "vehicle" && !appliesToVehicle(service, formData.vehicle_type)) return acc;
     const cat = service.category || "add_on";
-    if (checkInType === "carpet" && !["carpet_wash", "add_on"].includes(cat)) return acc;
+    if (checkInType === "carpet" && cat !== "add_on") return acc;
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(service);
     return acc;
@@ -537,6 +704,7 @@ export default function EnhancedCheckIn({
   ) : null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       {!isControlled && (
         <Button
@@ -735,49 +903,111 @@ export default function EnhancedCheckIn({
               ) : (
                 /* ── Carpet Details ── */
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Reference No.</Label>
-                      <Input
-                        className="font-mono"
-                        value={formData.carpet_reference}
-                        onChange={(e) => setFormData(prev => ({ ...prev, carpet_reference: e.target.value }))}
-                        placeholder="Auto-generated"
-                        autoFocus
-                      />
-                      <p className="text-xs text-slate-400">Auto-generated - editable</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Item Count</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={formData.carpet_count}
-                        onChange={(e) => setFormData(prev => ({ ...prev, carpet_count: parseInt(e.target.value) || 1 }))}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Reference No.</Label>
+                    <Input
+                      className="font-mono"
+                      value={formData.carpet_reference}
+                      onChange={(e) => setFormData(prev => ({ ...prev, carpet_reference: e.target.value }))}
+                      placeholder="Auto-generated"
+                      autoFocus
+                    />
+                    <p className="text-xs text-slate-400">Auto-generated - editable</p>
                   </div>
 
-                  {/* Carpet Size - visual card selector */}
+                  {/* Per-carpet dimensions - price is area (L x W) times the
+                      chosen material's per-m² catalogue rate. */}
                   <div className="space-y-2">
-                    <Label>Carpet / Mat Size *</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {carpetSizes.map(size => (
-                        <button
-                          key={size.value}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, carpet_size: size.value }))}
-                          className={`rounded-xl border-2 p-3 text-center transition-all ${
-                            formData.carpet_size === size.value
-                              ? size.color + " shadow-sm"
-                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                          }`}
-                        >
-                          <p className="font-semibold text-sm">{size.label}</p>
-                          <p className="text-xs opacity-75 mt-0.5">{size.sublabel}</p>
-                        </button>
+                    <div className="flex items-center justify-between">
+                      <Label>Carpets / Mats *</Label>
+                      <Button type="button" size="sm" variant="outline" onClick={addCarpetItem}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Carpet
+                      </Button>
+                    </div>
+
+                    {formData.carpet_items.length === 0 && (
+                      <p className="text-sm text-slate-400 border border-dashed rounded-xl p-4 text-center">
+                        No carpets added yet - click "Add Carpet" and enter its dimensions.
+                      </p>
+                    )}
+
+                    <div className="space-y-2">
+                      {formData.carpet_items.map((item, idx) => (
+                        <div key={item.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-500">Carpet {idx + 1}</span>
+                            {formData.carpet_items.length > 1 && (
+                              <button type="button" onClick={() => removeCarpetItem(item.id)} className="text-slate-400 hover:text-red-500">
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Length (m)</Label>
+                              <Input
+                                type="number" step="0.01" min="0" placeholder="2.5"
+                                value={item.length_m}
+                                onChange={(e) => updateCarpetItem(item.id, { length_m: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Width (m)</Label>
+                              <Input
+                                type="number" step="0.01" min="0" placeholder="1.8"
+                                value={item.width_m}
+                                onChange={(e) => updateCarpetItem(item.id, { width_m: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Material</Label>
+                              <Select
+                                value={item.material_service_id}
+                                onValueChange={(v) => updateCarpetItem(item.id, { material_service_id: v })}
+                              >
+                                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                                <SelectContent>
+                                  {carpetMaterials.map((m) => (
+                                    <SelectItem key={m.id} value={m.id}>{m.name} (KES {m.price_kes}/m²)</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm pt-1 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-slate-500">
+                              {item.area_sqm > 0 ? `${item.area_sqm} m²` : "-"}
+                              {item.material_name && ` × ${item.material_name}`}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-brand-orange">KES {(item.price || 0).toLocaleString()}</span>
+                              {item.price_adjusted && (
+                                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                  Adjusted from KES {item.original_price?.toLocaleString()}
+                                </Badge>
+                              )}
+                              {canAdjustPrice && (
+                                <button
+                                  type="button"
+                                  onClick={() => openCarpetPriceAdjust(item)}
+                                  className="text-slate-400 hover:text-brand-orange"
+                                  title="Adjust price for this carpet"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
+
+                    {carpetMaterials.length === 0 && (
+                      <p className="text-xs text-amber-600">
+                        No carpet materials configured yet - add services with the "Carpet Wash" category
+                        and a per-m² rate in the catalogue.
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -923,11 +1153,11 @@ export default function EnhancedCheckIn({
 
             {/* ── Services Tab ── */}
             <TabsContent value="services" className="space-y-4 mt-4">
-              {checkInType === "carpet" && Object.keys(groupedServices).length === 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 p-4 text-sm text-amber-700 dark:text-amber-300">
-                  <p className="font-medium">No carpet wash services configured yet.</p>
-                  <p className="mt-1 text-xs">Go to Services page and add services with the "Carpet Wash" category.</p>
-                </div>
+              {checkInType === "carpet" && (
+                <p className="text-sm text-slate-500">
+                  Carpet pricing is set per item on the Details tab. Anything selected here is an
+                  optional add-on (e.g. deodorizing) on top of that.
+                </p>
               )}
 
               {Object.entries(groupedServices).map(([category, categoryServices]) => (
@@ -935,8 +1165,10 @@ export default function EnhancedCheckIn({
                   <h4 className="font-medium text-sm text-slate-500">{serviceCategories[category] || category}</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {categoryServices.map((service) => {
-                      const isSelected = formData.services.some(s => s.service_id === service.id);
-                      const displayPrice = getServicePrice(service, formData.vehicle_type);
+                      const selectedEntry = formData.services.find(s => s.service_id === service.id);
+                      const isSelected = !!selectedEntry;
+                      const catalogPrice = getServicePrice(service, formData.vehicle_type);
+                      const shownPrice = selectedEntry ? selectedEntry.price : catalogPrice;
 
                       return (
                         <div
@@ -954,7 +1186,24 @@ export default function EnhancedCheckIn({
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-sm">{service.name}</p>
-                              <p className="text-brand-blue-mid font-semibold">KES {displayPrice?.toLocaleString()}</p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-brand-blue-mid font-semibold">KES {shownPrice?.toLocaleString()}</p>
+                                {selectedEntry?.price_adjusted && (
+                                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                                    Adjusted from KES {selectedEntry.original_price?.toLocaleString()}
+                                  </Badge>
+                                )}
+                                {isSelected && canAdjustPrice && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); openPriceAdjust(selectedEntry); }}
+                                    className="text-slate-400 hover:text-brand-blue-mid"
+                                    title="Adjust price for this wash"
+                                  >
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
                               {service.requires_photo_proof && (
                                 <Badge variant="outline" className="text-xs mt-1">
                                   <Camera className="h-3 w-3 mr-1" />Photo Required
@@ -1102,7 +1351,11 @@ export default function EnhancedCheckIn({
                       </div>
                       <div>
                         <span className="text-slate-500">Items:</span>{" "}
-                        <span>{formData.carpet_count} × {carpetSizes.find(s => s.value === formData.carpet_size)?.label || formData.carpet_size}</span>
+                        <span>
+                          {formData.carpet_items.length} carpet{formData.carpet_items.length === 1 ? "" : "s"}
+                          {" · "}
+                          {formData.carpet_items.reduce((sum, i) => sum + (i.area_sqm || 0), 0).toFixed(2)} m²
+                        </span>
                       </div>
                       {formData.delivery_type === "delivery" && (
                         <>
@@ -1171,5 +1424,86 @@ export default function EnhancedCheckIn({
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={!!priceAdjustDialog} onOpenChange={(v) => { if (!v) setPriceAdjustDialog(null); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Adjust price - {priceAdjustDialog?.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Only for special cases (e.g. a unique customer request) - this changes the
+            price for this wash only, not the service's catalogue price.
+          </p>
+          <div className="space-y-2">
+            <Label>New Price (KES)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={adjustedPrice}
+              onChange={(e) => setAdjustedPrice(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Reason</Label>
+            <Textarea
+              value={adjustReason}
+              onChange={(e) => setAdjustReason(e.target.value)}
+              placeholder="e.g. Customer requested a lighter wash, VIP rate, damaged trim excluded..."
+              rows={3}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setPriceAdjustDialog(null)} disabled={savingPriceAdjust}>Cancel</Button>
+          <Button onClick={handleSavePriceAdjust} disabled={savingPriceAdjust}>
+            {savingPriceAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Save Price
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={!!carpetPriceAdjustDialog} onOpenChange={(v) => { if (!v) setCarpetPriceAdjustDialog(null); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Adjust price - Carpet {carpetPriceAdjustDialog?.material_name ? `(${carpetPriceAdjustDialog.material_name})` : ""}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Only for special cases (e.g. a unique customer request) - this overrides the
+            computed area x rate price for this carpet only.
+          </p>
+          <div className="space-y-2">
+            <Label>New Price (KES)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={carpetAdjustedPrice}
+              onChange={(e) => setCarpetAdjustedPrice(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Reason</Label>
+            <Textarea
+              value={carpetAdjustReason}
+              onChange={(e) => setCarpetAdjustReason(e.target.value)}
+              placeholder="e.g. Heavily stained, VIP rate, bulk discount..."
+              rows={3}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setCarpetPriceAdjustDialog(null)} disabled={savingCarpetPriceAdjust}>Cancel</Button>
+          <Button onClick={handleSaveCarpetPriceAdjust} disabled={savingCarpetPriceAdjust}>
+            {savingCarpetPriceAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Save Price
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

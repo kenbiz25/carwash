@@ -236,7 +236,7 @@ export default function TopBar({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to={createPageUrl("Settings")} className="cursor-pointer">
+              <Link to={createPageUrl("BusinessManager")} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </Link>

@@ -52,6 +52,7 @@ import Commissions from './pages/Commissions';
 import Login from './pages/Login';
 import CustomerPortal from './pages/CustomerPortal';
 import Dashboard from './pages/Dashboard';
+import Expenses from './pages/Expenses';
 import Help from './pages/Help';
 import Inventory from './pages/Inventory';
 import Landing from './pages/Landing';
@@ -61,12 +62,10 @@ import Payments from './pages/Payments';
 import Profile from './pages/Profile';
 import Reports from './pages/Reports';
 import Services from './pages/Services';
-import Settings from './pages/Settings';
 import Staff from './pages/Staff';
 import WashDetails from './pages/WashDetails';
 import Washes from './pages/Washes';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import JobOrders from './pages/JobOrders';
 import ProductCatalogue from './pages/ProductCatalogue';
 import BusinessManager from './pages/BusinessManager';
 import SuperAdminBusinessView from './pages/SuperAdminBusinessView';
@@ -84,6 +83,7 @@ export const PAGES = {
     "Commissions": Commissions,
     "CustomerPortal": CustomerPortal,
     "Dashboard": Dashboard,
+    "Expenses": Expenses,
     "Help": Help,
     "Inventory": Inventory,
     "Landing": Landing,
@@ -93,12 +93,10 @@ export const PAGES = {
     "Profile": Profile,
     "Reports": Reports,
     "Services": Services,
-    "Settings": Settings,
     "Staff": Staff,
     "WashDetails": WashDetails,
     "Washes": Washes,
     "SuperAdminDashboard": SuperAdminDashboard,
-    "JobOrders": JobOrders,
     "ProductCatalogue": ProductCatalogue,
     "BusinessManager": BusinessManager,
     "SuperAdminBusinessView": SuperAdminBusinessView,

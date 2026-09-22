@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Building2, BookOpen, ClipboardList, Car, Banknote, TrendingUp, Loader2, CalendarDays, Users } from "@/lib/icons";
+import { RefreshCw, Building2, BookOpen, Car, Banknote, TrendingUp, Loader2, CalendarDays, Users } from "@/lib/icons";
 import { useCumulativeStats } from "@/hooks/useCumulativeStats";
 import { defaultDateRange, isWithinDateRange } from "@/lib/dateRange";
 import DateRangeFilter from "@/components/common/DateRangeFilter";
@@ -125,11 +125,6 @@ export default function DashboardOwnerManagerView({
         <Link to={createPageUrl("ProductCatalogue")}>
           <Button variant="outline" size="sm" className="gap-2">
             <BookOpen className="h-4 w-4" /> Product Catalogue
-          </Button>
-        </Link>
-        <Link to={createPageUrl("JobOrders")}>
-          <Button variant="outline" size="sm" className="gap-2">
-            <ClipboardList className="h-4 w-4" /> Job Orders
           </Button>
         </Link>
         {userRole === "owner" && (

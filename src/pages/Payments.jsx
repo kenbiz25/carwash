@@ -22,12 +22,26 @@ import moment from "moment";
 import { useBusiness } from "@/lib/BusinessContext";
 import { defaultDateRange, isWithinDateRange } from "@/lib/dateRange";
 
+// "Week" (the default) is the last 7 days, "Month" the last 30, matching
+// defaultDateRange's own semantics - not a calendar week/month.
+const QUICK_RANGES = [
+  { key: "today", label: "Today", days: 1 },
+  { key: "week", label: "Week", days: 7 },
+  { key: "month", label: "Month", days: 30 },
+];
+
 export default function Payments() {
   const [methodFilter, setMethodFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [quickRange, setQuickRange] = useState("week");
   const [{ startDate, endDate }, setRange] = useState(() => defaultDateRange(7));
-  const setStartDate = (value) => setRange((r) => ({ ...r, startDate: value }));
-  const setEndDate = (value) => setRange((r) => ({ ...r, endDate: value }));
+  const setStartDate = (value) => { setQuickRange(null); setRange((r) => ({ ...r, startDate: value })); };
+  const setEndDate = (value) => { setQuickRange(null); setRange((r) => ({ ...r, endDate: value })); };
+  const applyQuickRange = (key) => {
+    const days = QUICK_RANGES.find((r) => r.key === key)?.days || 7;
+    setQuickRange(key);
+    setRange(defaultDateRange(days));
+  };
 
   const { currentBusiness: business } = useBusiness();
 
@@ -81,7 +95,23 @@ export default function Payments() {
             Track all transactions and reconcile payments
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+            {QUICK_RANGES.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => applyQuickRange(r.key)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  quickRange === r.key
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
           <DateRangeFilter
             idPrefix="payments"
             startDate={startDate}

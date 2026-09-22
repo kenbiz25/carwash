@@ -14,11 +14,11 @@ const COLLECTION_MAP = {
   LoyaltyCustomer: 'loyaltyCustomers',
   Schedule: 'schedules',
   CCTVFeed: 'cctvFeeds',
-  JobOrder: 'jobOrders',
   Membership: 'memberships',
   CustomerSubscription: 'customerSubscriptions',
   Notification: 'notifications',
   Invitation: 'invitations',
+  Expense: 'expenses',
 };
 
 // Firestore rejected undefined values - keep the same normalization so

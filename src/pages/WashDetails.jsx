@@ -8,23 +8,27 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft, Car, User, Clock, Banknote, Camera, Play, CheckCircle, X, Loader2, Phone,
-  Upload, Image, AlertTriangle, Star, Pause, Trash2
+  Upload, Image, AlertTriangle, Star, Pause, Trash2, Printer, Edit
 } from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StatusBadge from "@/components/common/StatusBadge";
 import VehicleIcon from "@/components/common/VehicleIcon";
 import PaymentDialog from "@/components/payment/PaymentDialog";
+import Receipt from "@/components/payment/Receipt";
 import moment from "moment";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
+import { canManageBusiness } from "@/lib/permissions";
 import { sendWashingStartedNotification, sendWashReadyNotification } from "@/components/notifications/NotificationService";
 
 export default function WashDetails() {
   const queryClient = useQueryClient();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoType, setPhotoType] = useState("after");
@@ -32,6 +36,10 @@ export default function WashDetails() {
   const [reasonDialog, setReasonDialog] = useState(null); // { action: 'pause' | 'delete' } | null
   const [reasonText, setReasonText] = useState("");
   const [submittingReason, setSubmittingReason] = useState(false);
+  const [priceAdjustDialog, setPriceAdjustDialog] = useState(null); // { index, name } | null
+  const [adjustedPrice, setAdjustedPrice] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [savingPriceAdjust, setSavingPriceAdjust] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const washId = urlParams.get("id");
@@ -43,13 +51,7 @@ export default function WashDetails() {
   // member who started a wash shouldn't be able to unilaterally abandon or
   // erase it. Before it's started, the plain Cancel button below still works
   // for anyone, same as it always has (correcting a mistaken check-in).
-  const email = user?.email?.toLowerCase();
-  const memberRole = business?.members?.find((m) => m.email?.toLowerCase() === email)?.role;
-  const canManageWashes =
-    business?.owner_email?.toLowerCase() === email ||
-    ["owner", "manager"].includes(memberRole) ||
-    business?.admin_emails?.some((e) => e?.toLowerCase() === email) ||
-    user?.role === "admin";
+  const canManageWashes = canManageBusiness(user, business);
 
   const { data: wash, isLoading, refetch } = useQuery({
     queryKey: ["wash", washId],
@@ -180,6 +182,49 @@ export default function WashDetails() {
     refetch();
   };
 
+  // Manager+ only (canManageWashes), and only before payment - lets a
+  // special customer request be honored any time up to the point of paying,
+  // not just at check-in. Same override + required-reason shape as
+  // EnhancedCheckIn.jsx's price adjustment, just applied to an existing wash.
+  const openPriceAdjust = (service, index) => {
+    setPriceAdjustDialog({ index, name: service.name });
+    setAdjustedPrice(String(service.price ?? ""));
+    setAdjustReason("");
+  };
+
+  const handleSavePriceAdjust = async () => {
+    const newPrice = Number(adjustedPrice);
+    if (!Number.isFinite(newPrice) || newPrice < 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+    if (!adjustReason.trim()) {
+      toast.error("Enter a reason for the price change");
+      return;
+    }
+    setSavingPriceAdjust(true);
+    try {
+      const updatedServices = wash.services.map((s, i) => i === priceAdjustDialog.index
+        ? {
+            ...s,
+            price: newPrice,
+            original_price: s.original_price ?? s.price,
+            price_adjusted: true,
+            price_adjustment_reason: adjustReason.trim(),
+            price_adjusted_by: user?.email || "",
+            price_adjusted_at: new Date().toISOString(),
+          }
+        : s);
+      const amount_due = updatedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+      await api.entities.Wash.update(washId, { services: updatedServices, amount_due });
+      toast.success("Price updated");
+      setPriceAdjustDialog(null);
+      refetch();
+    } finally {
+      setSavingPriceAdjust(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -242,8 +287,15 @@ export default function WashDetails() {
             Add Photo
           </Button>
           
-          {wash.status === "waiting" && (
+          {/* Manager+ only - a washer can check vehicles in, but starting
+              the job is a manager call (see canManageWashes above). */}
+          {wash.status === "waiting" && canManageWashes && (
             <Button onClick={() => handleStatusChange("washing")} className="bg-blue-600 hover:bg-blue-700">
+              <Play className="h-4 w-4 mr-2" />Start Washing
+            </Button>
+          )}
+          {wash.status === "waiting" && !canManageWashes && (
+            <Button disabled title="Ask a manager to start this wash" className="bg-blue-600/50 cursor-not-allowed">
               <Play className="h-4 w-4 mr-2" />Start Washing
             </Button>
           )}
@@ -318,12 +370,32 @@ export default function WashDetails() {
           {/* Services Card with Individual Tracking */}
           <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
             <CardHeader>
-              <CardTitle>Services</CardTitle>
+              <CardTitle>{wash.type === "carpet" ? "Carpets & Add-Ons" : "Services"}</CardTitle>
             </CardHeader>
             <CardContent>
-              {wash.services?.length > 0 ? (
+              {(wash.carpet_items?.length > 0 || wash.services?.length > 0) ? (
                 <div className="space-y-3">
-                  {wash.services.map((service, index) => (
+                  {wash.type === "carpet" && wash.carpet_items?.map((item, index) => (
+                    <div key={item.id || `carpet-${index}`} className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">{item.material_name || "Carpet"}</span>
+                          <p className="text-xs text-slate-500">
+                            {item.length_m}m × {item.width_m}m ({item.area_sqm} m²)
+                          </p>
+                        </div>
+                        <span className="text-emerald-600 font-semibold">KES {(item.price || 0).toLocaleString()}</span>
+                      </div>
+                      {item.price_adjusted && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                          Price adjusted from KES {(item.original_price || 0).toLocaleString()}
+                          {item.price_adjusted_by && ` by ${item.price_adjusted_by}`}
+                          {item.price_adjustment_reason && ` - "${item.price_adjustment_reason}"`}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {wash.services?.map((service, index) => (
                     <div key={index} className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -332,15 +404,35 @@ export default function WashDetails() {
                             {service.status || 'pending'}
                           </Badge>
                         </div>
-                        <span className="text-emerald-600 font-semibold">
-                          KES {(service.price || 0).toLocaleString()}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-emerald-600 font-semibold">
+                            KES {(service.price || 0).toLocaleString()}
+                          </span>
+                          {canManageWashes && wash.status !== "paid" && (
+                            <button
+                              type="button"
+                              onClick={() => openPriceAdjust(service, index)}
+                              className="text-slate-400 hover:text-emerald-600"
+                              title="Adjust price"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       
                       {service.staff_name && (
                         <p className="text-xs text-slate-500 mb-2">Staff: {service.staff_name}</p>
                       )}
-                      
+
+                      {service.price_adjusted && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                          Price adjusted from KES {(service.original_price || 0).toLocaleString()}
+                          {service.price_adjusted_by && ` by ${service.price_adjusted_by}`}
+                          {service.price_adjustment_reason && ` - "${service.price_adjustment_reason}"`}
+                        </p>
+                      )}
+
                       <div className="flex items-center gap-2">
                         {service.status !== "completed" && wash.status !== "paid" && (
                           <>
@@ -554,6 +646,9 @@ export default function WashDetails() {
                   <div><p className="text-sm text-slate-500">Method</p><StatusBadge status={payment.method} /></div>
                   {payment.mpesa_receipt && <div><p className="text-sm text-slate-500">M-Pesa Receipt</p><p className="font-mono text-sm">{payment.mpesa_receipt}</p></div>}
                   <div><p className="text-sm text-slate-500">Status</p><StatusBadge status={payment.status} /></div>
+                  <Button variant="outline" className="w-full" onClick={() => setReceiptOpen(true)}>
+                    <Printer className="h-4 w-4 mr-2" />Reprint Receipt
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -661,6 +756,47 @@ export default function WashDetails() {
         </DialogContent>
       </Dialog>
 
+      {/* Price adjustment dialog - manager+ only, any time before payment */}
+      <Dialog open={!!priceAdjustDialog} onOpenChange={(open) => { if (!open) setPriceAdjustDialog(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Adjust price - {priceAdjustDialog?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              Only for special cases (e.g. a unique customer request) - this changes the
+              price for this wash only, not the service's catalogue price.
+            </p>
+            <div className="space-y-2">
+              <Label>New Price (KES)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={adjustedPrice}
+                onChange={(e) => setAdjustedPrice(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Textarea
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+                placeholder="e.g. Customer requested a lighter wash, VIP rate, damaged trim excluded..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setPriceAdjustDialog(null)} disabled={savingPriceAdjust}>Cancel</Button>
+            <Button onClick={handleSavePriceAdjust} disabled={savingPriceAdjust}>
+              {savingPriceAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Price
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Payment Dialog */}
       <PaymentDialog
         wash={wash}
@@ -671,6 +807,16 @@ export default function WashDetails() {
           refetch();
           queryClient.invalidateQueries({ queryKey: ["washPayment", washId] });
         }}
+      />
+
+      {/* Receipt (reprint) */}
+      <Receipt
+        wash={wash}
+        payment={payment}
+        businessId={wash.business_id}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+        title="Receipt"
       />
     </div>
   );

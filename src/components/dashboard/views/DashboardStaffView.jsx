@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Car, ClipboardList, Clock, ChevronRight, CheckCircle2, Wallet, Banknote, Smartphone } from "@/lib/icons";
+import { Car, Clock, ChevronRight, CheckCircle2, Wallet, Banknote, Smartphone } from "@/lib/icons";
 import { Badge } from "@/components/ui/badge";
 import RecentWashes from "@/components/dashboard/RecentWashes";
 import EnhancedCheckIn from "@/components/wash/EnhancedCheckIn";
@@ -158,14 +158,6 @@ export default function DashboardStaffView({ user, userRole, currentBusiness, wa
           <p className="font-bold text-lg">Quick Check-in</p>
           <p className="text-blue-100 text-sm">Start a vehicle wash</p>
         </button>
-
-        <Link to={createPageUrl("JobOrders")}>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center shadow border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all cursor-pointer h-full flex flex-col items-center justify-center">
-            <ClipboardList className="h-10 w-10 mx-auto mb-3 text-blue-500" />
-            <p className="font-bold text-lg text-slate-800 dark:text-white">Job Orders</p>
-            <p className="text-slate-500 text-sm">Drive-in queue</p>
-          </div>
-        </Link>
 
         {/* Active Washes toggle card */}
         <button

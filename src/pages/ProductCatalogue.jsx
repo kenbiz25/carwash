@@ -55,6 +55,15 @@ const PRICING_KINDS = {
 // openEdit below) - a service explicitly saved as "flat" still means flat.
 const pricingKindOf = (svc) => PRICING_KINDS[svc?.pricing_kind] || PRICING_KINDS.vehicle;
 
+// A carpet-wash service priced "per unit" is priced per m² specifically
+// (see EnhancedCheckIn.jsx's carpet check-in) - relabel the generic "Rate"
+// tier so a manager setting it knows what they're pricing, without a
+// separate pricing_kind just for this one category.
+const tierLabel = (category, pricingKind, tiers, idx) => {
+  const label = tiers[idx];
+  return label === "Rate" && category === "carpet_wash" && pricingKind === "unit" ? "Rate per m²" : label;
+};
+
 // Which vehicles a service shows up for during check-in - an empty list
 // means "every vehicle type" (most add-ons and engine/interior work aren't
 // vehicle-size-specific), matching EnhancedCheckIn.jsx's vehicleTypes.
@@ -65,13 +74,14 @@ const VEHICLE_TYPES = [
   { value: "pickup", label: "Pickup" },
   { value: "motorcycle", label: "Motorcycle" },
   { value: "truck", label: "Truck" },
+  { value: "tipper", label: "Tipper" },
   { value: "bus", label: "Bus" },
   { value: "other", label: "Other" },
 ];
 
 const EMPTY = {
   name: "", category: "exterior_wash", description: "", price_kes: "",
-  price_suv: "", price_van: "", duration_minutes: "", is_active: true, is_package: false,
+  price_suv: "", price_van: "", is_active: true, is_package: false,
   pricing_kind: "flat", vehicle_types: [],
 };
 
@@ -129,7 +139,6 @@ export default function ProductCatalogue() {
       price_kes: Number(form.price_kes) || 0,
       price_suv: tierCount >= 2 ? (Number(form.price_suv) || 0) : 0,
       price_van: tierCount >= 3 ? (Number(form.price_van) || 0) : 0,
-      duration_minutes: Number(form.duration_minutes) || 0,
       business_id: businessId,
     };
     if (editItem) {
@@ -212,7 +221,6 @@ export default function ProductCatalogue() {
                   <TableHead>Price</TableHead>
                   <TableHead>2nd Tier</TableHead>
                   <TableHead>3rd Tier</TableHead>
-                  <TableHead>Duration</TableHead>
                   {canEdit && <TableHead>Active</TableHead>}
                   {canEdit && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
@@ -240,13 +248,17 @@ export default function ProductCatalogue() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {kind.tiers[0] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[0]}</p>}
+                      {tierLabel(svc.category, svc.pricing_kind, kind.tiers, 0) && (
+                        <p className="text-[10px] text-slate-400 leading-none mb-0.5">{tierLabel(svc.category, svc.pricing_kind, kind.tiers, 0)}</p>
+                      )}
                       <p className="font-semibold">KES {(svc.price_kes || 0).toLocaleString()}</p>
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
                       {svc.price_suv ? (
                         <>
-                          {kind.tiers[1] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[1]}</p>}
+                          {tierLabel(svc.category, svc.pricing_kind, kind.tiers, 1) && (
+                            <p className="text-[10px] text-slate-400 leading-none mb-0.5">{tierLabel(svc.category, svc.pricing_kind, kind.tiers, 1)}</p>
+                          )}
                           <p>KES {svc.price_suv.toLocaleString()}</p>
                         </>
                       ) : "-"}
@@ -254,12 +266,13 @@ export default function ProductCatalogue() {
                     <TableCell className="text-sm text-slate-500">
                       {svc.price_van ? (
                         <>
-                          {kind.tiers[2] && <p className="text-[10px] text-slate-400 leading-none mb-0.5">{kind.tiers[2]}</p>}
+                          {tierLabel(svc.category, svc.pricing_kind, kind.tiers, 2) && (
+                            <p className="text-[10px] text-slate-400 leading-none mb-0.5">{tierLabel(svc.category, svc.pricing_kind, kind.tiers, 2)}</p>
+                          )}
                           <p>KES {svc.price_van.toLocaleString()}</p>
                         </>
                       ) : "-"}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500">{svc.duration_minutes ? `${svc.duration_minutes} min` : "-"}</TableCell>
                     {canEdit && (
                       <TableCell>
                         <Switch checked={svc.is_active !== false} onCheckedChange={() => toggleActive(svc)} />
@@ -297,21 +310,14 @@ export default function ProductCatalogue() {
               <Label>Service Name *</Label>
               <Input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Carpet Wash" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Category</Label>
-                <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Est. Duration (min)</Label>
-                <Input type="number" value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} placeholder="30" />
-                <p className="text-[11px] text-slate-400">A rough estimate for wait times - this is hand-washing, not a timed machine cycle, so actual time will vary.</p>
-              </div>
+            <div className="space-y-1">
+              <Label>Category</Label>
+              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Description</Label>
@@ -357,8 +363,15 @@ export default function ProductCatalogue() {
               <Label>Applies to</Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {VEHICLE_TYPES.map((vt) => (
-                  <label key={vt.value} className="flex items-center gap-2 text-sm">
+                  // min-w-0 on the label is load-bearing: a flex item's default
+                  // min-width is "auto" (its content's width), so without it a
+                  // long label like "Saloon/Sedan" refuses to wrap and instead
+                  // overflows into the next grid column, visually overlapping
+                  // the checkbox next to it - min-w-0 lets it shrink and wrap
+                  // (grow downward) inside its own cell instead.
+                  <label key={vt.value} className="flex items-start gap-2 text-sm min-w-0">
                     <Checkbox
+                      className="mt-0.5 shrink-0"
                       checked={form.vehicle_types.includes(vt.value)}
                       onCheckedChange={(checked) => setForm(f => ({
                         ...f,
@@ -367,7 +380,7 @@ export default function ProductCatalogue() {
                           : f.vehicle_types.filter((v) => v !== vt.value),
                       }))}
                     />
-                    {vt.label}
+                    <span className="min-w-0">{vt.label}</span>
                   </label>
                 ))}
               </div>

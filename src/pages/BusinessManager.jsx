@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { api } from "@/api/firebaseClient";
 import { useBusiness } from "@/lib/BusinessContext";
 import { createPageUrl } from "@/utils";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PlaceAutocomplete from "@/components/common/PlaceAutocomplete";
@@ -34,6 +35,7 @@ import {
   AlertCircle,
   Mail,
   Trash2,
+  Bell,
 } from "@/lib/icons";
 import { toast } from "sonner";
 
@@ -69,7 +71,6 @@ function StatCard({ icon: Icon, label, value }) {
 }
 
 export default function BusinessManager() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("info");
@@ -81,6 +82,12 @@ export default function BusinessManager() {
     latitude: null, longitude: null, photos: [],
     mpesa_till: "", mpesa_shortcode: "",
     members: [],
+    notifications: {
+      paymentConfirmations: true,
+      carReady: true,
+      dailySummary: true,
+      lowStockAlerts: true,
+    },
   });
   const [newMember, setNewMember] = useState({ email: "", role: "manager" });
 
@@ -153,6 +160,12 @@ export default function BusinessManager() {
         mpesa_till:      business.mpesa_till || "",
         mpesa_shortcode: business.mpesa_shortcode || "",
         members:         normalizeMembersFromBusiness(business),
+        notifications:   business.notifications || {
+          paymentConfirmations: true,
+          carReady: true,
+          dailySummary: true,
+          lowStockAlerts: true,
+        },
       });
     }
   }, [business]);
@@ -310,6 +323,7 @@ export default function BusinessManager() {
         mpesa_till:      form.mpesa_till,
         mpesa_shortcode: form.mpesa_shortcode,
         members:         form.members,
+        notifications:   form.notifications,
         member_emails:   form.members.map(m => m.email.toLowerCase()),
         admin_emails:    adminEmails,
         owner_email:     ownerEmails[0] || business.owner_email,
@@ -395,10 +409,11 @@ export default function BusinessManager() {
   };
 
   const sections = [
-    { id: "info",      label: "Business Info",  icon: Building2 },
-    { id: "team",      label: "Team",           icon: Users },
-    { id: "mpesa",     label: "M-Pesa",         icon: Phone },
-    { id: "locations", label: "My Locations",   icon: MapPin },
+    { id: "info",          label: "Business Info",  icon: Building2 },
+    { id: "team",          label: "Team",           icon: Users },
+    { id: "mpesa",         label: "M-Pesa",         icon: Phone },
+    { id: "notifications", label: "Notifications",  icon: Bell },
+    { id: "locations",     label: "My Locations",   icon: MapPin },
   ];
 
   return (
@@ -415,13 +430,6 @@ export default function BusinessManager() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(createPageUrl("Settings"))}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Full Settings
-          </Button>
           {activeSection !== "locations" && (
             <Button
               onClick={handleSave}
@@ -850,6 +858,48 @@ export default function BusinessManager() {
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
                 STK Push requires Daraja API credentials (Consumer Key, Secret, Passkey, Callback URL).
                 Contact support to configure these securely.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Notifications ───────────────────────────────── */}
+      {activeSection === "notifications" && (
+        <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle>Notification Preferences</CardTitle>
+            <CardDescription>Configure SMS, WhatsApp, and email notifications</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              {[
+                { key: "paymentConfirmations", label: "Payment Confirmations", desc: "Send SMS when payment is received" },
+                { key: "carReady",             label: "Car Ready Notifications", desc: "Notify customer when their car is done" },
+                { key: "dailySummary",         label: "Daily Summary", desc: "Send daily revenue report to owner" },
+                { key: "lowStockAlerts",       label: "Low Stock Alerts", desc: "Alert when inventory items are low" },
+              ].map((item) => (
+                <div key={item.key} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">{item.label}</p>
+                    <p className="text-sm text-slate-500">{item.desc}</p>
+                  </div>
+                  <Switch
+                    checked={!!form.notifications?.[item.key]}
+                    onCheckedChange={(v) => setForm((prev) => ({
+                      ...prev,
+                      notifications: { ...prev.notifications, [item.key]: v },
+                    }))}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">SMS & WhatsApp Integration</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                SMS notifications require Africa's Talking or Twilio integration.
+                WhatsApp Business API can be configured for automated messages.
               </p>
             </div>
           </CardContent>
