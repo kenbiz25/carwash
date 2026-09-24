@@ -27,7 +27,7 @@ import moment from "moment";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function WashCard({ wash, onStatusChange, onPayment, canManageWashes, onPause, onResume, onDelete, onFinishEntry }) {
+export default function WashCard({ wash, onStatusChange, onPayment, canManageWashes, onPause, onResume, onDelete, onFinishEntry, showStatus = false }) {
   const statusActions = {
     waiting: { label: "Start Washing", icon: Play, nextStatus: "washing" },
     washing: { label: "Mark Done", icon: CheckCircle, nextStatus: "done" },
@@ -50,6 +50,7 @@ export default function WashCard({ wash, onStatusChange, onPayment, canManageWas
             >
               {wash.plate_number}
             </Link>
+            {showStatus && <StatusBadge status={wash.status} />}
             {isPendingEntry && (
               <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0 text-[10px] px-1.5 py-0">
                 Needs Details

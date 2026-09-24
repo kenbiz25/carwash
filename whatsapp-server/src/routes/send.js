@@ -10,9 +10,13 @@ function mockWamid() {
 }
 
 // Body: either { to, message } for free-form text, or
-// { to, templateName, templateParams: [...] } for a template send.
+// { to, templateName, templateParams: [...], templateLanguage } for a
+// template send. templateLanguage defaults to "en" but must match whatever
+// language a given template was actually approved under in WhatsApp Manager
+// - Meta's own sample "hello_world" template specifically is "en_US", not
+// "en", which otherwise surfaces as an opaque Graph API error.
 router.post("/send", async (req, res) => {
-  const { to, message, templateName, templateParams, meta } = req.body || {};
+  const { to, message, templateName, templateParams, templateLanguage, meta } = req.body || {};
 
   if (!to || (!message && !templateName)) {
     return res.status(400).json({ error: "to, and either message or templateName, are required" });
@@ -29,7 +33,7 @@ router.post("/send", async (req, res) => {
     }
 
     const result = templateName
-      ? await sendTemplateMessage({ to, templateName, params: templateParams || [] })
+      ? await sendTemplateMessage({ to, templateName, languageCode: templateLanguage || undefined, params: templateParams || [] })
       : await sendTextMessage({ to, body: message });
 
     const record = recordMessage(result.wamid, {

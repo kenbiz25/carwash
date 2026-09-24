@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, RefreshCw, Car, Loader2, Calendar } from "@/lib/icons";
+import { Search, RefreshCw, Car, Loader2, Calendar, ClipboardList, Workflow, ChevronRight } from "@/lib/icons";
 import WashCard from "@/components/wash/WashCard";
 import QuickCheckIn from "@/components/wash/QuickCheckIn";
 import PaymentDialog from "@/components/payment/PaymentDialog";
@@ -27,11 +27,19 @@ const KANBAN_COLUMNS = [
   { key: "paused", label: "Paused", accent: "border-orange-200 dark:border-orange-900/50 bg-orange-50/60 dark:bg-orange-900/10" },
   { key: "done", label: "Done", accent: "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-900/10" },
   { key: "paid", label: "Paid", accent: "border-green-200 dark:border-green-900/50 bg-green-50/40 dark:bg-green-900/10" },
-  { key: "cancelled", label: "Cancelled", accent: "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40" },
+  // Not really a "next step" after Paid, so it gets a divider instead of a
+  // flow arrow before it - see the board render below.
+  { key: "cancelled", label: "Cancelled", accent: "border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40", divider: true },
 ];
+
+// List view's sort order - active work first, terminal states last, so the
+// jobs someone actually needs to act on aren't buried under a long paid
+// history.
+const STATUS_PRIORITY = { waiting: 0, washing: 1, paused: 2, done: 3, paid: 4, cancelled: 5 };
 
 export default function Washes() {
   const queryClient = useQueryClient();
+  const [view, setView] = useState("flow"); // "flow" | "list"
   const [searchQuery, setSearchQuery] = useState("");
   // Defaults to today so the board opens on what's actually happening right
   // now - "" means "all dates", for pulling up a past day's jobs.
@@ -171,6 +179,12 @@ export default function Washes() {
     washes: filteredWashes.filter((w) => w.status === col.key),
   }));
 
+  const listWashes = [...filteredWashes].sort((a, b) => {
+    const byStatus = (STATUS_PRIORITY[a.status] ?? 9) - (STATUS_PRIORITY[b.status] ?? 9);
+    if (byStatus !== 0) return byStatus;
+    return new Date(b.entry_time || b.created_date) - new Date(a.entry_time || a.created_date);
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -229,12 +243,36 @@ export default function Washes() {
               </Button>
             )}
           </div>
+
+          {/* View toggle - Flow reads as the wash journey (Waiting through
+              Paid); List is a flat, scannable fallback with no columns. */}
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg md:ml-auto">
+            <button
+              type="button"
+              onClick={() => setView("flow")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                view === "flow"
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <Workflow className="h-4 w-4" /> Flow
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                view === "list"
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <ClipboardList className="h-4 w-4" /> List
+            </button>
+          </div>
         </div>
       </Card>
 
-      {/* Kanban board - one column per status, sized to its own content so
-          a quiet queue (e.g. nothing washing right now) doesn't leave a
-          tall empty box the way a fixed-height column would. */}
       {filteredWashes.length === 0 ? (
         <Card className="p-8 text-center bg-white dark:bg-slate-800 border-0 shadow-sm">
           <Car className="h-10 w-10 mx-auto mb-3 text-slate-300" />
@@ -257,38 +295,83 @@ export default function Washes() {
             />
           )}
         </Card>
-      ) : (
-        <div className="flex gap-4 overflow-x-auto pb-2 items-start">
-          {columns.map((col) => (
-            <div
-              key={col.key}
-              className={`flex-shrink-0 w-[19rem] rounded-xl border ${col.accent} p-3`}
-            >
-              <div className="flex items-center justify-between mb-3 px-1">
-                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">{col.label}</h3>
-                <Badge variant="outline" className="bg-white/70 dark:bg-slate-900/40">{col.washes.length}</Badge>
-              </div>
-              {col.washes.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-3">Empty</p>
-              ) : (
-                <div className="space-y-3">
-                  {col.washes.map((wash) => (
-                    <WashCard
-                      key={wash.id}
-                      wash={wash}
-                      onStatusChange={handleStatusChange}
-                      onPayment={handlePayment}
-                      canManageWashes={canManageWashes}
-                      onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
-                      onResume={handleResume}
-                      onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
-                      onFinishEntry={handleFinishEntry}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+      ) : view === "list" ? (
+        /* List view - a flat, chronological fallback with no columns; each
+           card carries its own status badge since there's no column to
+           imply it. */
+        <div className="space-y-3">
+          {listWashes.map((wash) => (
+            <WashCard
+              key={wash.id}
+              wash={wash}
+              showStatus
+              onStatusChange={handleStatusChange}
+              onPayment={handlePayment}
+              canManageWashes={canManageWashes}
+              onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
+              onResume={handleResume}
+              onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
+              onFinishEntry={handleFinishEntry}
+            />
           ))}
+        </div>
+      ) : (
+        /* Flow view - one column per status, read left to right as the
+           wash's journey. Each column sizes to its own content: an empty
+           one collapses to a narrow label+count tile instead of reserving a
+           full card-width box, so a quiet queue doesn't push later stages
+           (e.g. Paid) off-screen. A chevron connects consecutive stages;
+           Cancelled isn't a "next step" from Paid, so it gets a divider
+           instead. */
+        <div className="flex gap-2 overflow-x-auto pb-2 items-start">
+          {columns.map((col, idx) => {
+            const isEmpty = col.washes.length === 0;
+            return (
+              <React.Fragment key={col.key}>
+                {idx > 0 && (col.divider ? (
+                  <div className="flex-shrink-0 self-stretch w-px bg-slate-200 dark:bg-slate-700 mx-1 mt-8" />
+                ) : (
+                  <ChevronRight className="flex-shrink-0 h-5 w-5 text-slate-300 dark:text-slate-600 mt-8" />
+                ))}
+                <div
+                  className={`flex-shrink-0 rounded-xl border ${col.accent} transition-all ${
+                    isEmpty ? "w-20 p-2 flex flex-col items-center gap-1.5" : "w-[19rem] p-3"
+                  }`}
+                >
+                  {isEmpty ? (
+                    <>
+                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 text-center leading-tight">
+                        {col.label}
+                      </span>
+                      <Badge variant="outline" className="bg-white/70 dark:bg-slate-900/40 text-[10px] px-1.5 py-0">0</Badge>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200">{col.label}</h3>
+                        <Badge variant="outline" className="bg-white/70 dark:bg-slate-900/40">{col.washes.length}</Badge>
+                      </div>
+                      <div className="space-y-3">
+                        {col.washes.map((wash) => (
+                          <WashCard
+                            key={wash.id}
+                            wash={wash}
+                            onStatusChange={handleStatusChange}
+                            onPayment={handlePayment}
+                            canManageWashes={canManageWashes}
+                            onPause={(w) => setReasonDialog({ wash: w, action: "pause" })}
+                            onResume={handleResume}
+                            onDelete={(w) => setReasonDialog({ wash: w, action: "delete" })}
+                            onFinishEntry={handleFinishEntry}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
       )}
 

@@ -49,6 +49,21 @@ app.use("/api/data", dataRoutes);
 app.use("/api/vision", visionRoutes);
 app.use("/api/public", publicTrackRoutes);
 
+// Safety net so every route (including anything a future one forgets its
+// own try/catch for) fails as JSON the frontend can parse and show, rather
+// than Express's default HTML error page - src/lib/localDb.js's requestJson
+// falls back to a useless generic message when the response body isn't
+// valid JSON, which is exactly what made failed uploads look silent before
+// this existed. Must be declared last, and after every app.use above -
+// Express only treats a 4-arg function as error-handling middleware.
+app.use((err, req, res, _next) => {
+  console.error(`[combined-server] ${req.method} ${req.originalUrl} failed:`, err);
+  if (err?.type === "entity.too.large") {
+    return res.status(413).json({ error: `Request body too large (limit ${err.limit} bytes) - likely too many/large photos in one save.` });
+  }
+  res.status(err?.status || err?.statusCode || 500).json({ error: err?.message || "Unexpected server error" });
+});
+
 async function start() {
   if (hasDbConfig) {
     await ensureSchema();

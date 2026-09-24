@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   ArrowLeft, Car, User, Clock, Banknote, Camera, Play, CheckCircle, X, Loader2, Phone,
-  Upload, Image, AlertTriangle, Star, Pause, Trash2, Printer, Edit
+  Upload, Image, AlertTriangle, Star, Pause, Trash2, Printer, Edit, Plus
 } from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -23,6 +23,7 @@ import moment from "moment";
 import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
 import { canManageBusiness } from "@/lib/permissions";
+import { getServicePrice, appliesToVehicle } from "@/lib/servicePricing";
 import { sendWashingStartedNotification, sendWashReadyNotification } from "@/components/notifications/NotificationService";
 
 export default function WashDetails() {
@@ -40,6 +41,8 @@ export default function WashDetails() {
   const [adjustedPrice, setAdjustedPrice] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [savingPriceAdjust, setSavingPriceAdjust] = useState(false);
+  const [addServiceOpen, setAddServiceOpen] = useState(false);
+  const [addingServiceId, setAddingServiceId] = useState(null);
 
   const urlParams = new URLSearchParams(window.location.search);
   const washId = urlParams.get("id");
@@ -70,6 +73,50 @@ export default function WashDetails() {
     },
     enabled: !!washId,
   });
+
+  // Manager+ only (canManageWashes) - lets a customer who accepts an upsell
+  // after check-in (e.g. while waiting or mid-wash) get it added without
+  // restarting the whole check-in flow. Fetches the full catalogue rather
+  // than reusing whatever EnhancedCheckIn last loaded, since this page can
+  // be reached directly (a bookmarked link, a notification) without ever
+  // going through check-in first.
+  const { data: catalogueServices = [] } = useQuery({
+    queryKey: ["services", wash?.business_id],
+    queryFn: () => api.entities.Service.filter({ business_id: wash.business_id }, "sort_order"),
+    enabled: !!wash?.business_id && canManageWashes,
+  });
+
+  const availableToAdd = catalogueServices.filter((svc) => {
+    if (svc.is_active === false) return false;
+    if (wash?.services?.some((s) => s.service_id === svc.id)) return false;
+    // Carpet jobs price their carpet items separately per m² (see
+    // EnhancedCheckIn.jsx) - only add-ons belong in the services list here,
+    // same restriction check-in itself applies.
+    if (wash?.type === "carpet") return svc.category === "add_on";
+    return appliesToVehicle(svc, wash?.vehicle_type);
+  });
+
+  const handleAddService = async (svc) => {
+    setAddingServiceId(svc.id);
+    try {
+      const price = getServicePrice(svc, wash.vehicle_type);
+      const updatedServices = [
+        ...(wash.services || []),
+        { service_id: svc.id, name: svc.name, category: svc.category, price, status: "pending" },
+      ];
+      const carpetTotal = wash.type === "carpet"
+        ? (wash.carpet_items || []).reduce((sum, i) => sum + (i.price || 0), 0)
+        : 0;
+      const amount_due = carpetTotal + updatedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+      await api.entities.Wash.update(washId, { services: updatedServices, amount_due });
+      toast.success(`${svc.name} added`);
+      refetch();
+    } catch (err) {
+      toast.error(err?.message || "Failed to add service");
+    } finally {
+      setAddingServiceId(null);
+    }
+  };
 
   const handleStatusChange = async (newStatus) => {
     const updateData = { status: newStatus };
@@ -215,7 +262,13 @@ export default function WashDetails() {
             price_adjusted_at: new Date().toISOString(),
           }
         : s);
-      const amount_due = updatedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+      // A carpet job's total also includes its per-item carpet prices (see
+      // handleAddService above) - dropping those here would silently zero
+      // them out of amount_due the next time any service price is adjusted.
+      const carpetTotal = wash.type === "carpet"
+        ? (wash.carpet_items || []).reduce((sum, i) => sum + (i.price || 0), 0)
+        : 0;
+      const amount_due = carpetTotal + updatedServices.reduce((sum, s) => sum + (s.price || 0), 0);
       await api.entities.Wash.update(washId, { services: updatedServices, amount_due });
       toast.success("Price updated");
       setPriceAdjustDialog(null);
@@ -369,8 +422,16 @@ export default function WashDetails() {
         <div className="lg:col-span-2 space-y-6">
           {/* Services Card with Individual Tracking */}
           <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle>{wash.type === "carpet" ? "Carpets & Add-Ons" : "Services"}</CardTitle>
+              {/* Manager+ only, and only while the job's still open - lets a
+                  customer who accepts an upsell after check-in get it added
+                  without restarting the whole flow. */}
+              {canManageWashes && wash.status !== "paid" && wash.status !== "cancelled" && wash.entry_status !== "pending" && (
+                <Button size="sm" variant="outline" onClick={() => setAddServiceOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Add Service
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {(wash.carpet_items?.length > 0 || wash.services?.length > 0) ? (
@@ -793,6 +854,46 @@ export default function WashDetails() {
               {savingPriceAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Price
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Service dialog - manager+ only, for an upsell accepted after
+          check-in. Stays open after each add so several can be added in one
+          go, same as the price-adjust dialogs elsewhere on this page close
+          only when the manager is actually done. */}
+      <Dialog open={addServiceOpen} onOpenChange={setAddServiceOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add a service</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {availableToAdd.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-6">
+                Nothing left to add - every applicable catalogue service is already on this job.
+              </p>
+            ) : (
+              availableToAdd.map((svc) => (
+                <button
+                  key={svc.id}
+                  type="button"
+                  disabled={!!addingServiceId}
+                  onClick={() => handleAddService(svc)}
+                  className="w-full flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-blue-mid text-left transition-colors disabled:opacity-50"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{svc.name}</p>
+                    <p className="text-xs text-slate-500">KES {(getServicePrice(svc, wash.vehicle_type) || 0).toLocaleString()}</p>
+                  </div>
+                  {addingServiceId === svc.id
+                    ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                    : <Plus className="h-4 w-4 text-slate-400" />}
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex justify-end mt-2">
+            <Button variant="outline" onClick={() => setAddServiceOpen(false)}>Done</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -161,11 +161,54 @@ const authModule = {
 // `files` store, so the returned URL is a plain string usable directly as an
 // <img src> or link, same as a Storage download URL was.
 
+// A raw phone-camera photo (often 3-8MB) sent as-is would base64-inflate by
+// ~33% and, for a wash's photos_before/photos_proof arrays specifically, get
+// re-sent in full on every subsequent save of that record (each PUT is a
+// full-record upsert, not a delta) - easily exceeding either the server's
+// request-body limit or MySQL's max_allowed_packet. Downscaling + re-encoding
+// as JPEG client-side keeps every photo well under those limits without
+// visibly hurting quality for what these are used for (proof-of-condition
+// photos, not print-quality images).
+const MAX_IMAGE_DIMENSION = 1600; // px, longest side
+const IMAGE_QUALITY = 0.75;
+
+function compressImage(file, maxDimension = MAX_IMAGE_DIMENSION, quality = IMAGE_QUALITY) {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        const scale = maxDimension / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not decode image for compression'));
+    };
+    img.src = objectUrl;
+  });
+}
+
 const integrationsModule = {
   Core: {
     async UploadFile({ file }) {
       if (!file) throw new Error('No file provided');
-      const dataUrl = await localDb.fileToDataUrl(file);
+      // Some formats a browser's <img>/canvas can't decode at all (e.g. an
+      // iPhone's HEIC before iOS's own "Most Compatible" JPEG setting) -
+      // fall back to the original, uncompressed file rather than fail the
+      // whole upload outright.
+      const dataUrl = file.type?.startsWith('image/')
+        ? await compressImage(file).catch(() => localDb.fileToDataUrl(file))
+        : await localDb.fileToDataUrl(file);
       await localDb.put('files', {
         id: newId(),
         name: file.name,

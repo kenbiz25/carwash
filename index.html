@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+    <!-- Google tag (gtag.js) and AdSense are intentionally NOT loaded here -
+         this index.html is shared by every route, including the
+         authenticated staff/manager dashboard, which shouldn't send
+         customer-traffic analytics or load ad scripts. Both are instead
+         loaded dynamically, only for public-facing pages (Landing, branch
+         pages, CustomerPortal, ...) - see src/lib/googleTags.js and
+         src/lib/NavigationTracker.jsx. GA4 measurement ID G-2P8489N3N7,
+         stream ID 15763233605; AdSense client ca-pub-5400975942684710. -->
+
     <title>BGO Shine Hub | Car Wash & Vehicle Care in Njiru, Nairobi</title>
     <meta name="description" content="BGO Shine Hub | Professional car wash, interior cleaning, engine greasing and air freshening in Njiru, Nairobi. Book a wash today.">
 

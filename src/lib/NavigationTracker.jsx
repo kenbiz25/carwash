@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { api } from '@/api/firebaseClient';
 import { pagesConfig } from '@/pages.config';
+import { PUBLIC_PAGES } from '@/lib/publicPages';
+import { loadGoogleTags, trackPageview } from '@/lib/googleTags';
 
 export default function NavigationTracker() {
     const location = useLocation();
@@ -35,6 +37,18 @@ export default function NavigationTracker() {
             api.appLogs.logUserInApp(pageName).catch(() => {
                 // Silently fail - logging shouldn't break the app
             });
+        }
+
+        // GA4 + AdSense only load for public-facing pages (the marketing
+        // site, branch pages, customer portal) - never for the authenticated
+        // staff/manager dashboard. A null pageName means the route didn't
+        // match any known internal page key, which is either a public
+        // per-branch page (/njiru, /kayole, ...) or a 404 - both public, in
+        // the sense that neither is gated by ProtectedRoute.
+        const isPublicPage = !pageName || PUBLIC_PAGES.has(pageName);
+        if (isPublicPage) {
+            loadGoogleTags();
+            trackPageview({ path: location.pathname + location.search, title: pageName || document.title });
         }
     }, [location, isAuthenticated, Pages, mainPageKey]);
 

@@ -76,4 +76,5 @@ export {
   Trash as Trash2,
   TrendUp as TrendingUp,
   WifiSlash as WifiOff,
+  FlowArrow as Workflow,
 } from "@phosphor-icons/react";

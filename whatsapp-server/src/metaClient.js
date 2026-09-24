@@ -66,7 +66,19 @@ export async function sendTemplateMessage({ to, templateName, languageCode = "en
 async function handleResponse(res) {
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.error?.message || `WhatsApp Cloud API request failed (${res.status})`);
+    // Meta's top-level `message` is often a generic "An unknown error has
+    // occurred" regardless of the real cause - code/error_subcode/fbtrace_id
+    // are what actually distinguish an expired token from a bad template
+    // name from a wrong phone_number_id, so surface those too instead of
+    // discarding them.
+    const err = data?.error || {};
+    const detail = [
+      err.message || `WhatsApp Cloud API request failed (${res.status})`,
+      err.code != null ? `code=${err.code}` : null,
+      err.error_subcode != null ? `subcode=${err.error_subcode}` : null,
+      err.fbtrace_id ? `fbtrace_id=${err.fbtrace_id}` : null,
+    ].filter(Boolean).join(" | ");
+    throw new Error(detail);
   }
   // Success shape: { messaging_product, contacts: [...], messages: [{ id }] }
   return { wamid: data?.messages?.[0]?.id, raw: data };

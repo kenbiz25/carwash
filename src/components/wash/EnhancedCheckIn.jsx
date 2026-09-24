@@ -18,6 +18,7 @@ import UpsellPrompt from "./UpsellPrompt";
 import { notifyInApp, sendCheckInConfirmation } from "@/components/notifications/NotificationService";
 import { scanVehiclePhoto } from "@/lib/visionClient";
 import { canManageBusiness } from "@/lib/permissions";
+import { getServicePrice, appliesToVehicle } from "@/lib/servicePricing";
 import VehicleIcon from "../common/VehicleIcon";
 
 const vehicleTypes = [
@@ -32,9 +33,16 @@ const vehicleTypes = [
   { value: "other", label: "Other" },
 ];
 
+// Roughly ordered by how common each make actually is on Kenyan roads -
+// Toyota/Nissan/Honda/Mazda/Subaru dominate used imports, Isuzu/Mitsubishi/
+// Tata/Scania/MAN cover the pickup-truck-matatu-bus end vehicle_type already
+// separates out, and Peugeot/Mahindra/Daihatsu are common enough here to
+// list explicitly rather than force everyone through "Other".
 const vehicleMakes = [
-  "Toyota", "Honda", "Nissan", "Mazda", "Subaru", "Mercedes", "BMW", "Volkswagen",
-  "Isuzu", "Mitsubishi", "Hyundai", "Kia", "Ford", "Land Rover", "Jeep", "Other"
+  "Toyota", "Nissan", "Honda", "Mazda", "Subaru", "Suzuki",
+  "Isuzu", "Mitsubishi", "Mercedes-Benz", "BMW", "Volkswagen", "Peugeot",
+  "Hyundai", "Kia", "Ford", "Land Rover", "Jeep", "Volvo", "Audi", "Lexus",
+  "Daihatsu", "Mahindra", "Tata", "Scania", "MAN", "Other"
 ];
 
 const serviceCategories = {
@@ -46,28 +54,6 @@ const serviceCategories = {
   add_on: "Add-Ons",
   package: "Packages"
 };
-
-// price_suv/price_van only mean "SUV/Van price" for a vehicle-tiered
-// service - for a per-unit or variant-priced one they mean something else
-// entirely (e.g. "Premium rate", "Option B"), so only substitute them when
-// the vehicle_type picked here actually applies. A service saved before
-// pricing_kind existed has no value for it, which always meant vehicle
-// tiers back then - default it that way, not to "flat" (see ProductCatalogue.jsx).
-const getServicePrice = (service, vehicleType) => {
-  const kind = service.pricing_kind || "vehicle";
-  if (kind !== "vehicle") return service.price_kes;
-  let price = service.price_kes;
-  if (vehicleType === "suv" && service.price_suv) price = service.price_suv;
-  if (["van", "truck", "tipper", "bus"].includes(vehicleType) && service.price_van) price = service.price_van;
-  return price;
-};
-
-// A service with no vehicle_types set applies to every vehicle (most add-ons
-// and engine/interior services aren't vehicle-size-specific) - one is only
-// excluded once it's been explicitly tagged and the current vehicle isn't in
-// that list, e.g. "Basic Wash (SUV)" shouldn't show up for a saloon.
-const appliesToVehicle = (service, vehicleType) =>
-  !service.vehicle_types?.length || service.vehicle_types.includes(vehicleType);
 
 const generateCarpetRef = () => {
   const d = new Date();
