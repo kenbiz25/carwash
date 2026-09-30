@@ -93,8 +93,8 @@ export default function PrivacyPolicy() {
           </Section>
 
           <Section title="6. Cookies and Tracking">
-            <p>We use browser local storage to remember your preferences (e.g., selected business, dark mode). We do not use tracking cookies for advertising purposes.</p>
-            <p>Our landing page may use Google Analytics to measure traffic patterns. Google Analytics data is aggregated and anonymised.</p>
+            <p>We use browser local storage to keep you signed in and remember your preferences (e.g., selected business, dark mode). These are needed for the app to work.</p>
+            <p>Our public pages (the landing page, branch pages and customer portal) may use Google Analytics to measure traffic patterns and Google AdSense to show ads. These only set cookies if you choose "Accept" in the cookie banner. If you choose "Decline", they run without cookies. To change your choice, clear this site's data in your browser and the banner will show again.</p>
           </Section>
 
           <Section title="7. Data Retention">

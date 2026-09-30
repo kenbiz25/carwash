@@ -8,3 +8,13 @@ RewriteCond %{REQUEST_FILENAME} !-d
 
 # Route everything else to index.html (React Router handles the rest)
 RewriteRule ^ index.html [QSA,L]
+
+# index.html (and every SPA route rewritten to it) is rechecked on each
+# visit, so a returning visitor always gets the latest deploy's chunk names.
+# The hashed files under /assets/ are cached long-term instead - see
+# assets/.htaccess.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

@@ -1,82 +1,44 @@
-﻿/**
+/**
  * pages.config.js - Page routing configuration
- * 
- * This file is AUTO-GENERATED. Do not add imports or modify PAGES manually.
- * Pages are auto-registered when you create files in the ./pages/ folder.
- * 
- * THE ONLY EDITABLE VALUE: mainPage
- * This controls which page is the landing page (shown when users visit the app).
- * 
- * Example file structure:
- * 
- *   import HomePage from './pages/HomePage';
- *   import Dashboard from './pages/Dashboard';
- *   import Settings from './pages/Settings';
- *   
- *   export const PAGES = {
- *       "HomePage": HomePage,
- *       "Dashboard": Dashboard,
- *       "Settings": Settings,
- *   }
- *   
- *   export const pagesConfig = {
- *       mainPage: "HomePage",
- *       Pages: PAGES,
- *   };
- * 
- * Example with Layout (wraps all pages):
  *
- *   import Home from './pages/Home';
- *   import Settings from './pages/Settings';
- *   import __Layout from './Layout.jsx';
+ * Every page is lazy-loaded (React.lazy) so a visitor only downloads the
+ * code for the page they open - the landing page no longer pulls in the
+ * dashboard, charts, maps, PDF/Excel export and so on. App.jsx wraps routes
+ * in <Suspense>. To add a page, add a lazy() line and a PAGES entry below.
  *
- *   export const PAGES = {
- *       "Home": Home,
- *       "Settings": Settings,
- *   }
- *
- *   export const pagesConfig = {
- *       mainPage: "Home",
- *       Pages: PAGES,
- *       Layout: __Layout,
- *   };
- *
- * To change the main page from HomePage to Dashboard, use find_replace:
- *   Old: mainPage: "HomePage",
- *   New: mainPage: "Dashboard",
- *
- * The mainPage value must match a key in the PAGES object exactly.
+ * mainPage controls which page is shown at "/". It must match a PAGES key.
  */
-import CCTV from './pages/CCTV';
-import Commissions from './pages/Commissions';
-import Login from './pages/Login';
-import CustomerPortal from './pages/CustomerPortal';
-import Dashboard from './pages/Dashboard';
-import Expenses from './pages/Expenses';
-import Help from './pages/Help';
-import Inventory from './pages/Inventory';
-import Landing from './pages/Landing';
-import Loyalty from './pages/Loyalty';
-import Memberships from './pages/Memberships';
-import Payments from './pages/Payments';
-import Profile from './pages/Profile';
-import Reports from './pages/Reports';
-import Services from './pages/Services';
-import Staff from './pages/Staff';
-import WashDetails from './pages/WashDetails';
-import Washes from './pages/Washes';
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import ProductCatalogue from './pages/ProductCatalogue';
-import BusinessManager from './pages/BusinessManager';
-import SuperAdminBusinessView from './pages/SuperAdminBusinessView';
-import JoinBusiness from './pages/JoinBusiness';
-import CustomerHistory from './pages/CustomerHistory';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import CreateBusiness from './pages/CreateBusiness';
-import TrackCar from './pages/TrackCar';
+import { lazy } from 'react';
 import __Layout from './Layout.jsx';
 
+const CCTV = lazy(() => import('./pages/CCTV'));
+const Commissions = lazy(() => import('./pages/Commissions'));
+const Login = lazy(() => import('./pages/Login'));
+const CustomerPortal = lazy(() => import('./pages/CustomerPortal'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Help = lazy(() => import('./pages/Help'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Loyalty = lazy(() => import('./pages/Loyalty'));
+const Memberships = lazy(() => import('./pages/Memberships'));
+const Payments = lazy(() => import('./pages/Payments'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Services = lazy(() => import('./pages/Services'));
+const Staff = lazy(() => import('./pages/Staff'));
+const WashDetails = lazy(() => import('./pages/WashDetails'));
+const Washes = lazy(() => import('./pages/Washes'));
+const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
+const ProductCatalogue = lazy(() => import('./pages/ProductCatalogue'));
+const BusinessManager = lazy(() => import('./pages/BusinessManager'));
+const SuperAdminBusinessView = lazy(() => import('./pages/SuperAdminBusinessView'));
+const JoinBusiness = lazy(() => import('./pages/JoinBusiness'));
+const CustomerHistory = lazy(() => import('./pages/CustomerHistory'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const CreateBusiness = lazy(() => import('./pages/CreateBusiness'));
+const TrackCar = lazy(() => import('./pages/TrackCar'));
 
 export const PAGES = {
     "CCTV": CCTV,

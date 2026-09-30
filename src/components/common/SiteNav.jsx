@@ -92,9 +92,22 @@ export default function SiteNav({ basePath = "" }) {
                 </>
               )}
             </div>
-            <Button variant="ghost" size="icon" className="lg:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X /> : <Menu />}
-            </Button>
+            {/* Login sits outside the hamburger on small screens too - visitors
+                (staff especially) weren't finding it tucked inside the menu. */}
+            <div className="flex lg:hidden items-center gap-2">
+              {isAuthenticated ? (
+                <Button size="sm" className="bg-brand-orange hover:bg-brand-orange-hot text-white" asChild>
+                  <Link to={createPageUrl("Dashboard")}>Dashboard</Link>
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="bg-transparent border-brand-blue-light/40 text-brand-blue-light hover:bg-brand-blue-light/10 hover:text-white" onClick={() => api.auth.redirectToLogin()}>
+                  Login
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="text-white" aria-label={mobileMenuOpen ? "Close menu" : "Open menu"} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                {mobileMenuOpen ? <X /> : <Menu />}
+              </Button>
+            </div>
           </div>
         </div>
 

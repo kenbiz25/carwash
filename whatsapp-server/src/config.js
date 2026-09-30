@@ -11,7 +11,9 @@ export const config = {
   businessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "",
   webhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "",
   port: Number(process.env.PORT) || 4031,
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5183",
+  // CORS origin parsing lives in index.js right next to where it's used
+  // (app.use(cors(...))), not here - keeping a single definition avoids the
+  // two silently drifting out of sync.
 };
 
 if (!config.isMock) {

@@ -29,7 +29,22 @@ const app = express();
 // is per-IP and would otherwise bucket every visitor together.
 app.set("trust proxy", true);
 
-app.use(cors({ origin: config.corsOrigin }));
+// Comma-separated - lets both the bare domain and its www subdomain (or any
+// other origin) through at once. The `cors` package accepts an array
+// natively and echoes back whichever entry matches the actual request; a
+// mismatch here isn't a server error, it's the browser silently blocking
+// the response, which the frontend then misreports as "can't reach the
+// server" (see src/lib/localDb.js) since a CORS-rejected fetch() throws the
+// same way a real network failure would. Ideally the second origin
+// shouldn't be needed at all (redirect www -> bare domain, or vice versa,
+// at the DNS/hosting level so there's one canonical URL) - this is a safety
+// net for whichever one isn't canonical.
+const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:5183")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: corsOrigins }));
 app.use(express.json({ limit: "15mb" })); // photo uploads are base64 data URLs embedded in records
 
 app.get("/health", (_req, res) => {
@@ -38,6 +53,7 @@ app.get("/health", (_req, res) => {
     whatsappEnv: config.whatsappEnv,
     adminConfigured: hasServiceAccount,
     dbConfigured: hasDbConfig,
+    corsOrigins,
   });
 });
 

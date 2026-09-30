@@ -34,7 +34,8 @@ import {
   Users,
   Search,
   X,
-  Loader2
+  Loader2,
+  Package
 } from "@/lib/icons";
 import moment from "moment";
 import jsPDF from "jspdf";
@@ -147,11 +148,15 @@ export default function Reports() {
     }).sort((a, b) => b.washes - a.washes);
   }, [staff, filteredWashes, servicesById, business?.commission_standards]);
 
-  // Service popularity
+  // Service popularity - "add_on" category items (air fresheners, and
+  // anything else that's a retail product sold alongside a wash rather than
+  // labor performed) are counted separately below instead, so the two don't
+  // double up against each other.
   const servicePopularity = useMemo(() => {
     const serviceCounts = {};
     filteredWashes.forEach(wash => {
       wash.services?.forEach(service => {
+        if (service.category === "add_on") return;
         const name = service.name || "Unknown";
         if (!serviceCounts[name]) {
           serviceCounts[name] = { count: 0, revenue: 0 };
@@ -165,6 +170,28 @@ export default function Reports() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
   }, [filteredWashes]);
+
+  // Add-on/product sales (air fresheners, etc.) - these are items sold to a
+  // customer, not a wash service performed, so they're reported separately
+  // from Popular Services above rather than blended into it. Not sliced to
+  // a top-5 like services since the add-on catalogue is typically small
+  // enough that "everything sold" is the useful view.
+  const productsSold = useMemo(() => {
+    const counts = {};
+    filteredWashes.forEach(wash => {
+      wash.services?.forEach(service => {
+        if (service.category !== "add_on") return;
+        const name = service.name || "Unknown";
+        if (!counts[name]) counts[name] = { count: 0, revenue: 0 };
+        counts[name].count++;
+        counts[name].revenue += service.price || 0;
+      });
+    });
+    return Object.entries(counts)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [filteredWashes]);
+  const productsSoldTotal = useMemo(() => productsSold.reduce((sum, p) => sum + p.revenue, 0), [productsSold]);
 
   // What was actually collected per wash, and by what method - a wash can
   // have more than one Payment attempt (a failed STK push retried as cash),
@@ -636,6 +663,52 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Products & Add-Ons Sold - retail items (air fresheners, etc.) sold
+          alongside a wash, kept separate from Popular Services above since
+          these are things sold to the customer rather than wash services
+          performed during the day. */}
+      <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-brand-orange" />
+            Products & Add-Ons Sold
+          </CardTitle>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {productsSold.length} item{productsSold.length === 1 ? "" : "s"} · KES {productsSoldTotal.toLocaleString()} collected
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead>Count</TableHead>
+                <TableHead>Revenue</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {productsSold.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-slate-500">
+                    No add-on products sold in this range
+                  </TableCell>
+                </TableRow>
+              ) : (
+                productsSold.map((product, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.count}</TableCell>
+                    <TableCell className="text-emerald-600">
+                      KES {product.revenue.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Wash Log - filterable, exportable one-view of business activity */}
       <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">

@@ -19,7 +19,8 @@ export const config = {
   syntheticEmailDomain: process.env.SYNTHETIC_EMAIL_DOMAIN || "users.bgoshinehub.internal",
   syntheticPhoneDomain: process.env.SYNTHETIC_PHONE_DOMAIN || "phone.bgoshinehub.internal",
   port: Number(process.env.PORT) || 4041,
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5183",
+  // CORS is set up once, in index.js, for the combined server - not per
+  // route group.
   // Where the shared business database lives - creating a business-scoped
   // login (owner/manager/cashier/staff) needs to add this person to that
   // business's own member list too, since that's what every page actually

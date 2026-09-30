@@ -1,0 +1,6 @@
+# Vite puts a content hash in every filename in this folder, so a file here
+# never changes once built - safe to cache for a year. A new deploy ships new
+# filenames, which index.html (never long-cached) points to.
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</IfModule>

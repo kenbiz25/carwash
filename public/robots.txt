@@ -14,20 +14,21 @@ Disallow: /Dashboard
 Disallow: /Washes
 Disallow: /WashDetails
 Disallow: /Payments
+Disallow: /Expenses
 Disallow: /Staff
 Disallow: /Services
 Disallow: /Inventory
 Disallow: /Reports
-Disallow: /Settings
 Disallow: /BusinessManager
+Disallow: /Commissions
 Disallow: /CCTV
 Disallow: /Memberships
 Disallow: /Loyalty
-Disallow: /JobOrders
 Disallow: /ProductCatalogue
 Disallow: /Profile
 Disallow: /Help
 Disallow: /CustomerHistory
+Disallow: /CreateBusiness
 Disallow: /SuperAdminDashboard
 Disallow: /SuperAdminBusinessView
 

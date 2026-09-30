@@ -379,7 +379,14 @@ apps can be decommissioned once the combined app is verified working.
 `.env.production` at the repo root already points the frontend's
 `VITE_*_API_URL` vars at these - update it if you use different
 subdomains/paths. The backend's own `.env` (not `env.example`) needs
-`CORS_ORIGIN=https://bgoshinehub.co.ke` in production.
+`CORS_ORIGIN=https://bgoshinehub.co.ke,https://www.bgoshinehub.co.ke` in
+production (comma-separated - `cors_ORIGIN` accepts more than one origin
+specifically so both the bare domain and its www subdomain work; a visitor
+who lands on whichever one isn't listed gets every request silently blocked
+by the browser's CORS policy, which shows up in the app as "Couldn't reach
+the data server" even though the server itself is fine). Prefer also
+redirecting one to the other at the DNS/hosting level so there's a single
+canonical URL - this is a safety net, not a substitute for that.
 
 For the MySQL side specifically: create the database and a user via
 cPanel's MySQL Database Wizard first (see `whatsapp-server/README.md` for

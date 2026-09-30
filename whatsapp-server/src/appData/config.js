@@ -10,7 +10,8 @@ export const config = {
   },
   projectId: process.env.FIREBASE_PROJECT_ID || "carwash-managerke",
   port: Number(process.env.PORT) || 4051,
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5183",
+  // CORS is set up once, in index.js, for the combined server - not per
+  // route group.
   // Off by default so a fresh production database stays genuinely empty -
   // set to "true" only for a throwaway QA/staging database where the demo
   // Njiru/Kayole/Utawala dataset is actually wanted.

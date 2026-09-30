@@ -23,27 +23,7 @@ import { motion } from "framer-motion";
 import { api } from "@/api/firebaseClient";
 import { WHATSAPP_BOOKING_URL, WHATSAPP_CONSULTATION_URL } from "@/lib/constants";
 import { PUBLIC_LOCATIONS } from "@/lib/publicLocations";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-// Fix default marker icons (Leaflet + bundler icon path issue)
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-// Custom orange marker for map pins
-const orangeIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+import LazyLocationMap from "@/components/common/LazyLocationMap";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -599,33 +579,27 @@ export default function Landing() {
           )}
 
           <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200" style={{ height: 480 }}>
-            <MapContainer
+            <LazyLocationMap
               center={[-1.2668, 36.9257]}
               zoom={12}
-              style={{ height: "100%", width: "100%" }}
-              scrollWheelZoom={false}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {mapBusinesses.map((biz) => (
-                <Marker key={biz.id} position={[biz.latitude, biz.longitude]} icon={orangeIcon}>
-                  <Popup>
-                    <div className="text-sm min-w-[140px]">
-                      <p className="font-semibold text-brand-blue-mid">{biz.name}</p>
-                      {biz.city && <p className="text-slate-500">{biz.city}</p>}
-                      {biz.phone && <p className="text-slate-500">📞 {biz.phone}</p>}
-                      {biz.slug && (
-                        <Link to={`/${biz.slug}`} className="text-brand-orange font-medium mt-1 inline-block hover:underline">
-                          View branch page →
-                        </Link>
-                      )}
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+              orange
+              markers={mapBusinesses.map((biz) => ({
+                id: biz.id,
+                position: [biz.latitude, biz.longitude],
+                popup: (
+                  <div className="text-sm min-w-[140px]">
+                    <p className="font-semibold text-brand-blue-mid">{biz.name}</p>
+                    {biz.city && <p className="text-slate-500">{biz.city}</p>}
+                    {biz.phone && <p className="text-slate-500">📞 {biz.phone}</p>}
+                    {biz.slug && (
+                      <Link to={`/${biz.slug}`} className="text-brand-orange font-medium mt-1 inline-block hover:underline">
+                        View branch page →
+                      </Link>
+                    )}
+                  </div>
+                ),
+              }))}
+            />
           </div>
 
           <p className="text-center text-sm text-slate-400 mt-4">

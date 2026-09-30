@@ -6,16 +6,7 @@ import PhotoGalleryFan from "@/components/common/PhotoGalleryFan";
 import PhotoGallerySpotlight from "@/components/common/PhotoGallerySpotlight";
 import { Button } from "@/components/ui/button";
 import { MapPin, Phone, MessageCircle, Navigation, Clock } from "@/lib/icons";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import LazyLocationMap from "@/components/common/LazyLocationMap";
 
 export default function BranchPage() {
   const { slug } = useParams();
@@ -103,15 +94,11 @@ export default function BranchPage() {
 
         {business.latitude && business.longitude && (
           <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200" style={{ height: 280 }}>
-            <MapContainer center={[business.latitude, business.longitude]} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <Marker position={[business.latitude, business.longitude]}>
-                <Popup>{business.name}</Popup>
-              </Marker>
-            </MapContainer>
+            <LazyLocationMap
+              center={[business.latitude, business.longitude]}
+              zoom={14}
+              markers={[{ id: business.slug || "branch", position: [business.latitude, business.longitude], popup: business.name }]}
+            />
           </div>
         )}
       </div>

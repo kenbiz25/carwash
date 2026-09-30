@@ -9,8 +9,12 @@ import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { BusinessProvider } from "@/lib/BusinessContext";
 import ErrorBoundary from "@/lib/ErrorBoundary";
-import BranchPage from "@/pages/BranchPage";
+import { Suspense, lazy } from "react";
 import { PUBLIC_PAGES } from "@/lib/publicPages";
+import CookieConsent from "@/components/common/CookieConsent";
+
+// Lazy like every page in pages.config - it pulls in Leaflet for its map.
+const BranchPage = lazy(() => import("@/pages/BranchPage"));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -25,8 +29,18 @@ const FullScreenLoader = () => (
   </div>
 );
 
-const LayoutWrapper = ({ children, currentPageName }) =>
-  Layout ? <Layout currentPageName={currentPageName}>{children}</Layout> : <>{children}</>;
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+  </div>
+);
+
+// Suspense inside the layout so the sidebar/top bar stay put while the next
+// page's code downloads, instead of the whole screen blanking.
+const LayoutWrapper = ({ children, currentPageName }) => {
+  const page = <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+  return Layout ? <Layout currentPageName={currentPageName}>{page}</Layout> : page;
+};
 
 const ProtectedRoute = ({ children, pageName }) => {
   const { isAuthenticated, isLoadingAuth } = useAuth();
@@ -61,7 +75,10 @@ const AuthenticatedApp = () => {
 
   if (isLoadingAuth) return <FullScreenLoader />;
 
+  // Pages are lazy-loaded (see pages.config.js) - show the same spinner
+  // while a page's code downloads.
   return (
+    <Suspense fallback={<FullScreenLoader />}>
     <Routes>
       <Route
         path="/"
@@ -107,6 +124,7 @@ const AuthenticatedApp = () => {
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 
@@ -119,6 +137,7 @@ function App() {
             <Router>
               <NavigationTracker />
               <AuthenticatedApp />
+              <CookieConsent />
             </Router>
 
             <Toaster />

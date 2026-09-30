@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Car, User, Clock, Banknote, Camera, Play, CheckCircle, X, Loader2, Phone,
   Upload, Image, AlertTriangle, Star, Pause, Trash2, Printer, Edit, Plus
@@ -24,7 +25,8 @@ import { toast } from "sonner";
 import { useBusiness } from "@/lib/BusinessContext";
 import { canManageBusiness } from "@/lib/permissions";
 import { getServicePrice, appliesToVehicle } from "@/lib/servicePricing";
-import { sendWashingStartedNotification, sendWashReadyNotification } from "@/components/notifications/NotificationService";
+import { washEditForm, buildWashEdit } from "@/lib/washEdits";
+import { sendWashingStartedNotification, sendWashReadyNotification, notifyInApp } from "@/components/notifications/NotificationService";
 
 export default function WashDetails() {
   const queryClient = useQueryClient();
@@ -43,6 +45,9 @@ export default function WashDetails() {
   const [savingPriceAdjust, setSavingPriceAdjust] = useState(false);
   const [addServiceOpen, setAddServiceOpen] = useState(false);
   const [addingServiceId, setAddingServiceId] = useState(null);
+  const [editForm, setEditForm] = useState(null); // editable detail fields | null
+  const [editReason, setEditReason] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const washId = urlParams.get("id");
@@ -83,6 +88,14 @@ export default function WashDetails() {
   const { data: catalogueServices = [] } = useQuery({
     queryKey: ["services", wash?.business_id],
     queryFn: () => api.entities.Service.filter({ business_id: wash.business_id }, "sort_order"),
+    enabled: !!wash?.business_id && canManageWashes,
+  });
+
+  // Manager+ only (canManageWashes) - for correcting a plate keyed in wrong
+  // or reassigning the job when the washer changes partway through.
+  const { data: staff = [] } = useQuery({
+    queryKey: ["staff", wash?.business_id],
+    queryFn: () => api.entities.Staff.filter({ business_id: wash.business_id }),
     enabled: !!wash?.business_id && canManageWashes,
   });
 
@@ -278,6 +291,48 @@ export default function WashDetails() {
     }
   };
 
+  // Manager+ only (canManageWashes) - corrects details captured at check-in
+  // (a mistyped plate, a washer swapped mid-job). See lib/washEdits.js for
+  // the diff and edit_history audit trail.
+  const openEditDetails = () => {
+    setEditForm(washEditForm(wash));
+    setEditReason("");
+  };
+
+  const handleSaveEdit = async () => {
+    const { error, updateData, staffChanged, staffMember, plate } = buildWashEdit({
+      wash, form: editForm, staff, reason: editReason, editedBy: user?.email || "",
+    });
+    if (error) { toast.error(error); return; }
+    if (!updateData) { setEditForm(null); return; }
+
+    setSavingEdit(true);
+    try {
+      await api.entities.Wash.update(washId, updateData);
+
+      // Same heads-up the washer gets at check-in, so a mid-job reassignment
+      // doesn't leave the new person unaware the car is theirs now.
+      if (staffChanged && staffMember?.user_email && !["paid", "cancelled"].includes(wash.status)) {
+        notifyInApp({
+          businessId: wash.business_id,
+          recipientEmails: [staffMember.user_email],
+          title: "Job reassigned to you",
+          message: `${plate} - ${(wash.services || []).map((s) => s.name).join(", ")}`,
+          referenceType: "wash",
+          referenceId: washId,
+        }).catch(() => {});
+      }
+
+      toast.success("Wash details updated");
+      setEditForm(null);
+      refetch();
+    } catch (err) {
+      toast.error(err?.message || "Failed to update wash");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -332,8 +387,13 @@ export default function WashDetails() {
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
-          <Button 
-            variant="outline" 
+          {canManageWashes && wash.status !== "cancelled" && (
+            <Button variant="outline" onClick={openEditDetails}>
+              <Edit className="h-4 w-4 mr-2" />Edit Details
+            </Button>
+          )}
+          <Button
+            variant="outline"
             onClick={() => { setPhotoType("after"); setSelectedServiceId(null); setPhotoDialogOpen(true); }}
           >
             <Camera className="h-4 w-4 mr-2" />
@@ -697,6 +757,32 @@ export default function WashDetails() {
             </CardContent>
           </Card>
 
+          {/* Edit history - corrections made after check-in */}
+          {wash.edit_history?.length > 0 && (
+            <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
+              <CardHeader><CardTitle className="flex items-center gap-2"><Edit className="h-5 w-5 text-slate-500" />Edit History</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {[...wash.edit_history].reverse().map((entry, i) => (
+                    <div key={i} className="text-sm border-l-2 border-slate-200 dark:border-slate-700 pl-3">
+                      {entry.changes?.map((c, j) => (
+                        <p key={j}>
+                          <span className="text-slate-500">{c.label}:</span>{" "}
+                          <span className="line-through text-slate-400">{c.from || "-"}</span>{" "}
+                          → <span className="font-medium">{c.to || "-"}</span>
+                        </p>
+                      ))}
+                      {entry.reason && <p className="text-xs text-slate-500 mt-1">"{entry.reason}"</p>}
+                      <p className="text-xs text-slate-400 mt-1">
+                        by {entry.edited_by || "unknown"} - {moment(entry.edited_at).format("MMM D, h:mm A")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Payment Info */}
           {payment && (
             <Card className="bg-white dark:bg-slate-800 border-0 shadow-sm">
@@ -853,6 +939,100 @@ export default function WashDetails() {
             <Button onClick={handleSavePriceAdjust} disabled={savingPriceAdjust}>
               {savingPriceAdjust && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Price
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit details dialog - manager+ only, for correcting check-in details */}
+      <Dialog open={!!editForm} onOpenChange={(open) => { if (!open) setEditForm(null); }}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit wash details</DialogTitle>
+          </DialogHeader>
+          {editForm && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>{wash.type === "carpet" ? "Reference" : "Plate Number"}</Label>
+                <Input
+                  value={editForm.plate_number}
+                  onChange={(e) => setEditForm((f) => ({ ...f, plate_number: e.target.value }))}
+                  className={wash.type === "carpet" ? "" : "uppercase font-mono"}
+                  autoFocus
+                />
+              </div>
+              {wash.type !== "carpet" && (
+                <div className="grid grid-cols-3 gap-2">
+                  {[["vehicle_make", "Make"], ["vehicle_model", "Model"], ["vehicle_color", "Color"]].map(([key, label]) => (
+                    <div key={key} className="space-y-2">
+                      <Label>{label}</Label>
+                      <Input value={editForm[key]} onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Customer Name</Label>
+                  <Input value={editForm.customer_name} onChange={(e) => setEditForm((f) => ({ ...f, customer_name: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Customer Phone</Label>
+                  <Input value={editForm.customer_phone} onChange={(e) => setEditForm((f) => ({ ...f, customer_phone: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Assigned Staff</Label>
+                  <Select
+                    value={editForm.assigned_staff_id}
+                    onValueChange={(value) => setEditForm((f) => ({ ...f, assigned_staff_id: value }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
+                    <SelectContent>
+                      {/* Keep the current assignee listed even if since deactivated,
+                          so the select doesn't show blank for an old job. */}
+                      {staff
+                        .filter((s) => s.is_active !== false || s.id === wash.assigned_staff_id)
+                        .map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name} ({member.role})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Bay / Station</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={editForm.bay_number}
+                    onChange={(e) => setEditForm((f) => ({ ...f, bay_number: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Reason (optional)</Label>
+                <Textarea
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="e.g. Plate keyed in wrong, washer swapped mid-job..."
+                  rows={2}
+                />
+              </div>
+              {wash.status === "paid" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  This wash is already paid - changing the staff moves its commission to the new person.
+                </p>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setEditForm(null)} disabled={savingEdit}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
             </Button>
           </div>
         </DialogContent>
